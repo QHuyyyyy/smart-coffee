@@ -1,4 +1,14 @@
 import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil, Trash2 } from "lucide-react";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationPrevious,
+    PaginationNext,
+    PaginationEllipsis,
+} from "@/components/ui/pagination";
+import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 
 const recipes = [
     {
@@ -101,36 +111,36 @@ export function Recipes() {
                     {/* Table */}
                     <div className="px-6 py-4">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead>
-                                    <tr className="text-xs font-medium uppercase text-[#A7968D]">
-                                        <th className="py-3">Code</th>
-                                        <th className="py-3">Image</th>
-                                        <th className="py-3">Recipe Name</th>
-                                        <th className="py-3">Ingredient</th>
-                                        <th className="py-3 text-right">Cost</th>
-                                        <th className="py-3 text-right">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-transparent">
+                                        <TableHead>Code</TableHead>
+                                        <TableHead>Image</TableHead>
+                                        <TableHead>Recipe Name</TableHead>
+                                        <TableHead>Ingredient</TableHead>
+                                        <TableHead className="text-right">Cost</TableHead>
+                                        <TableHead className="text-right">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
                                     {recipes.map((recipe) => (
-                                        <tr key={recipe.code} className="border-t border-[#F1E8E2] hover:bg-[#F9F5F2]">
-                                            <td className="py-3 align-middle text-[#573E32]">{recipe.code}</td>
-                                            <td className="py-3 align-middle">
+                                        <TableRow key={recipe.code}>
+                                            <TableCell>{recipe.code}</TableCell>
+                                            <TableCell>
                                                 <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${recipe.iconBg}`}>
                                                     <Coffee size={18} className="text-[#573E32]" />
                                                 </div>
-                                            </td>
-                                            <td className="py-3 align-middle">
+                                            </TableCell>
+                                            <TableCell>
                                                 <span className="font-medium text-[#573E32]">{recipe.name}</span>
-                                            </td>
-                                            <td className="py-3 align-middle max-w-xs">
+                                            </TableCell>
+                                            <TableCell className="max-w-xs">
                                                 <p className="truncate text-[#707070]">{recipe.ingredients}</p>
-                                            </td>
-                                            <td className="py-3 align-middle text-right font-medium text-[#573E32]">
+                                            </TableCell>
+                                            <TableCell className="text-right font-medium text-[#573E32]">
                                                 {recipe.price}
-                                            </td>
-                                            <td className="py-3 align-middle">
+                                            </TableCell>
+                                            <TableCell>
                                                 <div className="flex justify-end gap-2 text-[#B0A49E]">
                                                     <button className="hover:text-[#573E32]" aria-label="View">
                                                         <Eye size={16} />
@@ -142,23 +152,41 @@ export function Recipes() {
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
-                                            </td>
-                                        </tr>
+                                            </TableCell>
+                                        </TableRow>
                                     ))}
-                                </tbody>
-                            </table>
+                                </TableBody>
+                            </Table>
                         </div>
 
                         {/* Pagination */}
-                        <div className="mt-4 flex flex-col gap-3 items-start justify-between text-xs text-[#707070] sm:flex-row sm:items-center">
+                        <div className="mt-4 flex flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
                             <p>Showing 1 to 7 of 24 entries</p>
-                            <div className="inline-flex items-center gap-1 rounded-full border border-[#E0D5D0] bg-white px-2 py-1">
-                                <button className="px-2 py-1 rounded-full hover:bg-[#F5F3F1]">Previous</button>
-                                <button className="px-3 py-1 rounded-full bg-[#573E32] text-white text-xs">1</button>
-                                <button className="px-3 py-1 rounded-full hover:bg-[#F5F3F1]">2</button>
-                                <button className="px-3 py-1 rounded-full hover:bg-[#F5F3F1]">3</button>
-                                <span className="px-2">...</span>
-                                <button className="px-2 py-1 rounded-full hover:bg-[#F5F3F1]">Next</button>
+                            <div className="sm:ml-auto">
+                                <Pagination className="w-auto mx-0 justify-end">
+                                    <PaginationContent>
+                                        <PaginationItem>
+                                            <PaginationPrevious href="#" />
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationLink href="#" isActive>
+                                                1
+                                            </PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationLink href="#">2</PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationLink href="#">3</PaginationLink>
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationEllipsis />
+                                        </PaginationItem>
+                                        <PaginationItem>
+                                            <PaginationNext href="#" />
+                                        </PaginationItem>
+                                    </PaginationContent>
+                                </Pagination>
                             </div>
                         </div>
                     </div>

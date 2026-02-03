@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, ShoppingCart, Truck, CreditCard, Package, Settings } from 'lucide-react';
+import { ChevronLeft, Home, ShoppingCart, Truck, CreditCard, Package, Settings, Coffee } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 
@@ -7,7 +7,8 @@ export function Sidebar() {
     const location = useLocation();
 
     const menuItems = [
-        { icon: Home, label: 'Home', href: '/' },
+        { icon: Home, label: 'Home', href: '/dashboard' },
+        { icon: Coffee, label: 'Recipes', href: '/recipes' },
         { icon: ShoppingCart, label: 'Orders', href: '/orders' },
         { icon: Truck, label: 'Shipping', href: '/shipping' },
         { icon: CreditCard, label: 'Payment', href: '/payment' },
@@ -77,16 +78,13 @@ export function Sidebar() {
             {/* Footer */}
             <div className="absolute bottom-4 left-4 right-4 border-t border-[#E0D5D0] pt-4">
                 <Link
-                    to="/settings"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive('/settings')
-                        ? 'bg-[#573E32] text-white'
-                        : 'text-[#573E32] hover:bg-black/5'
-                        }`}
-                    title={isCollapsed ? 'Settings' : ''}
+                    to="/"
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-[#573E32] hover:bg-black/5"
+                    title={isCollapsed ? 'Logout' : ''}
                 >
                     <Settings size={20} className="flex-shrink-0" />
                     {!isCollapsed && (
-                        <span className="text-sm font-medium leading-normal">Settings</span>
+                        <span className="text-sm font-medium leading-normal">Logout</span>
                     )}
                 </Link>
             </div>

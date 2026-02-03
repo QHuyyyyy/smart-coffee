@@ -8,12 +8,7 @@ export function Header() {
     return (
         <header className={`fixed top-0 right-0 h-20 bg-[#F9F9F9] border-b border-[#EFEAE5] px-10 py-5 flex items-center justify-between z-30 transition-all duration-300 ${sidebarWidth}`}>
             <div className="flex flex-col items-start gap-1">
-                <h1 className="text-2xl font-bold leading-tight tracking-[-0.015em] text-[#1F1F1F]">
-                    Account Balance
-                </h1>
-                <p className="text-base font-normal text-[#707070]">
-                    Manage your balance and bank accounts
-                </p>
+
             </div>
 
             <div className="flex items-center gap-6">
