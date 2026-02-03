@@ -9,6 +9,7 @@ export function Sidebar() {
     const menuItems = [
         { icon: Home, label: 'Home', href: '/dashboard' },
         { icon: Coffee, label: 'Recipes', href: '/recipes' },
+        { icon: Coffee, label: 'Coffee Shop', href: '/coffee-shop' },
         { icon: ShoppingCart, label: 'Orders', href: '/orders' },
         { icon: Truck, label: 'Shipping', href: '/shipping' },
         { icon: CreditCard, label: 'Payment', href: '/payment' },
@@ -27,15 +28,9 @@ export function Sidebar() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-[#E0D5D0] h-20">
                 {!isCollapsed && (
-                    <div className="flex items-center gap-3">
-                        <div
-                            className="w-10 h-10 rounded-full bg-center bg-no-repeat bg-cover flex-shrink-0"
-                            style={{
-                                backgroundImage:
-                                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAvK60x1CZwyJP76b6CTyDK85FEcicxzqJ44NFpsuQQEzPnpx6Yxn5APQmIFZi48Siyh9DWdRA9pU0rWEjcUlkUqJq0F6I3xalEq5DXktOu_nNqMtWFid1gg8L3Fu12vpCO5lCZ_heHI6r73VOn01WjqKlikv2J6Ne5xpFUzHX4Z1KT6eM9EaxOu4R-EKDABNJJmUCvUC4by9M2gzZ7HUVMvfrLN88yKGRi_LrClDG8takTyJeA4w6e9Va49hoVeEZFHeFjPKEPws0")',
-                            }}
-                        />
-                        <h1 className="text-lg font-bold text-[#573E32] whitespace-nowrap">SmartCoffee</h1>
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-[#4b2c20] text-3xl">coffee</span>
+                        <span className="text-2xl font-bold text-[#4b2c20] tracking-tight">SmartCoffee</span>
                     </div>
                 )}
                 <button

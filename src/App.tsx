@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { Recipes } from './pages/Recipes';
+import { RecipeDetail } from './pages/RecipeDetail';
+import { CoffeeShopPage } from './pages/CoffeeShop';
 import { LoginPage } from './pages/LoginPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import './App.css';
@@ -27,6 +29,24 @@ function App() {
                 element={(
                     <Layout>
                         <Recipes />
+                    </Layout>
+                )}
+            />
+
+            <Route
+                path="/recipes/:id"
+                element={(
+                    <Layout>
+                        <RecipeDetail />
+                    </Layout>
+                )}
+            />
+
+            <Route
+                path="/coffee-shop"
+                element={(
+                    <Layout>
+                        <CoffeeShopPage />
                     </Layout>
                 )}
             />

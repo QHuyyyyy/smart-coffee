@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil, Trash2 } from "lucide-react";
 import {
     Pagination,
@@ -9,60 +11,45 @@ import {
     PaginationEllipsis,
 } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
+import { recipeService } from "@/apis/recipe.service";
 
-const recipes = [
-    {
-        code: "#RCP-001",
-        name: "Classic Espresso",
-        ingredients: "Coffee Beans, Hot Water",
-        price: "$2.50",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-002",
-        name: "Cappuccino",
-        ingredients: "Espresso, Steamed Milk, Foam",
-        price: "$3.75",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-003",
-        name: "Caffe Latte",
-        ingredients: "Espresso, Steamed Milk",
-        price: "$4.00",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-004",
-        name: "Mocha",
-        ingredients: "Espresso, Chocolate Syrup, Milk",
-        price: "$4.50",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-005",
-        name: "Affogato",
-        ingredients: "Vanilla Gelato, Hot Espresso",
-        price: "$5.00",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-006",
-        name: "Americano",
-        ingredients: "Espresso, Hot Water",
-        price: "$3.00",
-        iconBg: "bg-[#F2E6DA]",
-    },
-    {
-        code: "#RCP-007",
-        name: "Flat White",
-        ingredients: "Espresso, Microfoam",
-        price: "$3.80",
-        iconBg: "bg-[#F2E6DA]",
-    },
-];
+type Recipe = {
+    recipeId: number;
+    recipeName: string;
+    image: string | null;
+    flavorNote: string | null;
+    proposedSellingPrice: number | null;
+};
 
 export function Recipes() {
+    const navigate = useNavigate();
+    const [recipes, setRecipes] = useState<Recipe[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchRecipes = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const response = await recipeService.getAllRecipes();
+                const data = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+                setRecipes(data as Recipe[]);
+            } catch (err) {
+                setError("Không tải được danh sách recipe");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchRecipes();
+    }, []);
+
+    const formatPrice = (value: number | null) => {
+        if (!value || Number.isNaN(value)) return "-";
+        return `${value.toLocaleString("vi-VN")}₫`;
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -110,6 +97,9 @@ export function Recipes() {
 
                     {/* Table */}
                     <div className="px-6 py-4">
+                        {error && (
+                            <p className="mb-2 text-xs text-red-500">{error}</p>
+                        )}
                         <div className="overflow-x-auto">
                             <Table>
                                 <TableHeader>
@@ -117,32 +107,44 @@ export function Recipes() {
                                         <TableHead>Code</TableHead>
                                         <TableHead>Image</TableHead>
                                         <TableHead>Recipe Name</TableHead>
-                                        <TableHead>Ingredient</TableHead>
+                                        <TableHead>Flavor Note</TableHead>
                                         <TableHead className="text-right">Cost</TableHead>
                                         <TableHead className="text-right">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {recipes.map((recipe) => (
-                                        <TableRow key={recipe.code}>
-                                            <TableCell>{recipe.code}</TableCell>
+                                    {!loading && recipes.map((recipe) => (
+                                        <TableRow key={recipe.recipeId}>
+                                            <TableCell>#{recipe.recipeId}</TableCell>
                                             <TableCell>
-                                                <div className={`h-9 w-9 rounded-lg flex items-center justify-center ${recipe.iconBg}`}>
-                                                    <Coffee size={18} className="text-[#573E32]" />
-                                                </div>
+                                                {recipe.image ? (
+                                                    <img
+                                                        src={recipe.image}
+                                                        alt={recipe.recipeName}
+                                                        className="h-15 w-15     rounded-lg object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="h-15 w-15 rounded-lg flex items-center justify-center bg-[#F2E6DA]">
+                                                        <Coffee size={18} className="text-[#573E32]" />
+                                                    </div>
+                                                )}
                                             </TableCell>
                                             <TableCell>
-                                                <span className="font-medium text-[#573E32]">{recipe.name}</span>
+                                                <span className="font-medium text-[#573E32]">{recipe.recipeName}</span>
                                             </TableCell>
                                             <TableCell className="max-w-xs">
-                                                <p className="truncate text-[#707070]">{recipe.ingredients}</p>
+                                                <p className="truncate text-[#707070]">{recipe.flavorNote}</p>
                                             </TableCell>
                                             <TableCell className="text-right font-medium text-[#573E32]">
-                                                {recipe.price}
+                                                {formatPrice(recipe.proposedSellingPrice)}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex justify-end gap-2 text-[#B0A49E]">
-                                                    <button className="hover:text-[#573E32]" aria-label="View">
+                                                    <button
+                                                        className="hover:text-[#573E32]"
+                                                        aria-label="View"
+                                                        onClick={() => navigate(`/recipes/${recipe.recipeId}`)}
+                                                    >
                                                         <Eye size={16} />
                                                     </button>
                                                     <button className="hover:text-[#573E32]" aria-label="Edit">
@@ -155,6 +157,13 @@ export function Recipes() {
                                             </TableCell>
                                         </TableRow>
                                     ))}
+                                    {loading && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="py-6 text-center text-[#707070]">
+                                                Đang tải danh sách recipe...
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
