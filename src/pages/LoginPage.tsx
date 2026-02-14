@@ -1,16 +1,29 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
 import { AuthField } from "@/components/auth/AuthField";
 import { Button } from "@/components/ui/button";
-
+import { useAuthStore } from "../stores/auth.store"
+import { toast } from "sonner";
 export function LoginPage() {
     const navigate = useNavigate();
+    const { login, isLoading, error } = useAuthStore();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
+    const [rememberMe, setRememberMe] = useState(false);
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        navigate("/dashboard");
+
+        try {
+            await login({ email, password });
+            navigate("/dashboard");
+        } catch (err: Error | any) {
+            toast.error("Login failed:", err);
+        }
     };
 
     return (
@@ -31,11 +44,19 @@ export function LoginPage() {
                 <AuthTabs active="signin" />
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
+                    {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
+                            {error}
+                        </div>
+                    )}
+
                     <AuthField
                         id="email"
                         label="Email or Phone Number"
-                        placeholder="Enter your email "
+                        placeholder="Enter your email"
                         type="text"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                     />
 
                     <div className="space-y-2">
@@ -46,14 +67,19 @@ export function LoginPage() {
                             <AuthField
                                 id="password"
                                 label=""
-                                type="password"
+                                type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
                             />
                             <button
                                 type="button"
+                                onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#4b2c20] transition-colors"
                             >
-                                <span className="material-symbols-outlined text-[22px]">visibility_off</span>
+                                <span className="material-symbols-outlined text-[22px]">
+                                    {showPassword ? "visibility" : "visibility_off"}
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -62,6 +88,8 @@ export function LoginPage() {
                         <label className="flex items-center gap-3 cursor-pointer">
                             <input
                                 type="checkbox"
+                                checked={rememberMe}
+                                onChange={(e) => setRememberMe(e.target.checked)}
                                 className="w-5 h-5 rounded-md border-slate-300 text-[#4b2c20] focus:ring-[#4b2c20] cursor-pointer"
                             />
                             <span className="text-slate-600 font-medium">Remember me</span>
@@ -78,10 +106,10 @@ export function LoginPage() {
                         type="submit"
                         variant="coffee"
                         size="xl"
+                        disabled={isLoading}
                         className="w-full font-bold active:scale-[0.99] mt-4"
-
                     >
-                        Sign In
+                        {isLoading ? "Signing In..." : "Sign In"}
                     </Button>
                 </form>
 

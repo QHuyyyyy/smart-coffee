@@ -1,11 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-
-type User = {
-    id: number
-    email: string
-    role?: string
-}
+import { authService } from "@/apis/auth.service"
 
 type LoginPayload = {
     email: string
@@ -13,8 +8,8 @@ type LoginPayload = {
 }
 
 type AuthState = {
-    user: User | null
     token: string | null
+    refreshToken: string | null
     isLoading: boolean
     error: string | null
 
@@ -25,8 +20,8 @@ type AuthState = {
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
-            user: null,
             token: null,
+            refreshToken: null,
             isLoading: false,
             error: null,
 
@@ -34,44 +29,30 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     set({ isLoading: true, error: null })
 
+                    const data = await authService.login(payload)
 
-                    const res = await fetch("http://localhost:3000/auth/login", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify(payload),
-                    })
-
-                    if (!res.ok) {
-                        throw new Error("Sai tài khoản hoặc mật khẩu")
-                    }
-
-                    const data = await res.json()
-
-                    // backend thường trả về: { token, user }
                     set({
-                        token: data.token,
-                        user: data.user,
+                        token: data.accessToken,
+                        refreshToken: data.refreshToken,
                         isLoading: false,
                     })
                 } catch (err: any) {
                     set({
                         isLoading: false,
-                        error: err.message || "Login thất bại",
+                        error: err.message || "Login  failed. Please try again.",
                     })
                 }
             },
 
             logout: () => {
-                set({ user: null, token: null, error: null })
+                set({ token: null, refreshToken: null, error: null })
             },
         }),
         {
-            name: "auth-storage", // key trong localStorage
+            name: "auth-storage",
             partialize: (state) => ({
                 token: state.token,
-                user: state.user,
+                refreshToken: state.refreshToken,
             }),
         }
     )
