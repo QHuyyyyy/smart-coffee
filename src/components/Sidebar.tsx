@@ -1,11 +1,12 @@
 import { ChevronLeft, Home, ShoppingCart, Truck, CreditCard, Package, Settings, Coffee } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
-
+import { authService } from '../apis/auth.service';
+import { toast } from 'sonner';
 export function Sidebar() {
     const { isCollapsed, setIsCollapsed } = useSidebar();
     const location = useLocation();
-
+    const navigate = useNavigate();
     const menuItems = [
         { icon: Home, label: 'Home', href: '/dashboard' },
         { icon: Coffee, label: 'Recipes', href: '/recipes' },
@@ -18,6 +19,15 @@ export function Sidebar() {
 
     const isActive = (href: string) => {
         return location.pathname === href;
+    };
+    const handleLogout = async () => {
+        try {
+            await authService.logout();
+            navigate("/login");
+            toast.success("Logged out successfully");
+        } catch (err: Error | any) {
+            toast.error(err?.message || "Logout failed");
+        }
     };
 
     return (
@@ -72,16 +82,16 @@ export function Sidebar() {
 
             {/* Footer */}
             <div className="absolute bottom-4 left-4 right-4 border-t border-[#E0D5D0] pt-4">
-                <Link
-                    to="/"
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-[#573E32] hover:bg-black/5"
+                <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-[#573E32] hover:bg-black/5"
                     title={isCollapsed ? 'Logout' : ''}
                 >
                     <Settings size={20} className="flex-shrink-0" />
                     {!isCollapsed && (
                         <span className="text-sm font-medium leading-normal">Logout</span>
                     )}
-                </Link>
+                </button>
             </div>
         </aside>
     );

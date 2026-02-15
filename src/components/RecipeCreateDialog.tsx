@@ -7,37 +7,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus } from "lucide-react";
+import { recipeService } from "@/apis/recipe.service";
+import { toast } from "sonner";
 
 // Validation schemas
 const step1Schema = z.object({
     recipeName: z.string().min(1, "Recipe name is required"),
+    category: z.string().min(1, "Category is required"),
     flavorStylePrimary: z.string().min(1, "Flavor style is required"),
     flavorStyleSecondary: z.string().optional(),
     brewingMethod: z.string().min(1, "Brewing method is required"),
-    description: z.string().optional(),
 });
 
 const step2Schema = z.object({
+    flavorNote: z.string().optional(),
     isHot: z.boolean(),
     isCold: z.boolean(),
-    containMilk: z.boolean(),
+    containsMilk: z.boolean(),
     hasIce: z.boolean(),
-    createdResource: z.string().optional(),
-    caffeineStrength: z.enum(["Low", "Medium", "High"]).optional(),
+    caffeineStrength: z.number().min(0).max(100).optional(),
     prepTimeRange: z.string().optional(),
-    difficultyLevel: z.enum(["Beginner", "Intermediate", "Advanced"]).optional(),
+    difficultyLevel: z.string().optional(),
     suggestedOccasions: z.string().optional(),
-    costBase: z.number(),
-    flavorNotes: z.string().optional(),
-    brewingStepsData: z.string().optional(),
+    profitMarginPercent: z.number().optional(),
+    brewingStepsData: z.array(z.string()).min(1, "At least one brewing step is required"),
     brewingVariablesData: z.string().optional(),
+    presentationData: z.string().optional(),
+    createdSource: z.string().optional(),
+    isDefault: z.boolean().optional(),
+    isPublic: z.boolean().optional(),
+    status: z.string().optional(),
+    beverageId: z.number().optional(),
     ingredients: z.array(
         z.object({
-            id: z.string(),
-            name: z.string(),
-            quantity: z.string(),
-            unit: z.string(),
-            costEstimate: z.string(),
+            ingredient_id: z.number(),
+            quantity: z.number(),
+            measurement: z.string(),
         })
     ),
 });
@@ -54,6 +59,7 @@ interface RecipeCreateDialogProps {
 export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreateDialogProps) {
     const [step, setStep] = useState<1 | 2>(1);
     const [step1Data, setStep1Data] = useState<Step1FormData | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     const step1Form = useForm<Step1FormData>({
         resolver: zodResolver(step1Schema),
@@ -62,7 +68,7 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
             flavorStylePrimary: "",
             flavorStyleSecondary: "",
             brewingMethod: "",
-            description: "",
+            category: "",
         },
     });
 
@@ -71,17 +77,22 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
         defaultValues: {
             isHot: true,
             isCold: false,
-            containMilk: false,
+            containsMilk: false,
             hasIce: false,
-            createdResource: "",
-            caffeineStrength: "Medium",
+            caffeineStrength: 50,
             prepTimeRange: "",
-            difficultyLevel: "Beginner",
+            difficultyLevel: "Easy",
             suggestedOccasions: "",
-            costBase: 0,
-            flavorNotes: "",
-            brewingStepsData: "",
+            profitMarginPercent: 30,
+            flavorNote: "",
+            brewingStepsData: [],
             brewingVariablesData: "",
+            presentationData: "",
+            createdSource: "Manual",
+            isDefault: false,
+            isPublic: true,
+            status: "Active",
+            beverageId: 1,
             ingredients: [],
         },
     });
@@ -92,10 +103,33 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
     };
 
     const handleStep2Submit = async (data: Step2FormData) => {
-        if (step1Data && onSubmit) {
-            onSubmit({ ...step1Data, ...data });
+        if (!step1Data) return;
+
+        setIsLoading(true);
+        try {
+            const payload = {
+                ...step1Data,
+                ...data,
+                image: "",
+                brewingSteps: data.brewingStepsData || [],
+            };
+
+            await recipeService.createRecipe(payload);
+
+            toast.success("Recipe created successfully!");
+
+            if (onSubmit) {
+                onSubmit(payload);
+            }
+
+            onOpenChange(false);
+            handleClose();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || "Failed to create recipe");
+            console.error("Create recipe error:", error);
+        } finally {
+            setIsLoading(false);
         }
-        onOpenChange(false);
     };
 
     const handleBack = () => {
@@ -114,21 +148,21 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
         const currentIngredients = step2Form.getValues("ingredients");
         step2Form.setValue("ingredients", [
             ...currentIngredients,
-            { id: Date.now().toString(), name: "", quantity: "", unit: "", costEstimate: "" },
+            { ingredient_id: Date.now(), quantity: 0, measurement: "g" },
         ]);
     };
 
-    const removeIngredient = (id: string) => {
+    const removeIngredient = (ingredient_id: number) => {
         const currentIngredients = step2Form.getValues("ingredients");
         step2Form.setValue(
             "ingredients",
-            currentIngredients.filter((ing) => ing.id !== id)
+            currentIngredients.filter((ing) => ing.ingredient_id !== ingredient_id)
         );
     };
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-lg font-semibold text-[#1F1F1F]">
                         Create New Recipe
@@ -144,8 +178,8 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                 <div className="flex items-center gap-2 mb-6">
                     <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${step >= 1
-                                ? "bg-[#573E32] text-white"
-                                : "bg-[#EFEAE5] text-[#573E32]"
+                            ? "bg-[#573E32] text-white"
+                            : "bg-[#EFEAE5] text-[#573E32]"
                             }`}
                     >
                         1
@@ -153,8 +187,8 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                     <div className={`flex-1 h-1 transition-colors ${step >= 2 ? "bg-[#573E32]" : "bg-[#EFEAE5]"}`} />
                     <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${step >= 2
-                                ? "bg-[#573E32] text-white"
-                                : "bg-[#EFEAE5] text-[#573E32]"
+                            ? "bg-[#573E32] text-white"
+                            : "bg-[#EFEAE5] text-[#573E32]"
                             }`}
                     >
                         2
@@ -167,7 +201,7 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                         <div className="space-y-4">
                             <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Basic Information</h3>
 
-                            {/* Recipe Name and Brewing Method */}
+                            {/* Recipe Name and Category */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#573E32]">Recipe Name</label>
@@ -184,24 +218,40 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#573E32]">Brewing Method</label>
-                                    <select
-                                        {...step1Form.register("brewingMethod")}
-                                        className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
-                                    >
-                                        <option value="">Select method...</option>
-                                        <option value="Pour Over">Pour Over</option>
-                                        <option value="Espresso">Espresso</option>
-                                        <option value="French Press">French Press</option>
-                                        <option value="AeroPress">AeroPress</option>
-                                        <option value="Cold Brew">Cold Brew</option>
-                                    </select>
-                                    {step1Form.formState.errors.brewingMethod && (
+                                    <label className="text-sm font-medium text-[#573E32]">Category</label>
+                                    <Input
+                                        placeholder="e.g. Coffee, Tea"
+                                        {...step1Form.register("category")}
+                                        className="bg-white"
+                                    />
+                                    {step1Form.formState.errors.category && (
                                         <p className="text-xs text-red-500">
-                                            {step1Form.formState.errors.brewingMethod.message}
+                                            {step1Form.formState.errors.category.message}
                                         </p>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Brewing Method */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[#573E32]">Brewing Method</label>
+                                <select
+                                    {...step1Form.register("brewingMethod")}
+                                    className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
+                                >
+                                    <option value="">Select method...</option>
+                                    <option value="Pour Over">Pour Over</option>
+                                    <option value="Espresso">Espresso</option>
+                                    <option value="French Press">French Press</option>
+                                    <option value="AeroPress">AeroPress</option>
+                                    <option value="Cold Brew">Cold Brew</option>
+                                    <option value="Phin Filter">Phin Filter</option>
+                                </select>
+                                {step1Form.formState.errors.brewingMethod && (
+                                    <p className="text-xs text-red-500">
+                                        {step1Form.formState.errors.brewingMethod.message}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Flavor Styles */}
@@ -228,17 +278,6 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                         className="bg-white"
                                     />
                                 </div>
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#573E32]">Description</label>
-                                <textarea
-                                    placeholder="Short description of the recipe..."
-                                    {...step1Form.register("description")}
-                                    className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32] resize-none"
-                                    rows={3}
-                                />
                             </div>
                         </div>
 
@@ -276,7 +315,7 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                 {[
                                     { name: "isHot", label: "Is Hot" },
                                     { name: "isCold", label: "Is Cold" },
-                                    { name: "containMilk", label: "Contain Milk" },
+                                    { name: "containsMilk", label: "Contains Milk" },
                                     { name: "hasIce", label: "Has Ice" },
                                 ].map(({ name, label }) => (
                                     <div key={name} className="flex items-center gap-2">
@@ -300,15 +339,15 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#573E32]">Caffeine Strength</label>
-                                    <select
-                                        {...step2Form.register("caffeineStrength")}
-                                        className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
-                                    >
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                    </select>
+                                    <label className="text-sm font-medium text-[#573E32]">Caffeine Strength (0-100)</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="50"
+                                        min="0"
+                                        max="100"
+                                        {...step2Form.register("caffeineStrength", { valueAsNumber: true })}
+                                        className="bg-white"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
@@ -322,22 +361,19 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium text-[#573E32]">Difficulty Level</label>
-                                    <select
+                                    <Input
+                                        placeholder="e.g. Easy, Medium, Hard"
                                         {...step2Form.register("difficultyLevel")}
-                                        className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
-                                    >
-                                        <option value="Beginner">Beginner</option>
-                                        <option value="Intermediate">Intermediate</option>
-                                        <option value="Advanced">Advanced</option>
-                                    </select>
+                                        className="bg-white"
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#573E32]">Cost (Base)</label>
+                                    <label className="text-sm font-medium text-[#573E32]">Profit Margin %</label>
                                     <Input
                                         type="number"
-                                        placeholder="0.00"
-                                        {...step2Form.register("costBase", { valueAsNumber: true })}
+                                        placeholder="30"
+                                        {...step2Form.register("profitMarginPercent", { valueAsNumber: true })}
                                         className="bg-white"
                                     />
                                 </div>
@@ -356,9 +392,33 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                 <label className="text-sm font-medium text-[#573E32]">Flavor Notes</label>
                                 <textarea
                                     placeholder="Detailed taste profile description..."
-                                    {...step2Form.register("flavorNotes")}
+                                    {...step2Form.register("flavorNote")}
                                     className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32] resize-none"
                                     rows={3}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Brewing Information */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Brewing Information</h3>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[#573E32]">Brewing Variables Data</label>
+                                <Input
+                                    placeholder="e.g. Temperature: 95C, Ratio: 1:4"
+                                    {...step2Form.register("brewingVariablesData")}
+                                    className="bg-white"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[#573E32]">Presentation Data</label>
+                                <textarea
+                                    placeholder="e.g. Serve in a tall glass with a spoon"
+                                    {...step2Form.register("presentationData")}
+                                    className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32] resize-none"
+                                    rows={2}
                                 />
                             </div>
                         </div>
@@ -366,12 +426,15 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                         {/* Brewing Steps */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Brewing Steps Data</h3>
+                                <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Brewing Steps</h3>
                                 <Button
                                     type="button"
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => { }}
+                                    onClick={() => {
+                                        const currentSteps = step2Form.getValues("brewingStepsData") || [];
+                                        step2Form.setValue("brewingStepsData", [...currentSteps, ""]);
+                                    }}
                                     className="border-[#E0D5D0] text-[#573E32] hover:bg-[#F5F3F1]"
                                 >
                                     <Plus size={14} className="mr-1" />
@@ -379,80 +442,181 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                 </Button>
                             </div>
 
-                            <textarea
-                                placeholder="Step 1: ...\nStep 2: ...\nStep 3: ..."
-                                {...step2Form.register("brewingStepsData")}
-                                className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32] resize-none"
-                                rows={3}
-                            />
+                            <div className="space-y-2">
+                                {step2Form.watch("brewingStepsData")?.map((step, index) => (
+                                    <div key={index} className="flex gap-2">
+                                        <span className="text-sm font-medium text-[#573E32] pt-2">Step {index + 1}:</span>
+                                        <Input
+                                            placeholder="Describe this step..."
+                                            value={step}
+                                            onChange={(e) => {
+                                                const currentSteps = step2Form.getValues("brewingStepsData") || [];
+                                                currentSteps[index] = e.target.value;
+                                                step2Form.setValue("brewingStepsData", currentSteps);
+                                            }}
+                                            className="bg-white flex-1"
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={() => {
+                                                const currentSteps = step2Form.getValues("brewingStepsData") || [];
+                                                currentSteps.splice(index, 1);
+                                                step2Form.setValue("brewingStepsData", currentSteps);
+                                            }}
+                                            className="border-[#E0D5D0] text-red-500 hover:bg-red-50"
+                                        >
+                                            <Trash2 size={14} />
+                                        </Button>
+                                    </div>
+                                ))}
+                                {step2Form.formState.errors.brewingStepsData && (
+                                    <p className="text-xs text-red-500">
+                                        {step2Form.formState.errors.brewingStepsData.message}
+                                    </p>
+                                )}
+                            </div>
                         </div>
 
                         {/* Ingredients */}
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Ingredients</h3>
-                                <div className="text-sm text-[#707070]">
-                                    Total Cost: <span className="font-semibold text-[#573E32]">$0.00</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-[#573E32]">Search Ingredient</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        placeholder="Type to search..."
-                                        className="bg-white flex-1"
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder="0.00"
-                                        className="w-20 px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
-                                    />
-                                    <select
-                                        className="w-16 px-2 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
-                                    >
-                                        <option>g</option>
-                                        <option>ml</option>
-                                        <option>cup</option>
-                                    </select>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        className="bg-[#573E32] text-white hover:bg-[#432d23]"
-                                        onClick={addIngredient}
-                                    >
-                                        Add Item
-                                    </Button>
-                                </div>
                             </div>
 
                             {/* Ingredients List */}
-                            {step2Form.watch("ingredients").length > 0 && (
-                                <div className="mt-4 space-y-2">
-                                    <div className="bg-[#F5F3F1] rounded-lg p-3 space-y-2">
-                                        {step2Form.watch("ingredients").map((ingredient) => (
-                                            <div key={ingredient.id} className="flex items-center gap-2 bg-white p-2 rounded border border-[#E0D5D0]">
-                                                <span className="flex-1 text-sm text-[#573E32]">{ingredient.name || "New Ingredient"}</span>
-                                                <span className="text-xs text-[#707070]">{ingredient.quantity} {ingredient.unit}</span>
-                                                <span className="text-xs text-[#707070]">${ingredient.costEstimate}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeIngredient(ingredient.id)}
-                                                    className="p-1 text-[#707070] hover:text-red-500 transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </div>
-                                        ))}
+                            <div className="space-y-2">
+                                {step2Form.watch("ingredients").map((ingredient) => (
+                                    <div key={ingredient.ingredient_id} className="flex items-center gap-2 bg-white p-3 rounded border border-[#E0D5D0]">
+                                        <Input
+                                            type="number"
+                                            placeholder="ID"
+                                            value={ingredient.ingredient_id}
+                                            onChange={(e) => {
+                                                const currentIngredients = step2Form.getValues("ingredients");
+                                                const index = currentIngredients.findIndex(i => i.ingredient_id === ingredient.ingredient_id);
+                                                if (index >= 0) {
+                                                    currentIngredients[index].ingredient_id = Number(e.target.value);
+                                                    step2Form.setValue("ingredients", currentIngredients);
+                                                }
+                                            }}
+                                            className="w-16 text-sm"
+                                        />
+                                        <Input
+                                            type="number"
+                                            placeholder="Qty"
+                                            value={ingredient.quantity}
+                                            onChange={(e) => {
+                                                const currentIngredients = step2Form.getValues("ingredients");
+                                                const index = currentIngredients.findIndex(i => i.ingredient_id === ingredient.ingredient_id);
+                                                if (index >= 0) {
+                                                    currentIngredients[index].quantity = Number(e.target.value);
+                                                    step2Form.setValue("ingredients", currentIngredients);
+                                                }
+                                            }}
+                                            className="w-20 text-sm"
+                                        />
+                                        <select
+                                            value={ingredient.measurement}
+                                            onChange={(e) => {
+                                                const currentIngredients = step2Form.getValues("ingredients");
+                                                const index = currentIngredients.findIndex(i => i.ingredient_id === ingredient.ingredient_id);
+                                                if (index >= 0) {
+                                                    currentIngredients[index].measurement = e.target.value;
+                                                    step2Form.setValue("ingredients", currentIngredients);
+                                                }
+                                            }}
+                                            className="w-20 px-2 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm"
+                                        >
+                                            <option>g</option>
+                                            <option>ml</option>
+                                            <option>cup</option>
+                                            <option>tbsp</option>
+                                            <option>tsp</option>
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeIngredient(ingredient.ingredient_id)}
+                                            className="p-1 text-[#707070] hover:text-red-500 transition-colors ml-auto"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    className="bg-[#573E32] text-white hover:bg-[#432d23] mt-2"
+                                    onClick={addIngredient}
+                                >
+                                    <Plus size={14} className="mr-1" />
+                                    Add Ingredient
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Additional Settings */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Additional Settings</h3>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[#573E32]">Created Source</label>
+                                    <Input
+                                        placeholder="e.g. Manual, API"
+                                        {...step2Form.register("createdSource")}
+                                        className="bg-white"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[#573E32]">Status</label>
+                                    <Input
+                                        placeholder="e.g. Active, Inactive"
+                                        {...step2Form.register("status")}
+                                        className="bg-white"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-[#573E32]">Beverage ID</label>
+                                    <Input
+                                        type="number"
+                                        placeholder="1"
+                                        {...step2Form.register("beverageId", { valueAsNumber: true })}
+                                        className="bg-white"
+                                    />
+                                </div>
+
+                                <div className="flex items-center gap-4 pt-6">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isDefault"
+                                            {...step2Form.register("isDefault")}
+                                            className="w-4 h-4 rounded border-[#E0D5D0] text-[#573E32]"
+                                        />
+                                        <label htmlFor="isDefault" className="text-sm font-medium text-[#573E32]">Default</label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isPublic"
+                                            {...step2Form.register("isPublic")}
+                                            className="w-4 h-4 rounded border-[#E0D5D0] text-[#573E32]"
+                                        />
+                                        <label htmlFor="isPublic" className="text-sm font-medium text-[#573E32]">Public</label>
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
 
                         <Separator />
 
                         {/* Buttons */}
-                        <div className="flex gap-3 justify-end">
+                        <div className="flex gap-3 justify-end pb-5">
                             <Button
                                 type="button"
                                 variant="outline"
@@ -472,8 +636,9 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                             <Button
                                 type="submit"
                                 className="bg-[#573E32] text-white hover:bg-[#432d23]"
+                                disabled={isLoading}
                             >
-                                Create Recipe
+                                {isLoading ? "Creating..." : "Create Recipe"}
                             </Button>
                         </div>
                     </form>

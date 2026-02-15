@@ -1,3 +1,4 @@
+
 import api from "./axios";
 
 export const recipeService = {
@@ -10,4 +11,7 @@ export const recipeService = {
     getIngredientsByRecipeId: async (recipeId: number | string) => {
         return api.get(`/ShopRecipeIngredients/by-recipe/${recipeId}`);
     },
+    createRecipe: async (data: any) => {
+        return api.post("/ShopRecipe", data);
+    }
 };
