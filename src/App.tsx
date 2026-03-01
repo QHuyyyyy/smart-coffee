@@ -64,6 +64,7 @@ function App() {
                 )}
             />
 
+
             {/* Public feedback page without sidebar/header layout */}
             <Route path="/feedback/:id" element={<FeedbackPage />} />
         </Routes>
