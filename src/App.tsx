@@ -5,7 +5,9 @@ import { Recipes } from './pages/Recipes';
 import { RecipeDetail } from './pages/RecipeDetail';
 import { CoffeeShopPage } from './pages/CoffeeShop';
 import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
 import { FeedbackPage } from './pages/FeedbackPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 
 function App() {
@@ -14,40 +16,51 @@ function App() {
             {/* Public login page without dashboard layout */}
             <Route path="/" element={<LoginPage />} />
 
+            {/* Public register page without dashboard layout */}
+            <Route path="/register" element={<RegisterPage />} />
+
             {/* Admin dashboard area with sidebar/header */}
             <Route
                 path="/dashboard"
                 element={(
-                    <Layout>
-                        <Home />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
+                        <Layout>
+                            <Home />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 
             <Route
                 path="/recipes"
                 element={(
-                    <Layout>
-                        <Recipes />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
+                        <Layout>
+                            <Recipes />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 
             <Route
                 path="/recipes/:id"
                 element={(
-                    <Layout>
-                        <RecipeDetail />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
+                        <Layout>
+                            <RecipeDetail />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 
             <Route
                 path="/coffee-shop"
                 element={(
-                    <Layout>
-                        <CoffeeShopPage />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
+                        <Layout>
+                            <CoffeeShopPage />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 

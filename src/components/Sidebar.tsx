@@ -23,7 +23,7 @@ export function Sidebar() {
     const handleLogout = async () => {
         try {
             await authService.logout();
-            navigate("/login");
+            navigate("/");
             toast.success("Logged out successfully");
         } catch (err: Error | any) {
             toast.error(err?.message || "Logout failed");

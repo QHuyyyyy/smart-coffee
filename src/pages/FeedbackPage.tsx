@@ -1,8 +1,51 @@
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import api from '../apis/axios';
 
 export function FeedbackPage() {
     const { id } = useParams<{ id: string }>();
     const feedbackId = id ?? '1';
+    const menuId = Number(id) || 0;
+
+    const [drinkName, setDrinkName] = useState('');
+    const [isFirstTimeTrying, setIsFirstTimeTrying] = useState<boolean | null>(null);
+    const [strength, setStrength] = useState('');
+    const [acidity, setAcidity] = useState('');
+    const [bitterness, setBitterness] = useState('');
+    const [sweetness, setSweetness] = useState('');
+    const [rating, setRating] = useState(0);
+    const [priceRating, setPriceRating] = useState('');
+    const [repurchasable, setRepurchasable] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        try {
+            setSubmitting(true);
+
+            const payload = {
+                menuId,
+                drinkName: drinkName || undefined,
+                isFirstTimeTrying: isFirstTimeTrying ?? undefined,
+                strength: strength || undefined,
+                acidity: acidity || undefined,
+                bitterness: bitterness || undefined,
+                sweetness: sweetness || undefined,
+                rating,
+                priceRating: priceRating || undefined,
+                repurchasable: repurchasable || undefined
+            };
+
+            await api.post('/Feedback/MenuItem', payload);
+
+            toast.success('Gửi phản hồi thành công! Cảm ơn bạn.');
+        } catch (error) {
+            console.error('Submit feedback error', error);
+            toast.error('Gửi phản hồi thất bại. Vui lòng thử lại.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
 
     return (
         <div className="bg-background-light dark:bg-background-dark font-display text-[#1b140d] dark:text-gray-100 min-h-screen w-full overflow-x-hidden transition-colors duration-200">
@@ -33,7 +76,7 @@ export function FeedbackPage() {
                             <span className="material-symbols-outlined text-primary">info</span>
                             <h3 className="text-xl font-bold">Drink Information</h3>
                         </div>
-
+                        {/* 
                         <div className="mb-8">
                             <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
                                 Search for your drink
@@ -45,10 +88,12 @@ export function FeedbackPage() {
                                 <input
                                     type="text"
                                     placeholder="e.g., Mocha, Latte, Americano..."
+                                    value={drinkName}
+                                    onChange={(e) => setDrinkName(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-3 border-none rounded-lg bg-[#f3ede7] dark:bg-[#2c2016] text-[#1b140d] dark:text-white placeholder-[#9a734c] focus:ring-2 focus:ring-primary focus:outline-none transition-shadow"
                                 />
                             </div>
-                        </div>
+                        </div> */}
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                             {/* Latte */}
@@ -144,11 +189,23 @@ export function FeedbackPage() {
                             <div className="flex gap-2">
                                 <label className="has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
                                     Yes
-                                    <input className="sr-only" name="first_time" type="radio" value="yes" />
+                                    <input
+                                        className="sr-only"
+                                        name="first_time"
+                                        type="radio"
+                                        value="yes"
+                                        onChange={() => setIsFirstTimeTrying(true)}
+                                    />
                                 </label>
                                 <label className="has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
                                     No
-                                    <input className="sr-only" name="first_time" type="radio" value="no" />
+                                    <input
+                                        className="sr-only"
+                                        name="first_time"
+                                        type="radio"
+                                        value="no"
+                                        onChange={() => setIsFirstTimeTrying(false)}
+                                    />
                                 </label>
                             </div>
                         </div>
@@ -160,14 +217,23 @@ export function FeedbackPage() {
                         <h3 className="text-xl font-bold mb-2">Overall Rating</h3>
                         <p className="text-[#9a734c] mb-6">How was your experience overall?</p>
                         <div className="flex justify-center flex-row-reverse gap-2 group/rating">
-                            {[5, 4, 3, 2, 1].map((star) => (
-                                <span
-                                    key={star}
-                                    className="material-symbols-outlined text-4xl text-[#e7dbcf] cursor-pointer hover:text-primary transition-colors"
-                                >
-                                    star
-                                </span>
-                            ))}
+                            {[5, 4, 3, 2, 1].map((starValue) => {
+                                const filled = rating >= starValue;
+                                return (
+                                    <button
+                                        type="button"
+                                        key={starValue}
+                                        onClick={() => setRating(starValue)}
+                                        className="focus:outline-none"
+                                    >
+                                        <span
+                                            className={`material-symbols-outlined text-4xl cursor-pointer transition-colors ${filled ? 'text-primary' : 'text-[#e7dbcf]'}`}
+                                        >
+                                            star
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </section>
 
@@ -182,19 +248,40 @@ export function FeedbackPage() {
                                 <label className="block text-sm font-semibold mb-3">Strength</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="strength" type="radio" value="light" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="strength"
+                                            type="radio"
+                                            value="light"
+                                            checked={strength === 'light'}
+                                            onChange={() => setStrength('light')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Light
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="strength" type="radio" value="medium" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="strength"
+                                            type="radio"
+                                            value="medium"
+                                            checked={strength === 'medium'}
+                                            onChange={() => setStrength('medium')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="strength" type="radio" value="strong" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="strength"
+                                            type="radio"
+                                            value="strong"
+                                            checked={strength === 'strong'}
+                                            onChange={() => setStrength('strong')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Strong
                                         </div>
@@ -206,19 +293,40 @@ export function FeedbackPage() {
                                 <label className="block text-sm font-semibold mb-3">Acidity</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="acidity" type="radio" value="low" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="acidity"
+                                            type="radio"
+                                            value="low"
+                                            checked={acidity === 'low'}
+                                            onChange={() => setAcidity('low')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Low
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="acidity" type="radio" value="medium" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="acidity"
+                                            type="radio"
+                                            value="medium"
+                                            checked={acidity === 'medium'}
+                                            onChange={() => setAcidity('medium')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="acidity" type="radio" value="high" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="acidity"
+                                            type="radio"
+                                            value="high"
+                                            checked={acidity === 'high'}
+                                            onChange={() => setAcidity('high')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             High
                                         </div>
@@ -230,19 +338,40 @@ export function FeedbackPage() {
                                 <label className="block text-sm font-semibold mb-3">Bitterness</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="bitterness" type="radio" value="low" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="bitterness"
+                                            type="radio"
+                                            value="low"
+                                            checked={bitterness === 'low'}
+                                            onChange={() => setBitterness('low')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Low
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="bitterness" type="radio" value="medium" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="bitterness"
+                                            type="radio"
+                                            value="medium"
+                                            checked={bitterness === 'medium'}
+                                            onChange={() => setBitterness('medium')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="bitterness" type="radio" value="high" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="bitterness"
+                                            type="radio"
+                                            value="high"
+                                            checked={bitterness === 'high'}
+                                            onChange={() => setBitterness('high')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             High
                                         </div>
@@ -254,131 +383,42 @@ export function FeedbackPage() {
                                 <label className="block text-sm font-semibold mb-3">Sweetness</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="sweetness" type="radio" value="not_sweet" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="sweetness"
+                                            type="radio"
+                                            value="not_sweet"
+                                            checked={sweetness === 'not_sweet'}
+                                            onChange={() => setSweetness('not_sweet')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Not sweet
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="sweetness" type="radio" value="medium" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="sweetness"
+                                            type="radio"
+                                            value="medium"
+                                            checked={sweetness === 'medium'}
+                                            onChange={() => setSweetness('medium')}
+                                        />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
                                         </div>
                                     </label>
                                     <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="sweetness" type="radio" value="sweet" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Sweet
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Menu Clarity & Usability */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">menu_book</span>
-                            <h3 className="text-xl font-bold">Menu Clarity &amp; Usability</h3>
-                        </div>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Drink Name Readability</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="name_readability" type="radio" value="confusing" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Confusing
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="name_readability" type="radio" value="clear" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Clear
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="name_readability" type="radio" value="very_clear" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very Clear
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Description vs. Actual Taste</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="description_accuracy" type="radio" value="inaccurate" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Inaccurate
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
                                         <input
                                             className="peer sr-only"
-                                            name="description_accuracy"
+                                            name="sweetness"
                                             type="radio"
-                                            value="somewhat_accurate"
+                                            value="sweet"
+                                            checked={sweetness === 'sweet'}
+                                            onChange={() => setSweetness('sweet')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Mostly Match
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="description_accuracy" type="radio" value="accurate" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Perfect Match
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Menu Layout Clarity</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="layout_clarity" type="radio" value="cluttered" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Cluttered
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="layout_clarity" type="radio" value="organized" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Organized
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="layout_clarity" type="radio" value="intuitive" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Intuitive
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">First-Time Ordering Ease</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="ordering_ease" type="radio" value="difficult" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Difficult
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="ordering_ease" type="radio" value="average" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Average
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input className="peer sr-only" name="ordering_ease" type="radio" value="easy" />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Easy
+                                            Sweet
                                         </div>
                                     </label>
                                 </div>
@@ -397,40 +437,48 @@ export function FeedbackPage() {
                                 <label className="block text-sm font-semibold mb-3">How was the price?</label>
                                 <div className="flex flex-col gap-2">
                                     <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <input className="accent-primary w-4 h-4 text-primary" name="price_perception" type="radio" value="cheap" />
+                                        <input
+                                            className="accent-primary w-4 h-4 text-primary"
+                                            name="price_perception"
+                                            type="radio"
+                                            value="cheap"
+                                            checked={priceRating === 'cheap'}
+                                            onChange={() => setPriceRating('cheap')}
+                                        />
                                         <span className="text-sm font-medium">Cheap</span>
                                     </label>
                                     <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <input className="accent-primary w-4 h-4 text-primary" name="price_perception" type="radio" value="reasonable" />
+                                        <input
+                                            className="accent-primary w-4 h-4 text-primary"
+                                            name="price_perception"
+                                            type="radio"
+                                            value="reasonable"
+                                            checked={priceRating === 'reasonable'}
+                                            onChange={() => setPriceRating('reasonable')}
+                                        />
                                         <span className="text-sm font-medium">Reasonable</span>
                                     </label>
                                     <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <input className="accent-primary w-4 h-4 text-primary" name="price_perception" type="radio" value="bit_expensive" />
+                                        <input
+                                            className="accent-primary w-4 h-4 text-primary"
+                                            name="price_perception"
+                                            type="radio"
+                                            value="bit_expensive"
+                                            checked={priceRating === 'bit_expensive'}
+                                            onChange={() => setPriceRating('bit_expensive')}
+                                        />
                                         <span className="text-sm font-medium">A bit expensive</span>
                                     </label>
                                     <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
-                                        <input className="accent-primary w-4 h-4 text-primary" name="price_perception" type="radio" value="too_expensive" />
+                                        <input
+                                            className="accent-primary w-4 h-4 text-primary"
+                                            name="price_perception"
+                                            type="radio"
+                                            value="too_expensive"
+                                            checked={priceRating === 'too_expensive'}
+                                            onChange={() => setPriceRating('too_expensive')}
+                                        />
                                         <span className="text-sm font-medium">Too expensive</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col justify-center">
-                                <label className="block text-sm font-semibold mb-3">Would you buy it again at this price?</label>
-                                <div className="flex gap-4">
-                                    <label className="flex-1 has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-[#fcfaf8] dark:bg-[#2c2016] py-4 rounded-xl transition-all font-medium text-center shadow-sm">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="material-symbols-outlined">thumb_up</span>
-                                            <span>Yes</span>
-                                        </div>
-                                        <input className="sr-only" name="buy_again" type="radio" value="yes" />
-                                    </label>
-                                    <label className="flex-1 has-[:checked]:bg-red-500 has-[:checked]:text-white has-[:checked]:border-red-500 cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-[#fcfaf8] dark:bg-[#2c2016] py-4 rounded-xl transition-all font-medium text-center shadow-sm">
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="material-symbols-outlined">thumb_down</span>
-                                            <span>No</span>
-                                        </div>
-                                        <input className="sr-only" name="buy_again" type="radio" value="no" />
                                     </label>
                                 </div>
                             </div>
@@ -444,86 +492,62 @@ export function FeedbackPage() {
                             <h3 className="text-xl font-bold">Repurchase Intent</h3>
                         </div>
                         <div className="space-y-6">
-                            <div className="flex items-center justify-between border-b border-dashed border-[#e7dbcf] dark:border-[#3a2c22] pb-6">
+                            <div className="flex items-center justify-between pb-6">
                                 <span className="font-medium text-base">Will you order this drink again?</span>
                                 <div className="flex gap-2">
                                     <label className="cursor-pointer group">
-                                        <input className="peer sr-only" name="order_again" type="radio" value="yes" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="order_again"
+                                            type="radio"
+                                            value="yes"
+                                            checked={repurchasable === 'yes'}
+                                            onChange={() => setRepurchasable('yes')}
+                                        />
                                         <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-green-100 peer-checked:text-green-800 peer-checked:border-green-300 dark:peer-checked:bg-green-900 dark:peer-checked:text-green-100 font-medium text-sm block transition-all">
                                             Yes
                                         </span>
                                     </label>
                                     <label className="cursor-pointer group">
-                                        <input className="peer sr-only" name="order_again" type="radio" value="maybe" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="order_again"
+                                            type="radio"
+                                            value="maybe"
+                                            checked={repurchasable === 'maybe'}
+                                            onChange={() => setRepurchasable('maybe')}
+                                        />
                                         <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-yellow-100 peer-checked:text-yellow-800 peer-checked:border-yellow-300 dark:peer-checked:bg-yellow-900 dark:peer-checked:text-yellow-100 font-medium text-sm block transition-all">
                                             Maybe
                                         </span>
                                     </label>
                                     <label className="cursor-pointer group">
-                                        <input className="peer sr-only" name="order_again" type="radio" value="no" />
+                                        <input
+                                            className="peer sr-only"
+                                            name="order_again"
+                                            type="radio"
+                                            value="no"
+                                            checked={repurchasable === 'no'}
+                                            onChange={() => setRepurchasable('no')}
+                                        />
                                         <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-red-100 peer-checked:text-red-800 peer-checked:border-red-300 dark:peer-checked:bg-red-900 dark:peer-checked:text-red-100 font-medium text-sm block transition-all">
                                             No
                                         </span>
                                     </label>
                                 </div>
                             </div>
-
-                            <div className="flex items-center justify-between">
-                                <span className="font-medium text-base">Would you recommend it to a friend?</span>
-                                <div className="flex gap-2">
-                                    <label className="cursor-pointer group">
-                                        <input className="peer sr-only" name="recommend" type="radio" value="yes" />
-                                        <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-green-100 peer-checked:text-green-800 peer-checked:border-green-300 dark:peer-checked:bg-green-900 dark:peer-checked:text-green-100 font-medium text-sm block transition-all">
-                                            Yes
-                                        </span>
-                                    </label>
-                                    <label className="cursor-pointer group">
-                                        <input className="peer sr-only" name="recommend" type="radio" value="no" />
-                                        <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-red-100 peer-checked:text-red-800 peer-checked:border-red-300 dark:peer-checked:bg-red-900 dark:peer-checked:text-red-100 font-medium text-sm block transition-all">
-                                            No
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Optional Feedback & Submit */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">edit_note</span>
-                            <h3 className="text-xl font-bold">Optional Feedback</h3>
-                        </div>
-                        <div className="mb-6">
-                            <label className="block text-sm font-semibold mb-3">Areas for improvement (Check all that apply)</label>
-                            <div className="flex flex-wrap gap-3">
-                                {['Taste', 'Price', 'Aftertaste', 'Milk / Ice Ratio', 'Temperature', 'Presentation'].map((item) => (
-                                    <label key={item} className="cursor-pointer select-none">
-                                        <input className="peer sr-only" type="checkbox" />
-                                        <span className="inline-flex items-center px-4 py-2 rounded-full border border-[#e7dbcf] dark:border-[#3a2c22] bg-[#fcfaf8] dark:bg-[#2c2016] text-sm text-gray-700 dark:text-gray-300 peer-checked:bg-primary peer-checked:text-white peer-checked:border-primary transition-colors">
-                                            {item}
-                                        </span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold mb-2" htmlFor="other_feedback">
-                                Other comments
-                            </label>
-                            <textarea
-                                id="other_feedback"
-                                rows={4}
-                                placeholder="Tell us more about what you liked or disliked..."
-                                className="w-full rounded-lg bg-[#f3ede7] dark:bg-[#2c2016] border-none focus:ring-2 focus:ring-primary placeholder-[#9a734c] text-[#1b140d] dark:text-white p-4 resize-none transition-shadow"
-                            />
                         </div>
                     </section>
 
                     <div className="flex flex-col items-center gap-6 py-4">
                         <p className="text-[#9a734c] text-sm">Thank you for helping us make our coffee better!</p>
-                        <button className="w-full sm:w-auto bg-primary text-white font-bold py-4 px-12 rounded-full hover:bg-[#b8610b] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
-                            <span>Submit Feedback</span>
+                        <button
+                            type="button"
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="w-full sm:w-auto bg-primary disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-12 rounded-full hover:bg-[#b8610b] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
+                        >
+                            <span>{submitting ? 'Submitting...' : 'Submit Feedback'}</span>
                             <span className="material-symbols-outlined text-xl">send</span>
                         </button>
                     </div>
