@@ -179,7 +179,7 @@ export function FeedbackPage() {
                     <div className="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-primary text-3xl">local_cafe</span>
-                            <h1 className="text-xl font-bold tracking-tight">Bean &amp; Brew</h1>
+                            <h1 className="text-xl font-bold tracking-tight">SmartCoffee</h1>
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">Feedback Form #{feedbackId}</div>
                     </div>
