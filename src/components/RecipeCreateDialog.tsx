@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,6 +9,11 @@ import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus } from "lucide-react";
 import { recipeService } from "@/apis/recipe.service";
 import { toast } from "sonner";
+import { shopBeverageService } from "@/apis/shopBeverage.service";
+import { ingredientService } from "@/apis/ingredient.service";
+import { useAuthStore } from "@/stores/auth.store";
+
+const DEFAULT_RECIPE_IMAGE = "https://placehold.co/600x400?text=Coffee+Recipe";
 
 // Validation schemas
 const step1Schema = z.object({
@@ -60,6 +65,13 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
     const [step, setStep] = useState<1 | 2>(1);
     const [step1Data, setStep1Data] = useState<Step1FormData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [beverages, setBeverages] = useState<any[]>([]);
+    const [isBeveragesLoading, setIsBeveragesLoading] = useState(false);
+    const [selectedBeverageId, setSelectedBeverageId] = useState<number | undefined>(undefined);
+    const [ingredientsMaster, setIngredientsMaster] = useState<any[]>([]);
+    const [isIngredientsLoading, setIsIngredientsLoading] = useState(false);
+
+    const currentUser = useAuthStore((state) => state.currentUser);
 
     const step1Form = useForm<Step1FormData>({
         resolver: zodResolver(step1Schema),
@@ -92,12 +104,69 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
             isDefault: false,
             isPublic: true,
             status: "Active",
-            beverageId: 1,
+            beverageId: undefined,
             ingredients: [],
         },
     });
 
+    useEffect(() => {
+        if (!open) return;
+
+        const shopId = 1;
+        if (!shopId) return;
+
+        const fetchBeverages = async () => {
+            try {
+                setIsBeveragesLoading(true);
+                const res = await shopBeverageService.getByShopId(shopId);
+                const data = res.data;
+                const list = Array.isArray(data) ? data : data?.beverages || [];
+                setBeverages(list || []);
+
+                if (list && list.length > 0 && !selectedBeverageId) {
+                    setSelectedBeverageId(list[0].beverageId);
+                    step2Form.setValue("beverageId", list[0].beverageId);
+                }
+            } catch (error: any) {
+                console.error("Failed to load beverages:", error);
+                toast.error(error?.response?.data?.message || "Failed to load beverages");
+            } finally {
+                setIsBeveragesLoading(false);
+            }
+        };
+
+        fetchBeverages();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, currentUser?.coffeeShopId]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        const fetchIngredients = async () => {
+            try {
+                setIsIngredientsLoading(true);
+                const res = await ingredientService.getAll();
+                const data = res.data;
+                const list = Array.isArray(data) ? data : [];
+                setIngredientsMaster(list || []);
+            } catch (error: any) {
+                console.error("Failed to load ingredients:", error);
+                toast.error(error?.response?.data?.message || "Failed to load ingredients");
+            } finally {
+                setIsIngredientsLoading(false);
+            }
+        };
+
+        fetchIngredients();
+    }, [open]);
+
     const handleStep1Submit = async (data: Step1FormData) => {
+        if (!selectedBeverageId) {
+            toast.error("Please select a beverage");
+            return;
+        }
+
+        step2Form.setValue("beverageId", selectedBeverageId);
         setStep1Data(data);
         setStep(2);
     };
@@ -110,7 +179,7 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
             const payload = {
                 ...step1Data,
                 ...data,
-                image: "",
+                image: DEFAULT_RECIPE_IMAGE,
                 brewingSteps: data.brewingStepsData || [],
             };
 
@@ -141,14 +210,22 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
         step1Form.reset();
         step2Form.reset();
         setStep1Data(null);
+        setBeverages([]);
+        setSelectedBeverageId(undefined);
         onOpenChange(false);
     };
 
     const addIngredient = () => {
         const currentIngredients = step2Form.getValues("ingredients");
+
+        const defaultIngredientId =
+            ingredientsMaster && ingredientsMaster.length > 0
+                ? ingredientsMaster[0].ingredientId
+                : Date.now();
+
         step2Form.setValue("ingredients", [
             ...currentIngredients,
-            { ingredient_id: Date.now(), quantity: 0, measurement: "g" },
+            { ingredient_id: defaultIngredientId, quantity: 0, measurement: "g" },
         ]);
     };
 
@@ -200,6 +277,37 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                     <form onSubmit={step1Form.handleSubmit(handleStep1Submit)} className="space-y-6">
                         <div className="space-y-4">
                             <h3 className="text-sm font-semibold text-[#1F1F1F] uppercase">Basic Information</h3>
+
+                            {/* Beverage (from API) */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-[#573E32]">Beverage</label>
+                                <select
+                                    value={selectedBeverageId ?? ""}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        const id = value ? Number(value) : undefined;
+                                        setSelectedBeverageId(id);
+                                        if (id) {
+                                            step2Form.setValue("beverageId", id);
+                                        }
+                                    }}
+                                    className="w-full px-3 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm text-[#573E32] focus:outline-none focus:border-[#573E32]"
+                                    disabled={isBeveragesLoading || beverages.length === 0}
+                                >
+                                    <option value="">
+                                        {isBeveragesLoading
+                                            ? "Loading beverages..."
+                                            : beverages.length === 0
+                                                ? "No beverages available"
+                                                : "Select beverage..."}
+                                    </option>
+                                    {beverages.map((bev) => (
+                                        <option key={bev.beverageId} value={bev.beverageId}>
+                                            {bev.name || `Beverage #${bev.beverageId}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
 
                             {/* Recipe Name and Category */}
                             <div className="grid grid-cols-2 gap-4">
@@ -489,20 +597,33 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                             <div className="space-y-2">
                                 {step2Form.watch("ingredients").map((ingredient) => (
                                     <div key={ingredient.ingredient_id} className="flex items-center gap-2 bg-white p-3 rounded border border-[#E0D5D0]">
-                                        <Input
-                                            type="number"
-                                            placeholder="ID"
+                                        <select
                                             value={ingredient.ingredient_id}
                                             onChange={(e) => {
+                                                const value = Number(e.target.value);
                                                 const currentIngredients = step2Form.getValues("ingredients");
                                                 const index = currentIngredients.findIndex(i => i.ingredient_id === ingredient.ingredient_id);
                                                 if (index >= 0) {
-                                                    currentIngredients[index].ingredient_id = Number(e.target.value);
+                                                    currentIngredients[index].ingredient_id = value;
                                                     step2Form.setValue("ingredients", currentIngredients);
                                                 }
                                             }}
-                                            className="w-16 text-sm"
-                                        />
+                                            className="w-56 px-2 py-2 border border-[#E0D5D0] rounded-lg bg-white text-sm"
+                                            disabled={isIngredientsLoading || ingredientsMaster.length === 0}
+                                        >
+                                            <option value="">
+                                                {isIngredientsLoading
+                                                    ? "Loading ingredients..."
+                                                    : ingredientsMaster.length === 0
+                                                        ? "No ingredients available"
+                                                        : "Select ingredient..."}
+                                            </option>
+                                            {ingredientsMaster.map((ing) => (
+                                                <option key={ing.ingredientId} value={ing.ingredientId}>
+                                                    {ing.name || `Ingredient #${ing.ingredientId}`}
+                                                </option>
+                                            ))}
+                                        </select>
                                         <Input
                                             type="number"
                                             placeholder="Qty"
@@ -576,16 +697,6 @@ export function RecipeCreateDialog({ open, onOpenChange, onSubmit }: RecipeCreat
                                     <Input
                                         placeholder="e.g. Active, Inactive"
                                         {...step2Form.register("status")}
-                                        className="bg-white"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium text-[#573E32]">Beverage ID</label>
-                                    <Input
-                                        type="number"
-                                        placeholder="1"
-                                        {...step2Form.register("beverageId", { valueAsNumber: true })}
                                         className="bg-white"
                                     />
                                 </div>
