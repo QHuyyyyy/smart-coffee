@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, ShoppingCart, Truck, CreditCard, Package, Settings, Coffee } from 'lucide-react';
+import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuthStore } from '@/stores/auth.store';
