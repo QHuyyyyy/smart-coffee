@@ -11,7 +11,6 @@ export function Sidebar() {
     const { currentUser, logout } = useAuthStore();
 
     const role = currentUser?.role;
-
     const menuItems = role === 'Admin'
         ? [
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
