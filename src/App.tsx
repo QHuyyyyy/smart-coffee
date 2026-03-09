@@ -6,6 +6,7 @@ import { Recipes } from './pages/admin/Recipes';
 import { RecipeDetail } from './pages/admin/RecipeDetail';
 import { CoffeeShopPage } from './pages/admin/CoffeeShop';
 import { SupplierOrders } from './pages/supplier/Order';
+import { SupplierOrderDetail } from './pages/supplier/OrderDetail';
 import { SupplierProducts } from './pages/supplier/Product';
 import { SupplierProductDetail } from './pages/supplier/ProductDetail';
 import { LoginPage } from './pages/LoginPage';
@@ -86,6 +87,17 @@ function App() {
                     <ProtectedRoute allowedRoles={["Supplier"]}>
                         <Layout>
                             <SupplierOrders />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/supplier/orders/:id"
+                element={(
+                    <ProtectedRoute allowedRoles={["Supplier"]}>
+                        <Layout>
+                            <SupplierOrderDetail />
                         </Layout>
                     </ProtectedRoute>
                 )}
