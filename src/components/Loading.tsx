@@ -1,5 +1,5 @@
 import React from 'react';
-
+import LoadingImage from '../assets/loading.png';
 /**
  * Full-screen loading view for the web app.
  * Uses /loading.png from the public folder.
@@ -26,7 +26,7 @@ export function Loading() {
                 <div className="flex flex-col items-center justify-center">
                     <div className="flex items-center justify-center">
                         <img
-                            src="/loading.png"
+                            src={LoadingImage}
                             alt="Loading"
                             className="h-56 w-56 animate-pulse object-contain"
                         />
@@ -47,7 +47,7 @@ export function InlineLoading({ text = "Loading...", textClassName }: { text?: s
     return (
         <div className="inline-flex items-center gap-2 text-[#4B2E1E]">
             <img
-                src="/loading.png"
+                src={LoadingImage}
                 alt="Loading"
                 className="h-8 w-8 animate-pulse object-contain"
             />
