@@ -176,7 +176,7 @@ export function FeedbackPage() {
         <div className="bg-background-light dark:bg-background-dark font-display text-[#1b140d] dark:text-gray-100 min-h-screen w-full overflow-x-hidden transition-colors duration-200">
             <div className="relative flex min-h-screen w-full flex-col">
                 <header className="w-full bg-white dark:bg-[#1a120b] border-b border-[#e7dbcf] dark:border-[#3a2c22] sticky top-0 z-50">
-                    <div className="max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                    <div className="max-w-240 mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-primary text-3xl">local_cafe</span>
                             <h1 className="text-xl font-bold tracking-tight">SmartCoffee</h1>
@@ -185,7 +185,7 @@ export function FeedbackPage() {
                     </div>
                 </header>
 
-                <main className="flex-grow w-full max-w-[960px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+                <main className="grow w-full max-w-240 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
                     <div className="flex flex-col gap-2 mb-8">
                         <h2 className="text-4xl font-black leading-tight tracking-[-0.033em] text-[#1b140d] dark:text-white">
                             Coffee Drink Feedback
@@ -218,7 +218,7 @@ export function FeedbackPage() {
                                         return (
                                             <label
                                                 key={item.menuItemId}
-                                                className="cursor-pointer group min-w-[150px] sm:min-w-[180px] md:min-w-[200px]"
+                                                className="cursor-pointer group min-w-37.5 sm:min-w-45 md:min-w-50"
                                             >
                                                 <input
                                                     className="peer sr-only"
@@ -270,7 +270,7 @@ export function FeedbackPage() {
                                 Is this your first time trying this drink?
                             </span>
                             <div className="flex gap-2">
-                                <label className="has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
+                                <label className="has-checked:bg-primary has-checked:text-white has-checked:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
                                     Yes
                                     <input
                                         className="sr-only"
@@ -280,7 +280,7 @@ export function FeedbackPage() {
                                         onChange={() => setIsFirstTimeTrying(true)}
                                     />
                                 </label>
-                                <label className="has-[:checked]:bg-primary has-[:checked]:text-white has-[:checked]:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
+                                <label className="has-checked:bg-primary has-checked:text-white has-checked:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
                                     No
                                     <input
                                         className="sr-only"
@@ -519,7 +519,7 @@ export function FeedbackPage() {
                             <div>
                                 <label className="block text-sm font-semibold mb-3">How was the price?</label>
                                 <div className="flex flex-col gap-2">
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
                                         <input
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
@@ -530,7 +530,7 @@ export function FeedbackPage() {
                                         />
                                         <span className="text-sm font-medium">Cheap</span>
                                     </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
                                         <input
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
@@ -541,7 +541,7 @@ export function FeedbackPage() {
                                         />
                                         <span className="text-sm font-medium">Reasonable</span>
                                     </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
                                         <input
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
@@ -552,7 +552,7 @@ export function FeedbackPage() {
                                         />
                                         <span className="text-sm font-medium">A bit expensive</span>
                                     </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
                                         <input
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
@@ -637,7 +637,7 @@ export function FeedbackPage() {
                 </main>
 
                 <footer className="w-full py-8 text-center text-[#9a734c] text-sm dark:text-[#6a5342]">
-                    © 2023 Bean &amp; Brew Co.
+                    GSP25SE50
                 </footer>
             </div>
         </div>

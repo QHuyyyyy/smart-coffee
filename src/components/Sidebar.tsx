@@ -24,6 +24,7 @@ export function Sidebar() {
                 { icon: ShoppingCart, label: 'Orders', href: '/supplier/orders' },
                 { icon: Package, label: 'Products', href: '/supplier/products' },
                 { icon: Wallet, label: 'Wallet', href: '/wallet' },
+                { icon: Settings, label: 'Settings', href: '/supplier/profile' },
             ]
             : [];
 

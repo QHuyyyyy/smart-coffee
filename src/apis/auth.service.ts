@@ -16,6 +16,21 @@ type VerifyOtpPayload = {
     otp: string;
 };
 
+type ForgotPasswordPayload = {
+    email: string;
+};
+
+type VerifyForgotPasswordOtpPayload = {
+    email: string;
+    otp: string;
+};
+
+type ResetPasswordPayload = {
+    email: string;
+    otp: string;
+    newPassword: string;
+};
+
 type LoginResponse = {
     accessToken: string;
     refreshToken: string;
@@ -36,6 +51,15 @@ export type UpdateSupplierPayload = {
     withdrawDate?: string;
 };
 
+type UpdateProfilePayload = {
+    phone?: string;
+};
+
+type ChangePasswordPayload = {
+    oldPassword: string;
+    newPassword: string;
+};
+
 export const authService = {
     login: async (payload: LoginPayload) => {
         const response = await api.post<LoginResponse>("/Auth/login", payload);
@@ -49,6 +73,21 @@ export const authService = {
 
     verifyOtp: async (payload: VerifyOtpPayload) => {
         const response = await api.post<LoginResponse>("/Auth/verify-otp", payload);
+        return response.data;
+    },
+
+    forgotPassword: async (payload: ForgotPasswordPayload) => {
+        const response = await api.post<unknown>("/Auth/forgot-password", payload);
+        return response.data;
+    },
+
+    verifyForgotPasswordOtp: async (payload: VerifyForgotPasswordOtpPayload) => {
+        const response = await api.post<unknown>("/Auth/verify-forgot-password-otp", payload);
+        return response.data;
+    },
+
+    resetPassword: async (payload: ResetPasswordPayload) => {
+        const response = await api.post<unknown>("/Auth/reset-password", payload);
         return response.data;
     },
 
@@ -68,6 +107,26 @@ export const authService = {
 
     updateSupplier: async (payload: UpdateSupplierPayload) => {
         const response = await api.put("/Auth/update-supplier", payload);
+        return response.data;
+    },
+
+    updateProfile: async (payload: UpdateProfilePayload) => {
+        const response = await api.put("/Auth/update-profile", payload);
+        return response.data;
+    },
+
+    changePassword: async (payload: ChangePasswordPayload) => {
+        const response = await api.post("/Auth/change-password", payload);
+        return response.data;
+    },
+
+    uploadSupplierImage: async (file: File) => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await api.post("/Auth/upload-supplier-image", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
         return response.data;
     },
 

@@ -87,7 +87,7 @@ export function SupplierProductDetail() {
                         </div>
                     )}
                     {!product.image && (
-                        <div className="h-48 w-full bg-gradient-to-r from-[#3B2618] to-[#8B5E3C]" />
+                        <div className="h-48 w-full bg-linear-to-r from-[#3B2618] to-[#8B5E3C]" />
                     )}
 
                     <div className="px-8 py-6">

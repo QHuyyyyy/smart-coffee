@@ -12,9 +12,11 @@ import { SupplierProductDetail } from './pages/supplier/ProductDetail';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { FeedbackPage } from './pages/FeedbackPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { SupplierWallet } from './pages/Wallet';
 import './App.css';
+import { SupplierProfile } from './pages/supplier/Profile';
 
 function App() {
     return (
@@ -24,6 +26,9 @@ function App() {
 
             {/* Public register page without dashboard layout */}
             <Route path="/register" element={<RegisterPage />} />
+
+            {/* Forgot password flow */}
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
             {/* Admin area */}
             <Route
@@ -135,7 +140,16 @@ function App() {
                 )}
             />
 
-
+            <Route
+                path="/supplier/profile"
+                element={(
+                    <ProtectedRoute allowedRoles={["Supplier"]}>
+                        <Layout>
+                            <SupplierProfile />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
             {/* Public feedback page without sidebar/header layout */}
             <Route path="/feedback/:id" element={<FeedbackPage />} />
         </Routes>

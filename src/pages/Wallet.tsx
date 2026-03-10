@@ -6,6 +6,8 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/Loading";
+import angribankLogo from "@/assets/angribank.png";
+
 
 function formatCurrency(amount: number | null | undefined, currency: string | null | undefined) {
     const safeAmount = amount ?? 0;
@@ -39,10 +41,7 @@ function getTransactionAmountSign(w: WalletWithdrawal) {
 }
 
 const bankLogos: Record<string, string> = {
-    vietcombank: "/banks/vietcombank.svg",
-    agribank: "/banks/agribank.svg",
-    vietinbank: "/banks/vietinbank.svg",
-    bidv: "/banks/bidv.svg",
+    angribank: angribankLogo,
 };
 
 function getBankLogo(bankName: string | null | undefined) {
@@ -69,6 +68,7 @@ export function SupplierWallet() {
     const [bankAccountNumber, setBankAccountNumber] = useState("");
     const [isSavingBank, setIsSavingBank] = useState(false);
     const [bankError, setBankError] = useState<string | null>(null);
+    const [showFullAccount, setShowFullAccount] = useState(false);
 
     useEffect(() => {
         const fetchWallet = async () => {
@@ -224,7 +224,12 @@ export function SupplierWallet() {
                                                         {wallet.bankName}
                                                     </span>
                                                     <span className="text-xs text-gray-500">
-                                                        Account {wallet.bankAccountNumber}
+                                                        {(() => {
+                                                            const raw = wallet.bankAccountNumber ?? "";
+                                                            const last4 = raw.slice(-4);
+                                                            const masked = last4 ? `**** ${last4}` : "";
+                                                            return `Account ${showFullAccount ? raw : masked}`;
+                                                        })()}
                                                     </span>
                                                 </div>
                                             </div>
@@ -233,6 +238,15 @@ export function SupplierWallet() {
                                         )}
                                     </div>
                                     <div className="flex items-center gap-3">
+                                        {wallet.bankName && wallet.bankAccountNumber && (
+                                            <button
+                                                type="button"
+                                                className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
+                                                onClick={() => setShowFullAccount((prev) => !prev)}
+                                            >
+                                                {showFullAccount ? "Hide" : "View"}
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
                                             className="text-xs text-[#4b2c20] hover:text-[#3b2218]"

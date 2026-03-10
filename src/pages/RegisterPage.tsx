@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -25,6 +25,8 @@ export function RegisterPage() {
     // OTP form state
     const [otp, setOtp] = useState("");
     const [step, setStep] = useState<RegistrationStep>("register");
+
+    const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     // Validation function
     const validateRegisterForm = (): boolean => {
@@ -96,6 +98,54 @@ export function RegisterPage() {
             navigate("/supplier/dashboard");
         } catch (err: any) {
             toast.error(err.message || "OTP verification failed");
+        }
+    };
+
+    const handleOtpChange = (index: number, value: string) => {
+        const digit = value.replace(/\D/g, "").slice(-1);
+
+        const otpArray = otp.split("");
+        while (otpArray.length < 6) {
+            otpArray.push("");
+        }
+
+        if (!digit) {
+            otpArray[index] = "";
+            setOtp(otpArray.join(""));
+            return;
+        }
+
+        otpArray[index] = digit;
+        const newOtp = otpArray.join("").slice(0, 6);
+        setOtp(newOtp);
+
+        if (digit && index < 5) {
+            otpInputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === "Backspace") {
+            const otpArray = otp.split("");
+            while (otpArray.length < 6) {
+                otpArray.push("");
+            }
+
+            if (otpArray[index]) {
+                otpArray[index] = "";
+                setOtp(otpArray.join(""));
+            } else if (index > 0) {
+                otpInputRefs.current[index - 1]?.focus();
+            }
+        }
+    };
+
+    const handleResendOtp = async () => {
+        try {
+            await register({ email, password, phone });
+            toast.success("A new OTP has been sent to your email");
+        } catch (err: any) {
+            toast.error(err.message || "Failed to resend OTP");
         }
     };
 
@@ -231,16 +281,40 @@ export function RegisterPage() {
                             </p>
                         </div>
 
-                        <AuthField
-                            id="otp"
-                            label="Verification Code"
-                            placeholder="Enter 4-digit code"
-                            type="text"
-                            maxLength={6}
-                            value={otp}
-                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                            disabled={isLoading}
-                        />
+                        <div className="space-y-4">
+                            <p className="text-center text-sm font-medium text-slate-800">Input your OTP</p>
+                            <div className="flex justify-center gap-3">
+                                {Array.from({ length: 6 }).map((_, index) => {
+                                    const digit = otp[index] || "";
+                                    return (
+                                        <input
+                                            key={index}
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={1}
+                                            className="w-10 h-14 sm:w-12 sm:h-16 rounded-full border border-[#c8a27a] text-center text-2xl text-[#4b2c20] bg-white focus:outline-none focus:border-[#4b2c20] focus:ring-2 focus:ring-[#e5d4c0]"
+                                            value={digit}
+                                            onChange={(e) => handleOtpChange(index, e.target.value)}
+                                            onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                                            ref={(el) => {
+                                                otpInputRefs.current[index] = el;
+                                            }}
+                                            disabled={isLoading}
+                                        />
+                                    );
+                                })}
+                            </div>
+                            <p className="text-center text-xs text-slate-500">
+                                Didn't receive the code?{" "}
+                                <button
+                                    type="button"
+                                    onClick={handleResendOtp}
+                                    className="text-[#c39b7b] font-medium hover:underline"
+                                >
+                                    Resend
+                                </button>
+                            </p>
+                        </div>
 
                         <Button
                             type="submit"
