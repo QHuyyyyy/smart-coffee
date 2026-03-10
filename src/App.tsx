@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SupplierWallet } from './pages/Wallet';
 import './App.css';
 
 function App() {
@@ -89,6 +90,15 @@ function App() {
                             <SupplierOrders />
                         </Layout>
                     </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/wallet"
+                element={(
+                    <Layout>
+                        <SupplierWallet />
+                    </Layout>
                 )}
             />
 

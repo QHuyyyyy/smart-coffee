@@ -8,8 +8,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InlineLoading } from "@/components/Loading";
 import { useAuthStore } from "@/stores/auth.store";
 import { authService } from "@/apis/auth.service";
+import { walletService } from "@/apis/wallet.service";
 
 type Step = 1 | 2;
 
@@ -42,7 +44,7 @@ export function SupplierOnboardingDialog() {
     });
 
     useEffect(() => {
-        if (currentUser && currentUser.role === "Supplier" && !currentUser.supplierId) {
+        if (currentUser && currentUser.role === "Supplier" && !currentUser.address) {
             businessForm.reset({
                 supplierName: currentUser.supplierName ?? "",
                 businessAddress: currentUser.address ?? "",
@@ -82,6 +84,40 @@ export function SupplierOnboardingDialog() {
         setOpen(false);
     };
 
+    const handleSaveBankInfo = async () => {
+        if (!currentUser?.wallet?.walletId) {
+            // Wallet chưa sẵn sàng, cứ đóng dialog để tránh lỗi khó hiểu
+            setOpen(false);
+            return;
+        }
+
+        const trimmedBankName = bankName.trim();
+        const trimmedAccount = bankAccountNumber.trim();
+
+        if (!trimmedBankName || !trimmedAccount) {
+            setError("Bank name and account number are required.");
+            return;
+        }
+
+        try {
+            setIsSubmitting(true);
+            setError(null);
+
+            await walletService.updateBankInfo(currentUser.wallet.walletId, {
+                bankName: trimmedBankName,
+                bankAccountNumber: trimmedAccount,
+            });
+
+            await fetchCurrentUser();
+            setOpen(false);
+        } catch (err: any) {
+            const message = err?.response?.data?.message ?? err?.message ?? "Failed to update bank information. Please try again.";
+            setError(message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     const isBusinessStep = activeStep === 1;
 
     return (
@@ -95,7 +131,7 @@ export function SupplierOnboardingDialog() {
                     backgroundImage:
                         "url('https://images.pexels.com/photos/894695/pexels-photo-894695.jpeg?auto=compress&cs=tinysrgb&w=1200')",
                 }}>
-                    <div className="h-full w-full bg-gradient-to-r from-black/40 to-black/10 flex flex-col justify-center px-10">
+                    <div className="h-full w-full bg-linear-to-r from-black/40 to-black/10 flex flex-col justify-center px-10">
                         <h2 className="text-2xl font-semibold text-white mb-1">Welcome to SmartCoffee!</h2>
                         <p className="text-sm text-white/90 max-w-xl">
                             Let&apos;s set up your supplier profile to get you started with our global network.
@@ -186,7 +222,7 @@ export function SupplierOnboardingDialog() {
                                         <textarea
                                             placeholder="Street name, City, Region, Zip code"
                                             {...businessForm.register("businessAddress")}
-                                            className="min-h-[96px] w-full resize-none rounded-xl border border-[#E6D5C6] bg-white/80 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            className="min-h-24 w-full resize-none rounded-xl border border-[#E6D5C6] bg-white/80 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
                                         />
                                         {businessForm.formState.errors.businessAddress && (
                                             <p className="text-xs text-red-600">
@@ -208,7 +244,7 @@ export function SupplierOnboardingDialog() {
                                         className="rounded-full px-10 flex items-center gap-2"
                                         disabled={isSubmitting}
                                     >
-                                        {isSubmitting ? "Saving..." : "Next"}
+                                        {isSubmitting ? <InlineLoading text="Saving..." textClassName="text-white" /> : "Next"}
                                         <span className="material-symbols-outlined text-base">
                                             arrow_forward
                                         </span>
@@ -251,6 +287,12 @@ export function SupplierOnboardingDialog() {
                                     </div>
                                 </div>
 
+                                {error && (
+                                    <p className="text-xs text-red-600">
+                                        {error}
+                                    </p>
+                                )}
+
                                 <div className="flex items-center justify-between pt-4">
                                     <Button
                                         type="button"
@@ -266,9 +308,10 @@ export function SupplierOnboardingDialog() {
                                         size="xl"
                                         variant="coffee"
                                         className="rounded-full px-10 flex items-center gap-2"
-                                        onClick={handleCompleteSetup}
+                                        onClick={handleSaveBankInfo}
+                                        disabled={isSubmitting}
                                     >
-                                        Complete Setup
+                                        {isSubmitting ? <InlineLoading text="Saving..." textClassName="text-white" /> : "Complete Setup"}
                                         <span className="material-symbols-outlined text-base">
                                             check
                                         </span>

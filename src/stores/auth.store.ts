@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 import { authService } from "@/apis/auth.service"
+import type { Wallet } from "@/apis/wallet.service"
 
 type LoginPayload = {
     email: string
@@ -30,6 +31,7 @@ type UserProfile = {
     supplierName?: string | null
     address?: string | null
     rating?: number | null
+    wallet?: Wallet | null
     // Legacy / other fields kept for compatibility
     coffeeShopId?: number | null
     shopName?: string | null

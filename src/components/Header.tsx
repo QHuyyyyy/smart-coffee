@@ -12,7 +12,7 @@ export function Header() {
             </div>
 
             <div className="flex items-center gap-6">
-                <button className="flex max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 w-10 text-[#707070] hover:bg-black/5 transition-colors">
+                <button className="flex max-w-120 cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 w-10 text-[#707070] hover:bg-black/5 transition-colors">
                     <Bell size={20} />
                 </button>
 

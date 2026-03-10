@@ -161,7 +161,7 @@ export function SupplierOrders() {
                                     )}
                                     {!loading && orders.length === 0 && !error && (
                                         <TableRow>
-                                            <TableCell colSpan={4} className="py-6 text-center text-[#707070]">
+                                            <TableCell colSpan={10} className="py-6 text-center text-[#707070]">
                                                 No orders found.
                                             </TableCell>
                                         </TableRow>
