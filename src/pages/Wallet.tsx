@@ -22,7 +22,8 @@ function getTransactionDescription(w: WalletWithdrawal, bankName: string | null,
     if ((w.type ?? "").toLowerCase() === "withdrawal") {
         const last4 = bankAccountNumber ? bankAccountNumber.slice(-4) : "";
         const masked = last4 ? `****${last4}` : "";
-        return `Withdrawal to bank account ${masked}`.trim();
+        const bankLabel = bankName ? `${bankName} ` : "";
+        return `Withdrawal to ${bankLabel}bank account ${masked}`.trim();
     }
 
     if ((w.type ?? "").toLowerCase() === "commission") {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Eye } from "lucide-react";
+import { ClipboardList, Eye, XCircle } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
 import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.service";
@@ -16,8 +16,9 @@ export function SupplierOrders() {
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
+    const [statusFilter, setStatusFilter] = useState<string | null>("Pending");
 
-    const fetchOrders = async (targetPage = 1) => {
+    const fetchOrders = async (targetPage = 1, status: string | null = statusFilter) => {
         if (!currentUser?.supplierId) {
             setError("Missing supplier information");
             return;
@@ -26,7 +27,12 @@ export function SupplierOrders() {
         try {
             setLoading(true);
             setError(null);
-            const res = await supplierOrderService.getPaginatedBySupplier(currentUser.supplierId, targetPage, pageSize);
+            const res = await supplierOrderService.getPaginatedBySupplier(
+                currentUser.supplierId,
+                targetPage,
+                pageSize,
+                status ?? undefined,
+            );
             const data = res.data as any;
             const items: SupplierOrder[] = Array.isArray(data)
                 ? data
@@ -92,6 +98,19 @@ export function SupplierOrders() {
         );
     };
 
+    const handleCancelOrder = async (orderId: number) => {
+        try {
+            setLoading(true);
+            setError(null);
+            await supplierOrderService.updateStatus(orderId, "Cancelled");
+            await fetchOrders(page);
+        } catch {
+            setError("Failed to cancel order");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -110,6 +129,38 @@ export function SupplierOrders() {
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-[#EFEAE5]">
                         <h2 className="text-base font-semibold text-[#573E32]">Orders</h2>
+                        <div className="flex flex-wrap items-center gap-6 text-sm text-[#B0A49E]">
+                            {[
+                                { key: null, label: "All" },
+                                { key: "Pending", label: "Pending" },
+                                { key: "Preparing", label: "Preparing" },
+                                { key: "Delivering", label: "Delivering" },
+                                { key: "Delivered", label: "Delivered" },
+                                { key: "Cancelled", label: "Cancelled" },
+                                { key: "Rejected", label: "Rejected" },
+                                { key: "Refunded", label: "Refunded" },
+                                { key: "Completed", label: "Completed" },
+                            ].map((item) => {
+                                const active = statusFilter === item.key;
+                                return (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        className={`inline-flex items-center gap-2 pb-1 border-b-2 transition-colors ${active
+                                            ? "border-[#573E32] text-[#573E32] font-semibold"
+                                            : "border-transparent hover:text-[#573E32]"
+                                            }`}
+                                        onClick={() => {
+                                            const nextStatus = item.key;
+                                            setStatusFilter(nextStatus);
+                                            void fetchOrders(1, nextStatus);
+                                        }}
+                                    >
+                                        <span>{item.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div className="px-6 py-4">
@@ -140,7 +191,7 @@ export function SupplierOrders() {
                                                 {renderStatus(o.status)}
                                             </TableCell>
                                             <TableCell>
-                                                <div className="flex justify-end text-[#B0A49E]">
+                                                <div className="flex justify-end gap-3 text-[#B0A49E]">
                                                     <button
                                                         className="hover:text-[#573E32]"
                                                         aria-label="View order detail"
@@ -148,6 +199,15 @@ export function SupplierOrders() {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
+                                                    {!(o.status ?? "").toLowerCase().includes("cancel") && (
+                                                        <button
+                                                            className="hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            onClick={() => handleCancelOrder(o.orderId)}
+                                                            disabled={loading}
+                                                        >
+                                                            <XCircle size={16} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
