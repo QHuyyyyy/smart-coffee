@@ -10,7 +10,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             <div className="w-full max-w-7xl bg-white rounded-[40px] overflow-hidden flex flex-col lg:flex-row shadow-[0_10px_40px_-10px_rgba(75,44,32,0.15),0_8px_20px_-12px_rgba(75,44,32,0.1)]">
                 {/* Left image */}
                 <div className="w-full lg:w-[55%] p-4 lg:p-6 bg-[#fdf8f4]/30">
-                    <div className="relative h-full w-full rounded-[32px] overflow-hidden aspect-[16/10] lg:aspect-auto">
+                    <div className="relative h-full w-full rounded-[32px] overflow-hidden aspect-16/10 lg:aspect-auto">
                         <img
                             alt="Atmospheric shot of a steaming coffee cup on a wooden table in a sunlit cafe"
                             className="absolute inset-0 w-full h-full object-cover"

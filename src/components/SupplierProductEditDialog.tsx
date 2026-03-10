@@ -154,7 +154,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Measurement Unit</label>
                                 <select
-                                    className="w-full rounded-xl border border-[#E0D5D0] bg-white px-2 py-3 text-sm text-[#3B2618] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
+                                    className="w-full rounded-xl border border-[#E0D5D0] bg-white px-2 py-4 text-sm text-[#3B2618] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
                                     value={form.watch("measurement")}
                                     onChange={(e) => form.setValue("measurement", e.target.value)}
                                 >

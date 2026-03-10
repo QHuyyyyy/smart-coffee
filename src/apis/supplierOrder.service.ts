@@ -17,9 +17,13 @@ export type SupplierOrderPaginatedResponse = {
 };
 
 export const supplierOrderService = {
-    getPaginatedBySupplier: async (supplierId: number, page: number, pageSize: number) => {
+    getPaginatedBySupplier: async (supplierId: number, page: number, pageSize: number, orderStatus?: string) => {
         return api.get<SupplierOrderPaginatedResponse>(`/Order/by-supplier/${supplierId}`, {
-            params: { page, pageSize },
+            params: {
+                page,
+                pageSize,
+                orderStatus,
+            },
         });
     },
 

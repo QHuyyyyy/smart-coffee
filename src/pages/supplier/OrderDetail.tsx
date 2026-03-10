@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.service";
-import ghnLogo from "../../../public/ghn.png";
+import ghnLogo from "../../assets/ghn.png";
 import { useAuthStore } from "@/stores/auth.store";
 import { Loading } from "@/components/Loading";
 

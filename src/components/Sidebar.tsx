@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee } from 'lucide-react';
+import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee, Wallet } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuthStore } from '@/stores/auth.store';
@@ -16,12 +16,15 @@ export function Sidebar() {
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
             { icon: Coffee, label: 'Recipes', href: '/admin/recipes' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
+            { icon: Wallet, label: 'Wallet', href: '/wallet' },
         ]
         : role === 'Supplier'
             ? [
                 { icon: Home, label: 'Dashboard', href: '/supplier/dashboard' },
                 { icon: ShoppingCart, label: 'Orders', href: '/supplier/orders' },
                 { icon: Package, label: 'Products', href: '/supplier/products' },
+                { icon: Wallet, label: 'Wallet', href: '/wallet' },
+                { icon: Settings, label: 'Settings', href: '/supplier/profile' },
             ]
             : [];
 
@@ -83,7 +86,7 @@ export function Sidebar() {
                                 }`}
                             title={isCollapsed ? item.label : ''}
                         >
-                            <Icon size={20} className="flex-shrink-0" />
+                            <Icon size={20} className="shrink-0" />
                             {!isCollapsed && (
                                 <span className="text-sm font-medium leading-normal">{item.label}</span>
                             )}
@@ -99,7 +102,7 @@ export function Sidebar() {
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-[#573E32] hover:bg-black/5"
                     title={isCollapsed ? 'Logout' : ''}
                 >
-                    <Settings size={20} className="flex-shrink-0" />
+                    <Settings size={20} className="shrink-0" />
                     {!isCollapsed && (
                         <span className="text-sm font-medium leading-normal">Logout</span>
                     )}

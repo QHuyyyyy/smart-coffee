@@ -15,8 +15,8 @@ const formSchema = z.object({
     ingredientId: z.number().optional(),
     ingredientName: z.string().optional(),
     ingredientCategory: z.string().optional(),
-    price: z.number().min(0.01, "Price must be greater than 0"),
-    stock: z.number().min(0, "Stock must be at least 0"),
+    price: z.number().min(1000, "Price must be greater than 1000"),
+    stock: z.number().min(1, "Stock must be at least 1"),
     measurement: z.string().min(1, "Measurement is required"),
     status: z.string().min(1, "Status is required"),
     description: z.string().optional(),
@@ -261,6 +261,11 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     {...form.register("price", { valueAsNumber: true })}
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
+                                {form.formState.errors.price && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.price.message as string}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Current Stock</label>
@@ -271,6 +276,11 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     {...form.register("stock", { valueAsNumber: true })}
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
+                                {form.formState.errors.stock && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.stock.message as string}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
