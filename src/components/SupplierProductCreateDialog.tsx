@@ -16,7 +16,10 @@ const formSchema = z.object({
     ingredientName: z.string().optional(),
     ingredientCategory: z.string().optional(),
     price: z.number().min(1000, "Price must be greater than 1000"),
-    stock: z.number().min(1, "Stock must be at least 1"),
+    // stock: số lượng túi
+    stock: z.number().min(1, "Stock must be at least 1 bag"),
+    // packageSize: khối lượng 1 túi hàng (theo measurement)
+    packageSize: z.number().min(0.01, "Package size must be greater than 0"),
     measurement: z.string().min(1, "Measurement is required"),
     status: z.string().min(1, "Status is required"),
     description: z.string().optional(),
@@ -54,6 +57,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
             ingredientCategory: "",
             price: 0,
             stock: 0,
+            packageSize: 0,
             measurement: "gram",
             status: "Available",
             description: "",
@@ -104,6 +108,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                     ingredientId: values.ingredientId,
                     price: values.price,
                     stock: values.stock,
+                    packageSize: values.packageSize,
                     status: values.status,
                     measurement: values.measurement,
                     description: values.description || undefined,
@@ -117,6 +122,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                     },
                     price: values.price,
                     stock: values.stock,
+                    packageSize: values.packageSize,
                     status: values.status,
                     measurement: values.measurement,
                     description: values.description || undefined,
@@ -268,7 +274,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                 )}
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-[#7A685B]">Current Stock</label>
+                                <label className="text-xs font-medium text-[#7A685B]">Current Stock (bags)</label>
                                 <Input
                                     type="number"
                                     step="1"
@@ -284,7 +290,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Measurement Unit</label>
                                 <select
@@ -297,6 +303,27 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     <option value="ml">Milliliter</option>
                                     <option value="l">Liter</option>
                                 </select>
+                            </div>
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="text-xs font-medium text-[#7A685B]">Package Size</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        {...form.register("packageSize", { valueAsNumber: true })}
+                                        className="rounded-xl border-[#E0D5D0]"
+                                    />
+                                    <span className="text-xs text-[#7A685B]">per bag ({form.watch("measurement")})</span>
+                                </div>
+                                {form.formState.errors.packageSize && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.packageSize.message as string}
+                                    </p>
+                                )}
+                                <p className="text-[11px] text-[#B8AAA0] mt-1">
+                                    Weight of 1 bag sold. Stock is the number of bags.
+                                </p>
                             </div>
                         </div>
 

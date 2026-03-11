@@ -83,11 +83,42 @@ export function SupplierOrderDetail() {
         try {
             setUpdatingStatus(true);
             setError(null);
+
+            // When moving from Preparing -> Delivering, also call ship-GHN API
+            if (
+                currentStatus === "preparing" &&
+                nextStatus.trim().toLowerCase() === "delivering"
+            ) {
+                await supplierOrderService.shipWithGHN(order.orderId);
+            }
             await supplierOrderService.updateStatus(order.orderId, nextStatus);
             const res = await supplierOrderService.getById(order.orderId);
             setOrder(res.data);
         } catch (err) {
             setError("Failed to update order status");
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
+    const handleTestGhnWebhook = async (nextStatus: "Delivered" | "Rejected") => {
+        if (!order || updatingStatus) return;
+        if (!order.ghnOrderCode) {
+            // Keep it simple for staging: just show a basic alert if missing
+            // so we don't break the whole page state.
+            // eslint-disable-next-line no-alert
+            alert("GHN order code is missing. Cannot trigger webhook.");
+            return;
+        }
+
+        try {
+            setUpdatingStatus(true);
+            setError(null);
+            await supplierOrderService.triggerGhnWebhook(order.ghnOrderCode, nextStatus);
+            const res = await supplierOrderService.getById(order.orderId);
+            setOrder(res.data);
+        } catch (err) {
+            setError("Failed to trigger GHN webhook");
         } finally {
             setUpdatingStatus(false);
         }
@@ -202,6 +233,26 @@ export function SupplierOrderDetail() {
                                 {updatingStatus ? "Updating..." : "Start Delivering"}
                             </button>
                         )}
+                        {currentStatus === "delivering" && (
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleTestGhnWebhook("Delivered")}
+                                    disabled={updatingStatus}
+                                    className="rounded-full border border-dashed border-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-[#FF7A1A] hover:bg-[#FFF5EC] disabled:opacity-60"
+                                >
+                                    {updatingStatus ? "Testing..." : "Test Delivered (staging)"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTestGhnWebhook("Rejected")}
+                                    disabled={updatingStatus}
+                                    className="rounded-full border border-dashed border-red-400 px-4 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60"
+                                >
+                                    {updatingStatus ? "Testing..." : "Test Rejected (staging)"}
+                                </button>
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center justify-between gap-3">
                         {shipmentSteps.map((step, index) => {
@@ -243,7 +294,7 @@ export function SupplierOrderDetail() {
                             <img src={ghnLogo} alt="GHN Express" className="h-11 w-11 object-contain" />
                         </div>
                         <p className="mt-1 text-sm font-semibold text-[#1F1F1F]">GHN Express</p>
-                        <p className="text-xs text-[#707070]">{order.shipperName ?? "Shipper Name Not Available"}</p>
+                        <p className="text-xs text-[#707070]">{order.ghnOrderCode ?? "Shipper Name Not Available"}</p>
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2 text-xs text-[#707070]">

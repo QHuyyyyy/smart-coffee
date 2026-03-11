@@ -114,7 +114,14 @@ export function SupplierProductDetail() {
                             <p className="mt-2 text-3xl font-semibold tracking-tight text-[#1F1F1F]">
                                 {formatPrice(product.price)}
                             </p>
-                            <p className="mt-1 text-xs text-[#A08C7A]">per {product.measurement}</p>
+                            <p className="mt-1 text-xs text-[#A08C7A]">
+                                per bag
+                                {product.packageSize
+                                    ? ` (${product.packageSize} ${product.measurement})`
+                                    : product.measurement
+                                        ? ` (${product.measurement})`
+                                        : ""}
+                            </p>
                         </div>
 
                         <div className="rounded-2xl bg-[#FFF7F0] px-5 py-4">
@@ -122,15 +129,24 @@ export function SupplierProductDetail() {
                                 Stock Level
                             </p>
                             <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">{product.stock}</p>
-                            <p className="mt-1 text-xs text-[#A08C7A]">{product.measurement} available</p>
+                            <p className="mt-1 text-xs text-[#A08C7A]">
+                                bags available
+                                {product.packageSize && product.measurement
+                                    ? ` • each ${product.packageSize} ${product.measurement}`
+                                    : ""}
+                            </p>
                         </div>
 
                         <div className="rounded-2xl bg-[#FFF7F0] px-5 py-4">
                             <p className="text-[11px] font-semibold tracking-[0.12em] text-[#A08C7A] uppercase">
                                 Measurement
                             </p>
-                            <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">{product.measurement}</p>
-                            <p className="mt-1 text-xs text-[#A08C7A]">unit of sale</p>
+                            <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">
+                                {product.packageSize && product.measurement
+                                    ? `${product.packageSize} ${product.measurement} / bag`
+                                    : product.measurement}
+                            </p>
+                            <p className="mt-1 text-xs text-[#A08C7A]">weight per bag</p>
                         </div>
                     </div>
                 </div>

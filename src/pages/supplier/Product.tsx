@@ -170,7 +170,8 @@ export function SupplierProducts() {
                                         <TableHead>Ingredient Name</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead className="text-center">Price</TableHead>
-                                        <TableHead className="text-center">Stock</TableHead>
+                                        <TableHead className="text-center">Stock (bags)</TableHead>
+                                        <TableHead className="text-center">Package Size</TableHead>
                                         <TableHead className="text-center">Created At</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-center">Action</TableHead>
@@ -197,7 +198,12 @@ export function SupplierProducts() {
                                                 {formatPrice(p.price)}
                                             </TableCell>
                                             <TableCell className="text-center text-[#573E32]">
-                                                {p.stock} {p.measurement}
+                                                {p.stock}
+                                            </TableCell>
+                                            <TableCell className="text-center text-[#573E32]">
+                                                {p.packageSize && p.measurement
+                                                    ? `${p.packageSize} ${p.measurement}`
+                                                    : p.measurement || "-"}
                                             </TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
                                                 {formatDateTime(p.createDate)}

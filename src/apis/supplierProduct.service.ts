@@ -6,6 +6,8 @@ export type SupplierProduct = {
     ingredientId: number;
     price: number;
     stock: number;
+    // packageSize: khối lượng của 1 túi bán ra (theo measurement)
+    packageSize?: number | null;
     status: string;
     description?: string | null;
     createDate: string;
@@ -33,6 +35,7 @@ export type UpdateSupplierProductPayload = {
     ingredientId: number;
     price: number;
     stock: number;
+    packageSize?: number | null;
     status: string;
     description?: string | null;
     createDate: string;
@@ -51,6 +54,7 @@ type ExistingIngredientPayload = {
     ingredientId: number;
     price: number;
     stock: number;
+    packageSize?: number | null;
     status: string;
     measurement: string;
     description?: string;
@@ -64,6 +68,7 @@ type NewIngredientPayload = {
     };
     price: number;
     stock: number;
+    packageSize?: number | null;
     status: string;
     measurement: string;
     description?: string;
