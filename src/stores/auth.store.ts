@@ -32,6 +32,10 @@ type UserProfile = {
     address?: string | null
     rating?: number | null
     wallet?: Wallet | null
+    // Location fields
+    provinceId?: number | null
+    districtId?: number | null
+    wardCode?: string | null
     // Legacy / other fields kept for compatibility
     coffeeShopId?: number | null
     shopName?: string | null
