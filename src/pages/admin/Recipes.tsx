@@ -30,24 +30,51 @@ export function Recipes() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [totalCount, setTotalCount] = useState(0);
+
+    const fetchRecipes = async (targetPage = 1) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await recipeService.getPaginatedRecipes("true", targetPage, pageSize);
+            const data = response.data as any;
+            const items: Recipe[] = Array.isArray(data) ? data : data.items ?? data.data ?? [];
+
+            setRecipes(items);
+
+            if (typeof data.totalCount === "number") {
+                setTotalCount(data.totalCount);
+            } else {
+                setTotalCount(items.length);
+            }
+
+            if (typeof data.page === "number") {
+                setPage(data.page);
+            } else {
+                setPage(targetPage);
+            }
+        } catch (err) {
+            setError("Không tải được danh sách recipe");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        const fetchRecipes = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await recipeService.getAllRecipes();
-                const data = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
-                setRecipes(data as Recipe[]);
-            } catch (err) {
-                setError("Không tải được danh sách recipe");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRecipes();
+        void fetchRecipes(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
+    const fromItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+    const toItem = totalCount === 0 ? 0 : Math.min(totalCount, page * pageSize);
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage < 1 || newPage > totalPages || newPage === page) return;
+        void fetchRecipes(newPage);
+    };
 
     const handleCreateRecipe = async (data: any) => {
         try {
@@ -164,7 +191,7 @@ export function Recipes() {
                                                     <button
                                                         className="hover:text-[#573E32]"
                                                         aria-label="View"
-                                                        onClick={() => navigate(`/recipes/${recipe.recipeId}`)}
+                                                        onClick={() => navigate(`/admin/recipes/${recipe.recipeId}`)}
                                                     >
                                                         <Eye size={16} />
                                                     </button>
@@ -185,35 +212,78 @@ export function Recipes() {
                                             </TableCell>
                                         </TableRow>
                                     )}
+                                    {!loading && recipes.length === 0 && !error && (
+                                        <TableRow>
+                                            <TableCell colSpan={6} className="py-6 text-center text-[#707070]">
+                                                No Recipes Found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
 
                         {/* Pagination */}
                         <div className="mt-4 flex flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
-                            <p>Showing 1 to 7 of 24 entries</p>
+                            <p>
+                                Showing {fromItem} to {toItem} of {totalCount} entries
+                            </p>
                             <div className="sm:ml-auto">
                                 <Pagination className="w-auto mx-0 justify-end">
                                     <PaginationContent>
                                         <PaginationItem>
-                                            <PaginationPrevious href="#" />
+                                            <PaginationPrevious
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handlePageChange(page - 1);
+                                                }}
+                                            />
                                         </PaginationItem>
+                                        {Array.from({ length: totalPages }).slice(0, 5).map((_, index) => {
+                                            const pageNumber = index + 1;
+                                            return (
+                                                <PaginationItem key={pageNumber}>
+                                                    <PaginationLink
+                                                        href="#"
+                                                        isActive={pageNumber === page}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handlePageChange(pageNumber);
+                                                        }}
+                                                    >
+                                                        {pageNumber}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            );
+                                        })}
+                                        {totalPages > 5 && (
+                                            <>
+                                                <PaginationItem>
+                                                    <PaginationEllipsis />
+                                                </PaginationItem>
+                                                <PaginationItem>
+                                                    <PaginationLink
+                                                        href="#"
+                                                        isActive={page === totalPages}
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            handlePageChange(totalPages);
+                                                        }}
+                                                    >
+                                                        {totalPages}
+                                                    </PaginationLink>
+                                                </PaginationItem>
+                                            </>
+                                        )}
                                         <PaginationItem>
-                                            <PaginationLink href="#" isActive>
-                                                1
-                                            </PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationLink href="#">2</PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationLink href="#">3</PaginationLink>
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationEllipsis />
-                                        </PaginationItem>
-                                        <PaginationItem>
-                                            <PaginationNext href="#" />
+                                            <PaginationNext
+                                                href="#"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    handlePageChange(page + 1);
+                                                }}
+                                            />
                                         </PaginationItem>
                                     </PaginationContent>
                                 </Pagination>

@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee, Wallet } from 'lucide-react';
+import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee, Wallet, SquareMenu } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuthStore } from '@/stores/auth.store';
@@ -14,8 +14,8 @@ export function Sidebar() {
     const menuItems = role === 'Admin'
         ? [
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
-            { icon: Coffee, label: 'Recipes', href: '/admin/recipes' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
+            { icon: SquareMenu, label: 'Recipes', href: '/admin/recipes' },
             { icon: Wallet, label: 'Wallet', href: '/wallet' },
         ]
         : role === 'Supplier'

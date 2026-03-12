@@ -199,7 +199,7 @@ export function RecipeDetail() {
                     <div className="flex items-center gap-2 text-sm text-[#707070] mb-1">
                         <button
                             className="cursor-pointer hover:underline"
-                            onClick={() => navigate("/recipes")}
+                            onClick={() => navigate("/admin/recipes")}
                         >
                             Recipes
                         </button>
