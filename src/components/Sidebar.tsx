@@ -16,6 +16,8 @@ export function Sidebar() {
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
             { icon: SquareMenu, label: 'Recipes', href: '/admin/recipes' },
+            { icon: Package, label: 'Packages', href: '/admin/subscription-packages' },
+            { icon: ShoppingCart, label: 'Subscriptions', href: '/admin/subscriptions' },
             { icon: Wallet, label: 'Wallet', href: '/wallet' },
         ]
         : role === 'Supplier'

@@ -58,7 +58,7 @@ function getBankInitials(bankName: string | null | undefined) {
     return joined || "?";
 }
 
-export function SupplierWallet() {
+export function Wallet() {
     const { currentUser } = useAuthStore();
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [isLoading, setIsLoading] = useState(false);

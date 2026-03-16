@@ -305,7 +305,7 @@ export function SupplierOrderDetail() {
                         </div>
                         <div className="flex justify-between gap-4">
                             <span>Receive Date</span>
-                            <span className="font-semibold text-[#1F1F1F]">{formatDateTime(order.receiDate)}</span>
+                            <span className="font-semibold text-[#1F1F1F]">{formatDateTime(order.receiveDate)}</span>
                         </div>
                         <div className="md:col-span-2 flex justify-between gap-4">
                             <span>Notes</span>

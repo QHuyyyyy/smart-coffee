@@ -94,16 +94,8 @@ export function LoginPage() {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-sm py-2">
-                        <label className="flex items-center gap-3 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                                className="w-5 h-5 rounded-md border-slate-300 text-[#4b2c20] focus:ring-[#4b2c20] cursor-pointer"
-                            />
-                            <span className="text-slate-600 font-medium">Remember me</span>
-                        </label>
+                    <div className="flex items-end justify-between text-sm py-2">
+
                         <button
                             type="button"
                             className="text-[#4b2c20] hover:underline font-semibold transition-colors"
