@@ -1,8 +1,10 @@
 import { Bell } from 'lucide-react';
 import { useSidebar } from '../context/SidebarContext';
+import { useAuthStore } from '../stores/auth.store';
 
 export function Header() {
     const { isCollapsed } = useSidebar();
+    const { currentUser } = useAuthStore();
     const sidebarWidth = isCollapsed ? 'left-20' : 'left-64';
 
     return (
@@ -17,7 +19,7 @@ export function Header() {
                 </button>
 
                 <div className="flex items-center gap-3">
-                    <p className="text-sm font-medium text-[#707070]">Hi, Supplier</p>
+                    <p className="text-sm font-medium text-[#707070]">Hi, {currentUser?.supplierName || currentUser?.role} </p>
                     <div
                         className="w-10 h-10 rounded-full bg-center bg-no-repeat bg-cover"
                         style={{

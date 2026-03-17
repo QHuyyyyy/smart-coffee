@@ -177,13 +177,6 @@ export function SubscriptionPackagesPage() {
         return `${Number(value).toLocaleString("vi-VN")}₫`;
     };
 
-    const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
-    };
-
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -249,7 +242,7 @@ export function SubscriptionPackagesPage() {
 
                     {loading && (
                         <div className="flex items-center justify-center py-10">
-                            <InlineLoading text="Đang tải danh sách gói đăng ký..." />
+                            <InlineLoading text="Loading Packages..." />
                         </div>
                     )}
 
@@ -261,7 +254,7 @@ export function SubscriptionPackagesPage() {
                         {filteredPackages.map((pkg, index) => (
                             <div
                                 key={pkg.packageId}
-                                className="flex flex-col justify-between rounded-3xl border border-[#EFEAE5] bg-white shadow-sm px-6 py-6 min-h-[340px] relative"
+                                className="flex flex-col justify-between rounded-3xl border border-[#EFEAE5] bg-white shadow-sm px-6 py-6 min-h-85 relative"
                             >
                                 {/* Most popular badge for second card as UI-cứng */}
                                 {index === 1 && (
@@ -329,7 +322,7 @@ export function SubscriptionPackagesPage() {
                         <button
                             type="button"
                             onClick={openCreateDialog}
-                            className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#D5C9C0] bg-transparent px-6 py-6 min-h-[340px] text-center text-[#7A685B] hover:border-[#B89D8A] hover:bg-[#F9F6F3] transition-colors"
+                            className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#D5C9C0] bg-transparent px-6 py-6 min-h-85 text-center text-[#7A685B] hover:border-[#B89D8A] hover:bg-[#F9F6F3] transition-colors"
                         >
                             <p className="text-sm font-semibold mb-1">Create New Plan</p>
                             <p className="text-xs text-[#B0A49E] mb-4">Design a new custom tier</p>
@@ -364,7 +357,7 @@ export function SubscriptionPackagesPage() {
                                 value={formState.description}
                                 onChange={(e) => handleInputChange("description", e.target.value)}
                                 placeholder="Short description for this package"
-                                className="w-full rounded-2xl border border-slate-200 bg-transparent px-5 py-3 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b2c20]/20 focus-visible:border-[#4b2c20] min-h-[80px]"
+                                className="w-full rounded-2xl border border-slate-200 bg-transparent px-5 py-3 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b2c20]/20 focus-visible:border-[#4b2c20] min-h-20"
                             />
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

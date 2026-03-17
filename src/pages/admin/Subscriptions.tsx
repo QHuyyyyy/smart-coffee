@@ -174,7 +174,7 @@ export function SubscriptionsPage() {
                                     {loading && (
                                         <TableRow>
                                             <TableCell colSpan={7} className="py-6 text-center">
-                                                <InlineLoading text="Đang tải danh sách người đăng ký..." />
+                                                <InlineLoading text="Loading Subscriptions..." />
                                             </TableCell>
                                         </TableRow>
                                     )}

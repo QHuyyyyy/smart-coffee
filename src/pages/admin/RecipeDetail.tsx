@@ -158,7 +158,7 @@ export function RecipeDetail() {
     if (loading) {
         return (
             <div className="mt-24 px-10 pb-10 w-full flex items-center justify-center text-sm text-[#707070]">
-                Đang tải chi tiết recipe...
+                Loading Recipe Details...
             </div>
         );
     }

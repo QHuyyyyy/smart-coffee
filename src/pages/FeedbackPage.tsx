@@ -205,7 +205,7 @@ export function FeedbackPage() {
                         <div className="mb-6">
                             {loadingMenuItem || loadingMenu ? (
                                 <div className="flex items-center justify-center py-10 text-sm text-[#9a734c]">
-                                    Đang tải thông tin menu...
+                                    Loading Feedback Page
                                 </div>
                             ) : orderedMenuItems.length > 0 ? (
                                 <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
@@ -251,16 +251,16 @@ export function FeedbackPage() {
                                 </div>
                             ) : (
                                 <div className="flex items-center justify-center py-10 text-sm text-red-500">
-                                    Không tìm thấy danh sách đồ uống trong menu.
+                                    No drink information available for this feedback.
                                 </div>
                             )}
                         </div>
 
                         {menuItem && (
                             <p className="text-sm text-[#9a734c] mb-4">
-                                Bạn đang đánh giá:{' '}
+                                You are rating:{' '}
                                 <span className="font-semibold">
-                                    {menuItem.shopRecipe?.recipeName || menuItem.shopBeverage?.name || 'Đồ uống đã chọn'}
+                                    {menuItem.shopRecipe?.recipeName || menuItem.shopBeverage?.name || 'Selected Drink'}
                                 </span>
                             </p>
                         )}

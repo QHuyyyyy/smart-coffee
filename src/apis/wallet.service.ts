@@ -7,7 +7,6 @@ export type WalletWithdrawal = {
     status: string | null;
     balanceBefore: number | null;
     balanceAfter: number | null;
-    type: string | null;
     createAt: string | null;
 };
 
@@ -37,6 +36,30 @@ export const walletService = {
 
     updateBankInfo: async (walletId: number, payload: UpdateBankInfoPayload) => {
         const response = await api.put<Wallet>(`/Wallet/${walletId}/bank-info`, payload);
+        return response.data;
+    },
+
+    // Supplier: request a new withdrawal
+    createWithdraw: async (payload: { amount: number }) => {
+        const response = await api.post<{ withdrawId: number }>("/Wallet/withdraw", payload);
+        return response.data;
+    },
+
+    // Supplier: verify withdrawal via OTP sent by email
+    verifyWithdraw: async (payload: { withdrawId: number; otpCode: string }) => {
+        const response = await api.post("/Wallet/verify-withdraw", payload);
+        return response.data;
+    },
+
+    // Supplier/Admin: update withdrawal status (Cancelled by supplier, or Processing/Rejected/Completed by admin)
+    updateWithdrawStatus: async (withdrawId: number, payload: { status: string }) => {
+        const response = await api.patch(`/Wallet/withdraw/${withdrawId}/status`, payload);
+        return response.data;
+    },
+
+    // Admin: list withdrawals with optional filters
+    getWithdrawals: async (params: { status?: string; pageSize?: number; page?: number }) => {
+        const response = await api.get("/Wallet/withdrawals", { params });
         return response.data;
     },
 };

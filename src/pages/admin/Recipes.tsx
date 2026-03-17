@@ -208,7 +208,7 @@ export function Recipes() {
                                     {loading && (
                                         <TableRow>
                                             <TableCell colSpan={6} className="py-6 text-center">
-                                                <InlineLoading text="Đang tải danh sách recipe..." />
+                                                <InlineLoading text="Loading Recipes..." />
                                             </TableCell>
                                         </TableRow>
                                     )}

@@ -6,6 +6,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loading } from "@/components/Loading";
+import { toast } from "sonner";
 import angribankLogo from "@/assets/angribank.png";
 
 
@@ -21,23 +22,23 @@ function formatDate(value: string | null | undefined) {
 }
 
 function getTransactionDescription(w: WalletWithdrawal, bankName: string | null, bankAccountNumber: string | null) {
-    if ((w.type ?? "").toLowerCase() === "withdrawal") {
+    // API hiện tại không trả về field type, nên ta suy luận đơn giản dựa trên amount và status
+    const amount = w.amount ?? 0;
+    const status = (w.status ?? "").toLowerCase();
+
+    if (amount < 0 || status === "pending" || status === "processing" || status === "completed") {
         const last4 = bankAccountNumber ? bankAccountNumber.slice(-4) : "";
         const masked = last4 ? `****${last4}` : "";
         const bankLabel = bankName ? `${bankName} ` : "";
         return `Withdrawal to ${bankLabel}bank account ${masked}`.trim();
     }
 
-    if ((w.type ?? "").toLowerCase() === "commission") {
-        return "Commission";
-    }
-
-    return w.type || "Transaction";
+    return "Transaction";
 }
 
 function getTransactionAmountSign(w: WalletWithdrawal) {
-    const type = (w.type ?? "").toLowerCase();
-    return type === "withdrawal" ? -1 : 1;
+    // Không còn field type, nên với lịch sử walletWithdrawal hiện tại coi là dòng tiền ra
+    return -1;
 }
 
 const bankLogos: Record<string, string> = {
@@ -69,6 +70,12 @@ export function Wallet() {
     const [isSavingBank, setIsSavingBank] = useState(false);
     const [bankError, setBankError] = useState<string | null>(null);
     const [showFullAccount, setShowFullAccount] = useState(false);
+    const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState("");
+    const [withdrawOtp, setWithdrawOtp] = useState("");
+    const [createdWithdrawId, setCreatedWithdrawId] = useState<number | null>(null);
+    const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false);
+    const [isVerifyingWithdraw, setIsVerifyingWithdraw] = useState(false);
 
     useEffect(() => {
         const fetchWallet = async () => {
@@ -106,6 +113,13 @@ export function Wallet() {
         setIsBankDialogOpen(true);
     };
 
+    const openWithdrawDialog = () => {
+        setWithdrawAmount("");
+        setWithdrawOtp("");
+        setCreatedWithdrawId(null);
+        setIsWithdrawDialogOpen(true);
+    };
+
     const handleSaveBankInfo = async () => {
         if (!wallet) return;
 
@@ -131,6 +145,63 @@ export function Wallet() {
             setBankError(message);
         } finally {
             setIsSavingBank(false);
+        }
+    };
+
+    const handleCreateWithdraw = async () => {
+        if (!wallet) return;
+
+        const amountNumber = Number(withdrawAmount);
+        if (!amountNumber || amountNumber <= 0) {
+            toast.error("Amount must be greater than 0.");
+            return;
+        }
+        if (amountNumber > wallet.availableBalance) {
+            toast.error("Amount cannot exceed available balance.");
+            return;
+        }
+
+        try {
+            setIsCreatingWithdraw(true);
+            const result = await walletService.createWithdraw({ amount: amountNumber });
+            console.log("before", result); console.log("after");
+            const withdrawId = (result as any).withdrawId ?? (result as any).id ?? null;
+            setCreatedWithdrawId(withdrawId);
+            toast.success("Withdrawal created. Please check your email for OTP.");
+        } catch (err: any) {
+            const message = err?.response?.data?.message ?? err?.message ?? "Failed to create withdrawal.";
+            toast.error(message);
+        } finally {
+            setIsCreatingWithdraw(false);
+        }
+    };
+
+    const handleVerifyWithdraw = async () => {
+        if (!createdWithdrawId) {
+            toast.error("Missing withdraw ID. Please create again.");
+            return;
+        }
+        if (!withdrawOtp.trim()) {
+            toast.error("Please enter OTP code.");
+            return;
+        }
+
+        try {
+            setIsVerifyingWithdraw(true);
+            await walletService.verifyWithdraw({ withdrawId: createdWithdrawId, otpCode: withdrawOtp.trim() });
+            toast.success("Withdrawal verified successfully.");
+            setIsWithdrawDialogOpen(false);
+
+            // reload wallet to reflect new transaction
+            if (currentUser?.wallet?.walletId) {
+                const data = await walletService.getWalletById(currentUser.wallet.walletId);
+                setWallet(data);
+            }
+        } catch (err: any) {
+            const message = err?.response?.data?.message ?? err?.message ?? "Failed to verify withdrawal.";
+            toast.error(message);
+        } finally {
+            setIsVerifyingWithdraw(false);
         }
     };
 
@@ -186,14 +257,25 @@ export function Wallet() {
                                     </span>
                                 </div>
                                 <div className="flex items-end justify-between gap-4">
-                                    <p className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-                                        {formatCurrency(wallet.availableBalance, wallet.currency)}
-                                    </p>
+                                    <div className="flex flex-col">
+                                        <p className="text-xs text-gray-500">Available Balance</p>
+                                        <p className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
+                                            {formatCurrency(wallet.availableBalance, wallet.currency)}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end text-right">
+                                        <p className="text-xs text-gray-500">Held Balance</p>
+                                        <p className="text-xl md:text-2xl font-semibold tracking-tight text-gray-900">
+                                            {formatCurrency(wallet.heldBalance, wallet.currency)}
+                                        </p>
+                                    </div>
                                     <button
                                         type="button"
-                                        className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors"
+                                        className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                        onClick={openWithdrawDialog}
+                                        disabled={!wallet.bankName || !wallet.bankAccountNumber}
                                     >
-                                        Request Payout
+                                        Request Withdraw
                                     </button>
                                 </div>
                             </div>
@@ -455,6 +537,82 @@ export function Wallet() {
                                 </div>
                             </div>
                         </section>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Withdraw dialog: create + verify via OTP */}
+            <Dialog open={isWithdrawDialogOpen} onOpenChange={setIsWithdrawDialogOpen}>
+                <DialogContent className="max-w-md p-6">
+                    <div className="space-y-4">
+                        <h2 className="text-lg font-semibold">Request Withdrawal</h2>
+                        <p className="text-sm text-gray-600">
+                            Enter the amount you want to withdraw. We will send an OTP code to your email to verify this request.
+                        </p>
+
+                        <div className="space-y-2">
+                            <label className="text-xs font-medium text-gray-700">Amount</label>
+                            <Input
+                                type="number"
+                                min={0}
+                                step={1000}
+                                value={withdrawAmount}
+                                onChange={(e) => setWithdrawAmount(e.target.value)}
+                                disabled={!!createdWithdrawId}
+                                placeholder="e.g. 100000"
+                            />
+                            {wallet && (
+                                <>
+                                    <p className="text-xs text-gray-500">
+                                        Available: {formatCurrency(wallet.availableBalance, wallet.currency)}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                        Hold Balance: {formatCurrency(wallet.heldBalance, wallet.currency)}
+                                    </p>
+                                </>
+                            )}
+                        </div>
+
+                        {createdWithdrawId && (
+                            <div className="space-y-2 mt-4">
+                                <label className="text-xs font-medium text-gray-700">OTP Code</label>
+                                <Input
+                                    value={withdrawOtp}
+                                    onChange={(e) => setWithdrawOtp(e.target.value)}
+                                    placeholder="Enter OTP from email"
+                                />
+                                <p className="text-xs text-gray-500">
+                                    OTP has been sent to your registered email. Please enter it here to confirm the withdrawal.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex justify-end gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsWithdrawDialogOpen(false)}
+                            >
+                                Close
+                            </Button>
+                            {!createdWithdrawId ? (
+                                <Button
+                                    type="button"
+                                    onClick={handleCreateWithdraw}
+                                    disabled={isCreatingWithdraw}
+                                >
+                                    {isCreatingWithdraw ? "Creating..." : "Create Withdraw"}
+                                </Button>
+                            ) : (
+                                <Button
+                                    type="button"
+                                    onClick={handleVerifyWithdraw}
+                                    disabled={isVerifyingWithdraw}
+                                >
+                                    {isVerifyingWithdraw ? "Verifying..." : "Verify OTP"}
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

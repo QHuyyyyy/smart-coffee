@@ -7,6 +7,7 @@ import { RecipeDetail } from './pages/admin/RecipeDetail';
 import { CoffeeShopPage } from './pages/admin/CoffeeShop';
 import { SubscriptionPackagesPage } from './pages/admin/SubscriptionPackages';
 import { SubscriptionsPage } from './pages/admin/Subscriptions';
+import { AdminWithdrawalsPage } from './pages/admin/Withdrawals';
 import { SupplierOrders } from './pages/supplier/Order';
 import { SupplierOrderDetail } from './pages/supplier/OrderDetail';
 import { SupplierProducts } from './pages/supplier/Product';
@@ -99,6 +100,17 @@ function App() {
                 )}
             />
 
+            <Route
+                path="/admin/withdrawals"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminWithdrawalsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
             {/* Supplier area */}
             <Route
                 path="/supplier/dashboard"
@@ -125,9 +137,11 @@ function App() {
             <Route
                 path="/wallet"
                 element={(
-                    <Layout>
-                        <Wallet />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier"]}>
+                        <Layout>
+                            <Wallet />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 
