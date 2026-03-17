@@ -34,6 +34,11 @@ export function SupplierProductDetail() {
         return `${value.toLocaleString("vi-VN")} VND`;
     };
 
+    const formatRating = (value: number | null | undefined) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return "-";
+        return `${value.toFixed(1)} / 5`;
+    };
+
     if (loading) {
         return (
             <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
@@ -106,7 +111,7 @@ export function SupplierProductDetail() {
                 <div className="rounded-3xl border border-[#EFE5DC] bg-white px-8 py-6">
                     <h2 className="text-sm font-semibold text-[#1F1F1F]">Stock &amp; Pricing</h2>
 
-                    <div className="mt-6 grid gap-6 md:grid-cols-3">
+                    <div className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-5">
                         <div>
                             <p className="text-[11px] font-semibold tracking-[0.12em] text-[#A08C7A] uppercase">
                                 Current Price
@@ -139,6 +144,14 @@ export function SupplierProductDetail() {
 
                         <div className="rounded-2xl bg-[#FFF7F0] px-5 py-4">
                             <p className="text-[11px] font-semibold tracking-[0.12em] text-[#A08C7A] uppercase">
+                                Hold Stock
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">{product.holdStock ?? "-"}</p>
+                            <p className="mt-1 text-xs text-[#A08C7A]">bags on hold</p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FFF7F0] px-5 py-4">
+                            <p className="text-[11px] font-semibold tracking-[0.12em] text-[#A08C7A] uppercase">
                                 Measurement
                             </p>
                             <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">
@@ -147,6 +160,14 @@ export function SupplierProductDetail() {
                                     : product.measurement}
                             </p>
                             <p className="mt-1 text-xs text-[#A08C7A]">weight per bag</p>
+                        </div>
+
+                        <div className="rounded-2xl bg-[#FFF7F0] px-5 py-4">
+                            <p className="text-[11px] font-semibold tracking-[0.12em] text-[#A08C7A] uppercase">
+                                Rating
+                            </p>
+                            <p className="mt-2 text-xl font-semibold text-[#1F1F1F]">{formatRating(product.rating)}</p>
+                            <p className="mt-1 text-xs text-[#A08C7A]">average product score</p>
                         </div>
                     </div>
                 </div>

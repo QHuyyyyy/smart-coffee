@@ -247,7 +247,7 @@ export function SubscriptionPackagesPage() {
                     )}
 
                     {!loading && filteredPackages.length === 0 && !error && (
-                        <p className="py-10 text-center text-sm text-[#707070]">Chưa có gói đăng ký nào.</p>
+                        <p className="py-10 text-center text-sm text-[#707070]">No subscription packages found.</p>
                     )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">

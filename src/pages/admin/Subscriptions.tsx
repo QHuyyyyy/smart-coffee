@@ -181,7 +181,7 @@ export function SubscriptionsPage() {
                                     {!loading && subscriptions.length === 0 && !error && (
                                         <TableRow>
                                             <TableCell colSpan={7} className="py-6 text-center text-[#707070]">
-                                                Chưa có người đăng ký nào.
+                                                No subscriptions found.
                                             </TableCell>
                                         </TableRow>
                                     )}
