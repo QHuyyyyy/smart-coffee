@@ -137,7 +137,7 @@ function App() {
             <Route
                 path="/wallet"
                 element={(
-                    <ProtectedRoute allowedRoles={["Supplier"]}>
+                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
                         <Layout>
                             <Wallet />
                         </Layout>
