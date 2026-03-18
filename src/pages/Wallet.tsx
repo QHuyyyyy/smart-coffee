@@ -58,6 +58,8 @@ function getBankInitials(bankName: string | null | undefined) {
 
 export function Wallet() {
     const { currentUser } = useAuthStore();
+    const role = currentUser?.role;
+    const isAdmin = role === "Admin";
     const [wallet, setWallet] = useState<Wallet | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -205,7 +207,7 @@ export function Wallet() {
     if (!currentUser) {
         return (
             <div className="p-6">
-                <p className="text-red-500">You must be logged in as a supplier to view wallet information.</p>
+                <p className="text-red-500">You must be logged in to view wallet information.</p>
             </div>
         );
     }
@@ -213,7 +215,7 @@ export function Wallet() {
     if (!currentUser.wallet?.walletId) {
         return (
             <div className="p-6">
-                <p className="text-gray-700">This supplier does not have a wallet yet.</p>
+                <p className="text-gray-700">Wallet information is not available for this account.</p>
             </div>
         );
     }
@@ -266,140 +268,146 @@ export function Wallet() {
                                             {formatCurrency(wallet.heldBalance, wallet.currency)}
                                         </p>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
-                                        onClick={openWithdrawDialog}
-                                        disabled={!wallet.bankName || !wallet.bankAccountNumber}
-                                    >
-                                        Request Withdraw
-                                    </button>
+                                    {!isAdmin && (
+                                        <button
+                                            type="button"
+                                            className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                                            onClick={openWithdrawDialog}
+                                            disabled={!wallet.bankName || !wallet.bankAccountNumber}
+                                        >
+                                            Request Withdraw
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Right: bank account info */}
-                            <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
-                                <div className="flex items-center justify-between mb-4">
-                                    <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="text-sm text-gray-600 flex-1">
-                                        {wallet.bankName && wallet.bankAccountNumber ? (
-                                            <div className="flex items-center gap-3">
-                                                {getBankLogo(wallet.bankName) ? (
-                                                    <img
-                                                        src={getBankLogo(wallet.bankName) as string}
-                                                        alt={`${wallet.bankName} logo`}
-                                                        className="h-9 w-9 rounded-full object-contain bg-white border border-gray-200"
-                                                    />
-                                                ) : (
-                                                    <div className="h-9 w-9 rounded-full bg-[#F47A1F]/10 flex items-center justify-center text-xs font-semibold text-[#B87938]">
-                                                        {getBankInitials(wallet.bankName)}
-                                                    </div>
-                                                )}
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-gray-900 leading-tight">
-                                                        {wallet.bankName}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {(() => {
-                                                            const raw = wallet.bankAccountNumber ?? "";
-                                                            const last4 = raw.slice(-4);
-                                                            const masked = last4 ? `**** ${last4}` : "";
-                                                            return `Account ${showFullAccount ? raw : masked}`;
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400">No linked bank account</p>
-                                        )}
+                            {/* Right: bank account info (hidden for Admin) */}
+                            {!isAdmin && (
+                                <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        {wallet.bankName && wallet.bankAccountNumber && (
+
+                                    <div className="flex items-center justify-between gap-4">
+                                        <div className="text-sm text-gray-600 flex-1">
+                                            {wallet.bankName && wallet.bankAccountNumber ? (
+                                                <div className="flex items-center gap-3">
+                                                    {getBankLogo(wallet.bankName) ? (
+                                                        <img
+                                                            src={getBankLogo(wallet.bankName) as string}
+                                                            alt={`${wallet.bankName} logo`}
+                                                            className="h-9 w-9 rounded-full object-contain bg-white border border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-9 w-9 rounded-full bg-[#F47A1F]/10 flex items-center justify-center text-xs font-semibold text-[#B87938]">
+                                                            {getBankInitials(wallet.bankName)}
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-gray-900 leading-tight">
+                                                            {wallet.bankName}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {(() => {
+                                                                const raw = wallet.bankAccountNumber ?? "";
+                                                                const last4 = raw.slice(-4);
+                                                                const masked = last4 ? `**** ${last4}` : "";
+                                                                return `Account ${showFullAccount ? raw : masked}`;
+                                                            })()}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-400">No linked bank account</p>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            {wallet.bankName && wallet.bankAccountNumber && (
+                                                <button
+                                                    type="button"
+                                                    className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
+                                                    onClick={() => setShowFullAccount((prev) => !prev)}
+                                                >
+                                                    {showFullAccount ? "Hide" : "View"}
+                                                </button>
+                                            )}
                                             <button
                                                 type="button"
                                                 className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                                onClick={() => setShowFullAccount((prev) => !prev)}
+                                                onClick={openBankDialog}
                                             >
-                                                {showFullAccount ? "Hide" : "View"}
+                                                {wallet.bankName && wallet.bankAccountNumber ? "Edit Bank Account" : "Add Bank Account"}
                                             </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                            onClick={openBankDialog}
-                                        >
-                                            {wallet.bankName && wallet.bankAccountNumber ? "Edit Bank Account" : "Add Bank Account"}
-                                        </button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
-                        {/* Recent transactions */}
-                        <div className="bg-white shadow rounded-xl p-6">
-                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                                <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                                <div className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 bg-gray-50">
-                                    <span className="material-symbols-outlined text-base">calendar_month</span>
-                                    <span>Date range</span>
+                        {/* Recent transactions (hidden for Admin) */}
+                        {!isAdmin && (
+                            <div className="bg-white shadow rounded-xl p-6">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
+                                    <div className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 bg-gray-50">
+                                        <span className="material-symbols-outlined text-base">calendar_month</span>
+                                        <span>Date range</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-gray-200 text-gray-500">
-                                            <th className="py-3 text-left font-medium">Date</th>
-                                            <th className="py-3 text-left font-medium">Description</th>
-                                            <th className="py-3 text-left font-medium">Status</th>
-                                            <th className="py-3 text-right font-medium">Amount</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {sortedTransactions.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} className="py-6 text-center text-gray-400">
-                                                    No transactions yet.
-                                                </td>
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b border-gray-200 text-gray-500">
+                                                <th className="py-3 text-left font-medium">Date</th>
+                                                <th className="py-3 text-left font-medium">Description</th>
+                                                <th className="py-3 text-left font-medium">Status</th>
+                                                <th className="py-3 text-right font-medium">Amount</th>
                                             </tr>
-                                        )}
-
-                                        {sortedTransactions.map((tx) => {
-                                            const sign = -1;
-                                            const amountValue = (tx.amount ?? 0) * sign;
-                                            const amountDisplay = `${sign === -1 ? "-" : "+"}${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
-                                            const status = (tx.status ?? "").toLowerCase();
-
-                                            let statusClasses = "bg-gray-100 text-gray-700";
-                                            if (status === "completed") statusClasses = "bg-green-100 text-green-700";
-                                            else if (status === "processing") statusClasses = "bg-yellow-100 text-yellow-700";
-
-                                            return (
-                                                <tr key={tx.walletWithdrawalId} className="border-b border-gray-100 last:border-0">
-                                                    <td className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                        {formatDate(tx.createAt)}
-                                                    </td>
-                                                    <td className="py-3 pr-4 text-gray-700">
-                                                        {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
-                                                    </td>
-                                                    <td className="py-3 pr-4">
-                                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
-                                                            {tx.status ?? "-"}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
-                                                        {amountDisplay}
+                                        </thead>
+                                        <tbody>
+                                            {sortedTransactions.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="py-6 text-center text-gray-400">
+                                                        No transactions yet.
                                                     </td>
                                                 </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                            )}
+
+                                            {sortedTransactions.map((tx) => {
+                                                const sign = -1;
+                                                const amountValue = (tx.amount ?? 0) * sign;
+                                                const amountDisplay = `${sign === -1 ? "-" : "+"}${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
+                                                const status = (tx.status ?? "").toLowerCase();
+
+                                                let statusClasses = "bg-gray-100 text-gray-700";
+                                                if (status === "completed") statusClasses = "bg-green-100 text-green-700";
+                                                else if (status === "processing") statusClasses = "bg-yellow-100 text-yellow-700";
+
+                                                return (
+                                                    <tr key={tx.walletWithdrawalId} className="border-b border-gray-100 last:border-0">
+                                                        <td className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                            {formatDate(tx.createAt)}
+                                                        </td>
+                                                        <td className="py-3 pr-4 text-gray-700">
+                                                            {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
+                                                        </td>
+                                                        <td className="py-3 pr-4">
+                                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                                                                {tx.status ?? "-"}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                            {amountDisplay}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </>
                 )}
             </div>
