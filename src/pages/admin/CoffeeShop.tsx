@@ -106,7 +106,7 @@ export function CoffeeShopPage() {
                                     {loading && (
                                         <TableRow>
                                             <TableCell colSpan={4} className="py-6 text-center">
-                                                <InlineLoading text="Đang tải danh sách Coffee Shop..." />
+                                                <InlineLoading text="Loading Coffee Shop..." />
                                             </TableCell>
                                         </TableRow>
                                     )}

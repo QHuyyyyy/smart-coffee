@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -12,12 +12,16 @@ import { InlineLoading } from "@/components/Loading";
 import { useAuthStore } from "@/stores/auth.store";
 import { authService } from "@/apis/auth.service";
 import { walletService } from "@/apis/wallet.service";
+import { ghnService } from "@/apis/ghn.service";
+import type { Province, District, Ward } from "@/apis/ghn.service";
 
 type Step = 1 | 2;
 
 const businessInfoSchema = z.object({
     supplierName: z.string().min(1, "Supplier name is required"),
-    businessAddress: z.string().min(1, "Business address is required"),
+    provinceId: z.string().min(1, "Province is required"),
+    districtId: z.string().min(1, "District is required"),
+    wardCode: z.string().min(1, "Ward is required"),
 });
 
 type BusinessInfoFormValues = z.infer<typeof businessInfoSchema>;
@@ -35,11 +39,17 @@ export function SupplierOnboardingDialog() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<District[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
     const businessForm = useForm<BusinessInfoFormValues>({
         resolver: zodResolver(businessInfoSchema),
         defaultValues: {
             supplierName: currentUser?.supplierName ?? "",
-            businessAddress: currentUser?.address ?? "",
+            provinceId: "",
+            districtId: "",
+            wardCode: "",
         },
     });
 
@@ -47,26 +57,122 @@ export function SupplierOnboardingDialog() {
         if (currentUser && currentUser.role === "Supplier" && !currentUser.address) {
             businessForm.reset({
                 supplierName: currentUser.supplierName ?? "",
-                businessAddress: currentUser.address ?? "",
+                provinceId: "",
+                districtId: "",
+                wardCode: "",
             });
             setOpen(true);
         }
     }, [currentUser, businessForm]);
 
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const data = await ghnService.getProvinces();
+                setProvinces(data);
+            } catch (err) {
+                console.error("Failed to load provinces", err);
+            }
+        };
+
+        fetchProvinces();
+    }, []);
+
+    const selectedProvinceId = businessForm.watch("provinceId");
+    const selectedDistrictId = businessForm.watch("districtId");
+    const selectedWardCode = businessForm.watch("wardCode");
+
+    useEffect(() => {
+        const provinceIdNumber = Number(selectedProvinceId);
+        if (!provinceIdNumber || provinceIdNumber <= 0) {
+            setDistricts([]);
+            setWards([]);
+            businessForm.setValue("districtId", "");
+            businessForm.setValue("wardCode", "");
+            return;
+        }
+
+        const fetchDistricts = async () => {
+            try {
+                const data = await ghnService.getDistrictsByProvince(provinceIdNumber);
+                setDistricts(data);
+                setWards([]);
+                businessForm.setValue("districtId", "");
+                businessForm.setValue("wardCode", "");
+            } catch (err) {
+                console.error("Failed to load districts", err);
+            }
+        };
+
+        fetchDistricts();
+    }, [selectedProvinceId, businessForm]);
+
+    useEffect(() => {
+        const districtIdNumber = Number(selectedDistrictId);
+        if (!districtIdNumber || districtIdNumber <= 0) {
+            setWards([]);
+            businessForm.setValue("wardCode", "");
+            return;
+        }
+
+        const fetchWards = async () => {
+            try {
+                const data = await ghnService.getWardsByDistrict(districtIdNumber);
+                setWards(data);
+                businessForm.setValue("wardCode", "");
+            } catch (err) {
+                console.error("Failed to load wards", err);
+            }
+        };
+
+        fetchWards();
+    }, [selectedDistrictId, businessForm]);
+
+    const composedAddress = useMemo(() => {
+        const provinceIdNumber = Number(selectedProvinceId);
+        const districtIdNumber = Number(selectedDistrictId);
+
+        const province = provinces.find(p => p.ProvinceID === provinceIdNumber);
+        const district = districts.find(d => d.DistrictID === districtIdNumber);
+        const ward = wards.find(w => w.WardCode === selectedWardCode);
+
+        if (!province || !district || !ward) return "";
+
+        return `${ward.WardName} - ${district.DistrictName} - ${province.ProvinceName}`;
+    }, [provinces, districts, wards, selectedProvinceId, selectedDistrictId, selectedWardCode]);
+
     if (!currentUser || currentUser.role !== "Supplier") {
         return null;
     }
 
-    const handleBusinessSubmit = async (values: BusinessInfoFormValues) => {
+    const handleBusinessSubmit: (values: BusinessInfoFormValues) => Promise<void> = async (values) => {
         setError(null);
 
         try {
             setIsSubmitting(true);
 
+            const provinceIdNumber = Number(values.provinceId);
+            const districtIdNumber = Number(values.districtId);
+
+            const province = provinces.find(p => p.ProvinceID === provinceIdNumber);
+            const district = districts.find(d => d.DistrictID === districtIdNumber);
+            const ward = wards.find(w => w.WardCode === values.wardCode);
+
+            if (!province || !district || !ward) {
+                setError("Please select full address (province, district, ward).");
+                setIsSubmitting(false);
+                return;
+            }
+
+            const address = `${ward.WardName} - ${district.DistrictName} - ${province.ProvinceName}`;
+
             await authService.updateSupplier({
                 accountId: currentUser.accountId,
                 supplierName: values.supplierName.trim(),
-                address: values.businessAddress.trim(),
+                address,
+                provinceId: provinceIdNumber,
+                districtId: districtIdNumber,
+                wardCode: values.wardCode,
             });
 
             await fetchCurrentUser();
@@ -215,20 +321,81 @@ export function SupplierOnboardingDialog() {
                                         )}
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-[#4F4F4F]">
-                                            Business Address
-                                        </label>
-                                        <textarea
-                                            placeholder="Street name, City, Region, Zip code"
-                                            {...businessForm.register("businessAddress")}
-                                            className="min-h-24 w-full resize-none rounded-xl border border-[#E6D5C6] bg-white/80 px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
-                                        />
-                                        {businessForm.formState.errors.businessAddress && (
-                                            <p className="text-xs text-red-600">
-                                                {businessForm.formState.errors.businessAddress.message}
-                                            </p>
-                                        )}
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-[#4F4F4F]">
+                                                Province / City
+                                            </label>
+                                            <select
+                                                {...businessForm.register("provinceId")}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select province</option>
+                                                {provinces.map((province) => (
+                                                    <option key={province.ProvinceID} value={province.ProvinceID}>
+                                                        {province.ProvinceName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {businessForm.formState.errors.provinceId && (
+                                                <p className="text-xs text-red-600">
+                                                    {businessForm.formState.errors.provinceId.message}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-[#4F4F4F]">
+                                                District
+                                            </label>
+                                            <select
+                                                {...businessForm.register("districtId")}
+                                                disabled={!provinces.length || !selectedProvinceId}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select district</option>
+                                                {districts.map((district) => (
+                                                    <option key={district.DistrictID} value={district.DistrictID}>
+                                                        {district.DistrictName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {businessForm.formState.errors.districtId && (
+                                                <p className="text-xs text-red-600">
+                                                    {businessForm.formState.errors.districtId.message}
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-medium text-[#4F4F4F]">
+                                                Ward
+                                            </label>
+                                            <select
+                                                {...businessForm.register("wardCode")}
+                                                disabled={!districts.length || !selectedDistrictId}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select ward</option>
+                                                {wards.map((ward) => (
+                                                    <option key={ward.WardCode} value={ward.WardCode}>
+                                                        {ward.WardName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {businessForm.formState.errors.wardCode && (
+                                                <p className="text-xs text-red-600">
+                                                    {businessForm.formState.errors.wardCode.message}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-medium text-[#4F4F4F]">Business Address</p>
+                                        <p className="min-h-6 text-sm text-[#8C6C4A] bg-white/60 rounded-xl border border-dashed border-[#E6D5C6] px-3 py-2">
+                                            {composedAddress || "Select province, district and ward to auto-generate address."}
+                                        </p>
                                     </div>
                                 </div>
 

@@ -5,6 +5,9 @@ import { SupplierHome } from './pages/supplier/Home';
 import { Recipes } from './pages/admin/Recipes';
 import { RecipeDetail } from './pages/admin/RecipeDetail';
 import { CoffeeShopPage } from './pages/admin/CoffeeShop';
+import { SubscriptionPackagesPage } from './pages/admin/SubscriptionPackages';
+import { SubscriptionsPage } from './pages/admin/Subscriptions';
+import { AdminWithdrawalsPage } from './pages/admin/Withdrawals';
 import { SupplierOrders } from './pages/supplier/Order';
 import { SupplierOrderDetail } from './pages/supplier/OrderDetail';
 import { SupplierProducts } from './pages/supplier/Product';
@@ -14,9 +17,9 @@ import { RegisterPage } from './pages/RegisterPage';
 import { FeedbackPage } from './pages/FeedbackPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { SupplierWallet } from './pages/Wallet';
 import './App.css';
 import { SupplierProfile } from './pages/supplier/Profile';
+import { Wallet } from './pages/Wallet';
 
 function App() {
     return (
@@ -75,6 +78,39 @@ function App() {
                 )}
             />
 
+            <Route
+                path="/admin/subscription-packages"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <SubscriptionPackagesPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/subscriptions"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <SubscriptionsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/withdrawals"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminWithdrawalsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
             {/* Supplier area */}
             <Route
                 path="/supplier/dashboard"
@@ -101,9 +137,11 @@ function App() {
             <Route
                 path="/wallet"
                 element={(
-                    <Layout>
-                        <SupplierWallet />
-                    </Layout>
+                    <ProtectedRoute allowedRoles={["Supplier"]}>
+                        <Layout>
+                            <Wallet />
+                        </Layout>
+                    </ProtectedRoute>
                 )}
             />
 

@@ -81,7 +81,11 @@ export function RegisterPage() {
             setStep("otp");
             toast.success("Registration successful! Please verify your email with OTP");
         } catch (err: any) {
-            toast.error(err.message || "Registration failed");
+            const msg =
+                err?.response?.data
+                ?? "Registration failed";
+
+            toast.error(msg);
         }
     };
 

@@ -46,6 +46,9 @@ export type UpdateSupplierPayload = {
     accountId: number;
     supplierName: string;
     address: string;
+    provinceId: number;
+    districtId: number;
+    wardCode: string;
     rating?: number;
     createDate?: string;
     withdrawDate?: string;

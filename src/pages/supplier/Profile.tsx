@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineLoading } from "@/components/Loading";
 import { authService } from "@/apis/auth.service";
+import { ghnService } from "@/apis/ghn.service";
+import type { Province, District, Ward } from "@/apis/ghn.service";
 
 type ActiveTab = "profile" | "notifications";
 
@@ -19,12 +21,20 @@ export function SupplierProfile() {
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
     const [mailingAddress, setMailingAddress] = useState("");
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<District[]>([]);
+    const [wards, setWards] = useState<Ward[]>([]);
+
+    const [provinceId, setProvinceId] = useState<string>("");
+    const [districtId, setDistrictId] = useState<string>("");
+    const [wardCode, setWardCode] = useState<string>("");
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const [avatarError, setAvatarError] = useState<string | null>(null);
 
     const [isSavingProfile, setIsSavingProfile] = useState(false);
     const [profileError, setProfileError] = useState<string | null>(null);
     const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     const [currentPassword, setCurrentPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
@@ -51,7 +61,83 @@ export function SupplierProfile() {
         setEmail(currentUser.email ?? "");
         setPhone(currentUser.phone ?? "");
         setMailingAddress(currentUser.address ?? "");
+        // Prefill location dropdowns from current user profile if available
+        if (currentUser.provinceId != null && currentUser.provinceId > 0) {
+            setProvinceId(String(currentUser.provinceId));
+        }
+        if (currentUser.districtId != null && currentUser.districtId > 0) {
+            setDistrictId(String(currentUser.districtId));
+        }
+        if (currentUser.wardCode) {
+            setWardCode(currentUser.wardCode);
+        }
     }, [currentUser]);
+
+    useEffect(() => {
+        const fetchProvinces = async () => {
+            try {
+                const data = await ghnService.getProvinces();
+                setProvinces(data);
+            } catch (err) {
+                console.error("Failed to load provinces", err);
+            }
+        };
+
+        fetchProvinces();
+    }, []);
+
+    useEffect(() => {
+        const provinceIdNumber = Number(provinceId);
+        if (!provinceIdNumber || provinceIdNumber <= 0) {
+            setDistricts([]);
+            setWards([]);
+            return;
+        }
+
+        const fetchDistricts = async () => {
+            try {
+                const data = await ghnService.getDistrictsByProvince(provinceIdNumber);
+                setDistricts(data);
+                setWards([]);
+            } catch (err) {
+                console.error("Failed to load districts", err);
+            }
+        };
+
+        fetchDistricts();
+    }, [provinceId]);
+
+    useEffect(() => {
+        const districtIdNumber = Number(districtId);
+        if (!districtIdNumber || districtIdNumber <= 0) {
+            setWards([]);
+            return;
+        }
+
+        const fetchWards = async () => {
+            try {
+                const data = await ghnService.getWardsByDistrict(districtIdNumber);
+                setWards(data);
+            } catch (err) {
+                console.error("Failed to load wards", err);
+            }
+        };
+
+        fetchWards();
+    }, [districtId]);
+
+    const composedAddress = useMemo(() => {
+        const provinceIdNumber = Number(provinceId);
+        const districtIdNumber = Number(districtId);
+
+        const province = provinces.find((p) => p.ProvinceID === provinceIdNumber);
+        const district = districts.find((d) => d.DistrictID === districtIdNumber);
+        const ward = wards.find((w) => w.WardCode === wardCode);
+
+        if (!province || !district || !ward) return "";
+
+        return `${ward.WardName} - ${district.DistrictName} - ${province.ProvinceName}`;
+    }, [provinces, districts, wards, provinceId, districtId, wardCode]);
 
     const initials = useMemo(() => {
         const source = (currentUser?.supplierName || currentUser?.email || "").trim();
@@ -63,18 +149,53 @@ export function SupplierProfile() {
         return `${parts[0][0]?.toUpperCase() ?? ""}${parts[1][0]?.toUpperCase() ?? ""}` || "?";
     }, [currentUser?.supplierName, currentUser?.email]);
 
-    const handleSaveProfile = async () => {
+    const handleCancelEdit = () => {
         if (!currentUser) return;
+
+        setFullName(currentUser.supplierName ?? "");
+        setPhone(currentUser.phone ?? "");
+        setMailingAddress(currentUser.address ?? "");
+
+        if (currentUser.provinceId != null && currentUser.provinceId > 0) {
+            setProvinceId(String(currentUser.provinceId));
+        } else {
+            setProvinceId("");
+        }
+
+        if (currentUser.districtId != null && currentUser.districtId > 0) {
+            setDistrictId(String(currentUser.districtId));
+        } else {
+            setDistrictId("");
+        }
+
+        if (currentUser.wardCode) {
+            setWardCode(currentUser.wardCode);
+        } else {
+            setWardCode("");
+        }
+
+        setProfileError(null);
+        setProfileSuccess(null);
+        setIsEditing(false);
+    };
+
+    const handleSaveProfile = async () => {
+        if (!currentUser || !isEditing) return;
 
         const trimmedName = fullName.trim();
         const trimmedPhone = phone.trim();
-        const trimmedAddress = mailingAddress.trim();
+        const trimmedAddressDetail = mailingAddress.trim();
 
-        if (!trimmedName || !trimmedAddress) {
+        if (!trimmedName || !trimmedAddressDetail) {
             setProfileError("Full name and mailing address are required.");
             setProfileSuccess(null);
             return;
         }
+
+        const provinceIdNumber = Number(provinceId);
+        const districtIdNumber = Number(districtId);
+
+        let address = trimmedAddressDetail;
 
         const requests: Promise<unknown>[] = [];
 
@@ -84,14 +205,20 @@ export function SupplierProfile() {
 
         if (
             trimmedName !== (currentUser.supplierName ?? "") ||
-            trimmedAddress !== (currentUser.address ?? "")
+            address !== (currentUser.address ?? "") ||
+            provinceId ||
+            districtId ||
+            wardCode
         ) {
             requests.push(
                 authService.updateSupplier({
                     accountId: currentUser.accountId,
                     supplierId: currentUser.supplierId ?? undefined,
                     supplierName: trimmedName,
-                    address: trimmedAddress,
+                    address,
+                    provinceId: provinceIdNumber,
+                    districtId: districtIdNumber,
+                    wardCode: wardCode || "",
                 }),
             );
         }
@@ -260,6 +387,26 @@ export function SupplierProfile() {
                         >
                             View Public Profile
                         </Button>
+                        {isEditing ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="rounded-full border-[#E6D5C6] text-[#4b2c20] px-5 py-2 h-auto text-sm"
+                                onClick={handleCancelEdit}
+                                disabled={isSavingProfile}
+                            >
+                                Cancel
+                            </Button>
+                        ) : (
+                            <Button
+                                type="button"
+                                variant="coffee"
+                                className="rounded-full px-5 py-2 h-auto text-sm"
+                                onClick={() => setIsEditing(true)}
+                            >
+                                Edit Profile
+                            </Button>
+                        )}
                     </div>
                 </div>
                 {avatarError && (
@@ -312,6 +459,7 @@ export function SupplierProfile() {
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
                                         placeholder="e.g. Johnathan Miller"
+                                        readOnly={!isEditing}
                                         className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
                                     />
                                 </div>
@@ -321,8 +469,8 @@ export function SupplierProfile() {
                                     <Input
                                         type="email"
                                         value={email}
-                                        disabled
-                                        className="h-11 rounded-xl border-[#E6D5C6] bg-slate-50 text-slate-500 cursor-not-allowed"
+                                        readOnly
+                                        className="h-11 rounded-xl border-[#E6D5C6] bg-slate-50 cursor-not-allowed"
                                     />
                                 </div>
 
@@ -333,6 +481,7 @@ export function SupplierProfile() {
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
                                         placeholder="Enter your phone number"
+                                        readOnly={!isEditing}
                                         className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
                                     />
                                 </div>
@@ -366,14 +515,103 @@ export function SupplierProfile() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <label className="text-xs font-medium text-[#4F4F4F]">Mailing Address</label>
-                                <textarea
-                                    value={mailingAddress}
-                                    onChange={(e) => setMailingAddress(e.target.value)}
-                                    placeholder="Block 7, Industrial Zone South, Addis Ababa, Ethiopia"
-                                    className="min-h-24 w-full resize-none rounded-xl border border-[#E6D5C6] bg-white/80 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
-                                />
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-[#4F4F4F]">Province / City</label>
+                                        {isEditing ? (
+                                            <select
+                                                value={provinceId}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setProvinceId(value);
+                                                    // When user changes province, clear dependent selections
+                                                    setDistrictId("");
+                                                    setWardCode("");
+                                                }}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select province</option>
+                                                {provinces.map((province) => (
+                                                    <option key={province.ProvinceID} value={province.ProvinceID}>
+                                                        {province.ProvinceName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm flex items-center text-[#4F4F4F]">
+                                                {provinces.find((p) => p.ProvinceID === Number(provinceId))?.ProvinceName || ""}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-[#4F4F4F]">District</label>
+                                        {isEditing ? (
+                                            <select
+                                                value={districtId}
+                                                onChange={(e) => {
+                                                    const value = e.target.value;
+                                                    setDistrictId(value);
+                                                    // When user changes district, clear ward selection
+                                                    setWardCode("");
+                                                }}
+                                                disabled={!provinceId}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select district</option>
+                                                {districts.map((district) => (
+                                                    <option key={district.DistrictID} value={district.DistrictID}>
+                                                        {district.DistrictName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm flex items-center text-[#4F4F4F]">
+                                                {districts.find((d) => d.DistrictID === Number(districtId))?.DistrictName || ""}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-[#4F4F4F]">Ward</label>
+                                        {isEditing ? (
+                                            <select
+                                                value={wardCode}
+                                                onChange={(e) => setWardCode(e.target.value)}
+                                                disabled={!districtId}
+                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                            >
+                                                <option value="">Select ward</option>
+                                                {wards.map((ward) => (
+                                                    <option key={ward.WardCode} value={ward.WardCode}>
+                                                        {ward.WardName}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <div className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm flex items-center text-[#4F4F4F]">
+                                                {wards.find((w) => w.WardCode === wardCode)?.WardName || ""}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-[#4F4F4F]">Mailing Address</label>
+                                    <textarea
+                                        value={mailingAddress}
+                                        onChange={(e) => setMailingAddress(e.target.value)}
+                                        placeholder="House number, street, building, etc."
+                                        readOnly={!isEditing}
+                                        className="min-h-24 w-full resize-none rounded-xl border border-[#E6D5C6] bg-white/80 px-4 py-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                    />
+                                    <p className="text-xs text-[#8C7A6B]">
+                                        {composedAddress
+                                            ? `Will be saved as: ${mailingAddress.trim()}`
+                                            : "Tip: select province, district and ward to append them to your address."}
+                                    </p>
+                                </div>
                             </div>
 
                             {profileError && (
@@ -382,24 +620,25 @@ export function SupplierProfile() {
                             {profileSuccess && !profileError && (
                                 <p className="text-xs text-emerald-600">{profileSuccess}</p>
                             )}
-
-                            <div className="flex items-center justify-end pt-2">
-                                <Button
-                                    type="button"
-                                    variant="coffee"
-                                    size="lg"
-                                    className="rounded-full px-8"
-                                    onClick={handleSaveProfile}
-                                    disabled={isSavingProfile}
-                                >
-                                    {isSavingProfile ? (
-                                        <InlineLoading text="Saving changes..." textClassName="text-white" />
-                                    ) : (
-                                        "Save Changes"
-                                    )}
-                                </Button>
-                            </div>
+                            {isEditing && (
+                                <div className="flex items-center justify-end pt-2">
+                                    <Button
+                                        type="button"
+                                        variant="coffee"
+                                        size="lg"
+                                        className="rounded-full px-8"
+                                        onClick={handleSaveProfile}
+                                        disabled={isSavingProfile || !isEditing}
+                                    >
+                                        {isSavingProfile ? (
+                                            <InlineLoading text="Saving changes..." textClassName="text-white" />
+                                        ) : (
+                                            "Save Changes"
+                                        )}
+                                    </Button>
+                                </div>)}
                         </section>
+
 
                         {/* Security */}
                         <section className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5] p-6 space-y-6">

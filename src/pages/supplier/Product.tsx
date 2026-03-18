@@ -79,6 +79,11 @@ export function SupplierProducts() {
         return `${value.toLocaleString("vi-VN")}₫`;
     };
 
+    const formatRating = (value: number | null | undefined) => {
+        if (value === null || value === undefined || Number.isNaN(value)) return "-";
+        return `${value.toFixed(1)} / 5`;
+    };
+
     const formatDateTime = (value: string | null | undefined) => {
         if (!value) return "-";
         const date = new Date(value);
@@ -170,7 +175,10 @@ export function SupplierProducts() {
                                         <TableHead>Ingredient Name</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead className="text-center">Price</TableHead>
-                                        <TableHead className="text-center">Stock</TableHead>
+                                        <TableHead className="text-center">Stock (bags)</TableHead>
+                                        <TableHead className="text-center">Hold Stock</TableHead>
+                                        <TableHead className="text-center">Package Size</TableHead>
+                                        <TableHead className="text-center">Rating</TableHead>
                                         <TableHead className="text-center">Created At</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-center">Action</TableHead>
@@ -197,7 +205,18 @@ export function SupplierProducts() {
                                                 {formatPrice(p.price)}
                                             </TableCell>
                                             <TableCell className="text-center text-[#573E32]">
-                                                {p.stock} {p.measurement}
+                                                {p.stock}
+                                            </TableCell>
+                                            <TableCell className="text-center text-[#573E32]">
+                                                {p.holdStock ?? "-"}
+                                            </TableCell>
+                                            <TableCell className="text-center text-[#573E32]">
+                                                {p.packageSize && p.measurement
+                                                    ? `${p.packageSize} ${p.measurement}`
+                                                    : p.measurement || "-"}
+                                            </TableCell>
+                                            <TableCell className="text-center text-[#573E32]">
+                                                {formatRating(p.rating)}
                                             </TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
                                                 {formatDateTime(p.createDate)}
@@ -240,14 +259,14 @@ export function SupplierProducts() {
                                     ))}
                                     {loading && (
                                         <TableRow>
-                                            <TableCell colSpan={9} className="py-6 text-center">
+                                            <TableCell colSpan={11} className="py-6 text-center">
                                                 <InlineLoading text="Loading products..." />
                                             </TableCell>
                                         </TableRow>
                                     )}
                                     {!loading && products.length === 0 && !error && (
                                         <TableRow>
-                                            <TableCell colSpan={9} className="py-6 text-center text-[#707070]">
+                                            <TableCell colSpan={11} className="py-6 text-center text-[#707070]">
                                                 No products found.
                                             </TableCell>
                                         </TableRow>

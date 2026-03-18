@@ -31,7 +31,19 @@ export const supplierOrderService = {
         return api.get<SupplierOrder>(`/Order/${id}`);
     },
 
+    shipWithGHN: async (id: number) => {
+        return api.post(`/Order/${id}/ship-ghn`);
+    },
+
     updateStatus: async (id: number, status: string) => {
         return api.patch<SupplierOrder>(`/Order/${id}/status`, { status });
+    },
+
+    // Staging/test only: trigger GHN webhook manually
+    triggerGhnWebhook: async (orderCode: string, status: string) => {
+        return api.post(`/GHN/webhook`, {
+            OrderCode: orderCode,
+            Status: status,
+        });
     },
 };
