@@ -36,10 +36,7 @@ function getTransactionDescription(w: WalletWithdrawal, bankName: string | null,
     return "Transaction";
 }
 
-function getTransactionAmountSign(w: WalletWithdrawal) {
-    // Không còn field type, nên với lịch sử walletWithdrawal hiện tại coi là dòng tiền ra
-    return -1;
-}
+
 
 const bankLogos: Record<string, string> = {
     angribank: angribankLogo,
@@ -371,7 +368,7 @@ export function Wallet() {
                                         )}
 
                                         {sortedTransactions.map((tx) => {
-                                            const sign = getTransactionAmountSign(tx);
+                                            const sign = -1;
                                             const amountValue = (tx.amount ?? 0) * sign;
                                             const amountDisplay = `${sign === -1 ? "-" : "+"}${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
                                             const status = (tx.status ?? "").toLowerCase();

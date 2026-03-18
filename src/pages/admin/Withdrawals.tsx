@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { WalletCards } from "lucide-react";
 import { walletService } from "@/apis/wallet.service";
 import { InlineLoading } from "@/components/Loading";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
@@ -14,13 +13,6 @@ interface WithdrawalRow {
     balanceBefore: number | null;
     balanceAfter: number | null;
     createAt: string | null;
-}
-
-interface WithdrawalListResponse {
-    items: WithdrawalRow[];
-    totalItems: number;
-    page: number;
-    pageSize: number;
 }
 
 export function AdminWithdrawalsPage() {
