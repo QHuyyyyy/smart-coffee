@@ -76,6 +76,7 @@ export function FeedbackPage() {
     const [rating, setRating] = useState(0);
     const [priceRating, setPriceRating] = useState('');
     const [repurchasable, setRepurchasable] = useState('');
+    const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [menuItem, setMenuItem] = useState<MenuItemResponse | null>(null);
     const [loadingMenuItem, setLoadingMenuItem] = useState(false);
@@ -140,7 +141,8 @@ export function FeedbackPage() {
 
             const payload = {
                 // Backend đang mong đợi menuId (thực chất là menuItemId được gửi từ URL)
-                menuId: menuItemId,
+                menuId: menuItem?.menuId,
+                menuItemId: menuItemId,
                 isFirstTimeTrying: isFirstTimeTrying ?? undefined,
                 strength: strength || undefined,
                 acidity: acidity || undefined,
@@ -148,7 +150,9 @@ export function FeedbackPage() {
                 sweetness: sweetness || undefined,
                 rating,
                 priceRating: priceRating || undefined,
-                repurchasable: repurchasable || undefined
+                repurchasable: repurchasable || undefined,
+                comment: comment.trim() || undefined,
+                ratedBy: "Others",
             };
 
             await api.post('/Feedback/MenuItem', payload);
@@ -164,6 +168,7 @@ export function FeedbackPage() {
             setRating(0);
             setPriceRating('');
             setRepurchasable('');
+            setComment('');
         } catch (error) {
             console.error('Submit feedback error', error);
             toast.error('Gửi phản hồi thất bại. Vui lòng thử lại.');
@@ -329,15 +334,28 @@ export function FeedbackPage() {
                         <div className="space-y-6">
                             <div>
                                 <label className="block text-sm font-semibold mb-3">Strength</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <label className="cursor-pointer">
                                         <input
                                             className="peer sr-only"
                                             name="strength"
                                             type="radio"
-                                            value="light"
-                                            checked={strength === 'light'}
-                                            onChange={() => setStrength('light')}
+                                            value="Very Light"
+                                            checked={strength === 'Very Light'}
+                                            onChange={() => setStrength('Very Light')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very Light
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="strength"
+                                            type="radio"
+                                            value="Light"
+                                            checked={strength === 'Light'}
+                                            onChange={() => setStrength('Light')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Light
@@ -348,9 +366,9 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="strength"
                                             type="radio"
-                                            value="medium"
-                                            checked={strength === 'medium'}
-                                            onChange={() => setStrength('medium')}
+                                            value="Medium"
+                                            checked={strength === 'Medium'}
+                                            onChange={() => setStrength('Medium')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
@@ -361,12 +379,25 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="strength"
                                             type="radio"
-                                            value="strong"
-                                            checked={strength === 'strong'}
-                                            onChange={() => setStrength('strong')}
+                                            value="Strong"
+                                            checked={strength === 'Strong'}
+                                            onChange={() => setStrength('Strong')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Strong
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="strength"
+                                            type="radio"
+                                            value="Very Strong"
+                                            checked={strength === 'Very Strong'}
+                                            onChange={() => setStrength('Very Strong')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very Strong
                                         </div>
                                     </label>
                                 </div>
@@ -374,15 +405,28 @@ export function FeedbackPage() {
 
                             <div>
                                 <label className="block text-sm font-semibold mb-3">Acidity</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <label className="cursor-pointer">
                                         <input
                                             className="peer sr-only"
                                             name="acidity"
                                             type="radio"
-                                            value="low"
-                                            checked={acidity === 'low'}
-                                            onChange={() => setAcidity('low')}
+                                            value="Very Low"
+                                            checked={acidity === 'Very Low'}
+                                            onChange={() => setAcidity('Very Low')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very Low
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="acidity"
+                                            type="radio"
+                                            value="Low"
+                                            checked={acidity === 'Low'}
+                                            onChange={() => setAcidity('Low')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Low
@@ -393,9 +437,9 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="acidity"
                                             type="radio"
-                                            value="medium"
-                                            checked={acidity === 'medium'}
-                                            onChange={() => setAcidity('medium')}
+                                            value="Medium"
+                                            checked={acidity === 'Medium'}
+                                            onChange={() => setAcidity('Medium')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
@@ -406,12 +450,25 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="acidity"
                                             type="radio"
-                                            value="high"
-                                            checked={acidity === 'high'}
-                                            onChange={() => setAcidity('high')}
+                                            value="High"
+                                            checked={acidity === 'High'}
+                                            onChange={() => setAcidity('High')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             High
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="acidity"
+                                            type="radio"
+                                            value="Very High"
+                                            checked={acidity === 'Very High'}
+                                            onChange={() => setAcidity('Very High')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very High
                                         </div>
                                     </label>
                                 </div>
@@ -419,15 +476,28 @@ export function FeedbackPage() {
 
                             <div>
                                 <label className="block text-sm font-semibold mb-3">Bitterness</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <label className="cursor-pointer">
                                         <input
                                             className="peer sr-only"
                                             name="bitterness"
                                             type="radio"
-                                            value="low"
-                                            checked={bitterness === 'low'}
-                                            onChange={() => setBitterness('low')}
+                                            value="Very Low"
+                                            checked={bitterness === 'Very Low'}
+                                            onChange={() => setBitterness('Very Low')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very Low
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="bitterness"
+                                            type="radio"
+                                            value="Low"
+                                            checked={bitterness === 'Low'}
+                                            onChange={() => setBitterness('Low')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Low
@@ -438,9 +508,9 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="bitterness"
                                             type="radio"
-                                            value="medium"
-                                            checked={bitterness === 'medium'}
-                                            onChange={() => setBitterness('medium')}
+                                            value="Medium"
+                                            checked={bitterness === 'Medium'}
+                                            onChange={() => setBitterness('Medium')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
@@ -451,12 +521,25 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="bitterness"
                                             type="radio"
-                                            value="high"
-                                            checked={bitterness === 'high'}
-                                            onChange={() => setBitterness('high')}
+                                            value="High"
+                                            checked={bitterness === 'High'}
+                                            onChange={() => setBitterness('High')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             High
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="bitterness"
+                                            type="radio"
+                                            value="Very High"
+                                            checked={bitterness === 'Very High'}
+                                            onChange={() => setBitterness('Very High')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very High
                                         </div>
                                     </label>
                                 </div>
@@ -464,15 +547,15 @@ export function FeedbackPage() {
 
                             <div>
                                 <label className="block text-sm font-semibold mb-3">Sweetness</label>
-                                <div className="grid grid-cols-3 gap-2">
+                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                                     <label className="cursor-pointer">
                                         <input
                                             className="peer sr-only"
                                             name="sweetness"
                                             type="radio"
-                                            value="not_sweet"
-                                            checked={sweetness === 'not_sweet'}
-                                            onChange={() => setSweetness('not_sweet')}
+                                            value="Not sweet"
+                                            checked={sweetness === 'Not sweet'}
+                                            onChange={() => setSweetness('Not sweet')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Not sweet
@@ -483,9 +566,22 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="sweetness"
                                             type="radio"
-                                            value="medium"
-                                            checked={sweetness === 'medium'}
-                                            onChange={() => setSweetness('medium')}
+                                            value="Slightly sweet"
+                                            checked={sweetness === 'Slightly sweet'}
+                                            onChange={() => setSweetness('Slightly sweet')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Slightly sweet
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="sweetness"
+                                            type="radio"
+                                            value="Medium"
+                                            checked={sweetness === 'Medium'}
+                                            onChange={() => setSweetness('Medium')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Medium
@@ -496,12 +592,25 @@ export function FeedbackPage() {
                                             className="peer sr-only"
                                             name="sweetness"
                                             type="radio"
-                                            value="sweet"
-                                            checked={sweetness === 'sweet'}
-                                            onChange={() => setSweetness('sweet')}
+                                            value="Sweet"
+                                            checked={sweetness === 'Sweet'}
+                                            onChange={() => setSweetness('Sweet')}
                                         />
                                         <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
                                             Sweet
+                                        </div>
+                                    </label>
+                                    <label className="cursor-pointer">
+                                        <input
+                                            className="peer sr-only"
+                                            name="sweetness"
+                                            type="radio"
+                                            value="Very sweet"
+                                            checked={sweetness === 'Very sweet'}
+                                            onChange={() => setSweetness('Very sweet')}
+                                        />
+                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
+                                            Very sweet
                                         </div>
                                     </label>
                                 </div>
@@ -524,9 +633,9 @@ export function FeedbackPage() {
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
                                             type="radio"
-                                            value="cheap"
-                                            checked={priceRating === 'cheap'}
-                                            onChange={() => setPriceRating('cheap')}
+                                            value="Cheap"
+                                            checked={priceRating === 'Cheap'}
+                                            onChange={() => setPriceRating('Cheap')}
                                         />
                                         <span className="text-sm font-medium">Cheap</span>
                                     </label>
@@ -535,9 +644,9 @@ export function FeedbackPage() {
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
                                             type="radio"
-                                            value="reasonable"
-                                            checked={priceRating === 'reasonable'}
-                                            onChange={() => setPriceRating('reasonable')}
+                                            value="Reasonable"
+                                            checked={priceRating === 'Reasonable'}
+                                            onChange={() => setPriceRating('Reasonable')}
                                         />
                                         <span className="text-sm font-medium">Reasonable</span>
                                     </label>
@@ -546,9 +655,9 @@ export function FeedbackPage() {
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
                                             type="radio"
-                                            value="bit_expensive"
-                                            checked={priceRating === 'bit_expensive'}
-                                            onChange={() => setPriceRating('bit_expensive')}
+                                            value="A bit expensive"
+                                            checked={priceRating === 'A bit expensive'}
+                                            onChange={() => setPriceRating('A bit expensive')}
                                         />
                                         <span className="text-sm font-medium">A bit expensive</span>
                                     </label>
@@ -557,9 +666,9 @@ export function FeedbackPage() {
                                             className="accent-primary w-4 h-4 text-primary"
                                             name="price_perception"
                                             type="radio"
-                                            value="too_expensive"
-                                            checked={priceRating === 'too_expensive'}
-                                            onChange={() => setPriceRating('too_expensive')}
+                                            value="Too expensive"
+                                            checked={priceRating === 'Too expensive'}
+                                            onChange={() => setPriceRating('Too expensive')}
                                         />
                                         <span className="text-sm font-medium">Too expensive</span>
                                     </label>
@@ -619,6 +728,27 @@ export function FeedbackPage() {
                                     </label>
                                 </div>
                             </div>
+                        </div>
+                    </section>
+
+                    {/* Optional Feedback */}
+                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
+                        <div className="flex items-center gap-2 mb-6">
+                            <span className="material-symbols-outlined text-primary">edit_note</span>
+                            <h3 className="text-xl font-bold">Optional Feedback</h3>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-semibold mb-3" htmlFor="comment">
+                                Other comments
+                            </label>
+                            <textarea
+                                id="comment"
+                                value={comment}
+                                onChange={(e) => setComment(e.target.value)}
+                                rows={5}
+                                placeholder="Tell us more about what you liked or disliked..."
+                                className="w-full resize-y rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] bg-[#fcfaf8] dark:bg-[#2c2016] px-4 py-3 text-base text-[#1b140d] dark:text-white placeholder:text-[#9a734c] focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            />
                         </div>
                     </section>
 
