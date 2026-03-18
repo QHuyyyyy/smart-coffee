@@ -46,4 +46,9 @@ export const supplierOrderService = {
             Status: status,
         });
     },
+
+    // Trigger cron-like auto-completion for all Delivered orders
+    autoCompleteDelivered: async () => {
+        return api.post(`/Order/auto-complete-delivered`);
+    },
 };

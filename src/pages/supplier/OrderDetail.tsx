@@ -124,6 +124,22 @@ export function SupplierOrderDetail() {
         }
     };
 
+    const handleAutoCompleteDelivered = async () => {
+        if (!order || updatingStatus) return;
+
+        try {
+            setUpdatingStatus(true);
+            setError(null);
+            await supplierOrderService.autoCompleteDelivered();
+            const res = await supplierOrderService.getById(order.orderId);
+            setOrder(res.data);
+        } catch (err) {
+            setError("Failed to auto-complete delivered orders");
+        } finally {
+            setUpdatingStatus(false);
+        }
+    };
+
     // Build shipment steps based on business flows:
     // 1) Pending -> Canceled
     // 2) Pending -> Preparing -> Canceled
@@ -231,6 +247,16 @@ export function SupplierOrderDetail() {
                                 className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
                             >
                                 {updatingStatus ? "Updating..." : "Start Delivering"}
+                            </button>
+                        )}
+                        {currentStatus === "delivered" && (
+                            <button
+                                type="button"
+                                onClick={handleAutoCompleteDelivered}
+                                disabled={updatingStatus}
+                                className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
+                            >
+                                {updatingStatus ? "Completing..." : "Test Complete (cronjob)"}
                             </button>
                         )}
                         {currentStatus === "delivering" && (
