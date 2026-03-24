@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil, Trash2 } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
