@@ -19,9 +19,14 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 import { SupplierProfile } from './pages/supplier/Profile';
-import { Wallet } from './pages/Wallet';
+import { Wallet } from './pages/supplier/Wallet';
+import { AdminWallet } from './pages/admin/AdminWallet';
+import { useAuthStore } from './stores/auth.store';
+import { AdminPostsPage } from './pages/admin/Posts';
 
 function App() {
+    const currentUser = useAuthStore((state) => state.currentUser);
+
     return (
         <Routes>
             {/* Public login page without dashboard layout */}
@@ -111,6 +116,17 @@ function App() {
                 )}
             />
 
+            <Route
+                path="/admin/posts"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminPostsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
             {/* Supplier area */}
             <Route
                 path="/supplier/dashboard"
@@ -139,7 +155,7 @@ function App() {
                 element={(
                     <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
                         <Layout>
-                            <Wallet />
+                            {currentUser?.role === "Admin" ? <AdminWallet /> : <Wallet />}
                         </Layout>
                     </ProtectedRoute>
                 )}

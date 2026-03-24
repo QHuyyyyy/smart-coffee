@@ -177,6 +177,16 @@ export function SubscriptionPackagesPage() {
         return `${Number(value).toLocaleString("vi-VN")}₫`;
     };
 
+    const getDescriptionFeatures = (value: string | null | undefined) => {
+        const normalized = (value ?? "").replace(/\\n|\/n/g, "\n");
+        const features = normalized
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+        return features.length > 0 ? features : ["Perfect for small local shops starting out."];
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -277,33 +287,28 @@ export function SubscriptionPackagesPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-1 mb-4">
+                                <div className="mb-4">
                                     <h3 className="text-lg font-semibold text-[#1F1F1F]">{pkg.name}</h3>
-                                    <p className="text-xs text-[#707070] max-w-xs">
-                                        {pkg.description || "Perfect for small local shops starting out."}
-                                    </p>
                                 </div>
 
                                 <div className="mb-5">
                                     <p className="text-xl font-semibold tracking-tight text-[#1F1F1F]">
-                                        {formatPrice(pkg.price as any)}
+                                        {formatPrice(pkg.price as any)}<p className="text-xs text-[#B0A49E]">/ month</p>
                                     </p>
-                                    <p className="text-xs text-[#B0A49E]">/ month</p>
+
                                 </div>
 
-                                <div className="border-t border-[#F1E6DE] pt-4 mt-auto space-y-2 text-xs text-[#4F4F4F]">
+                                <div className="border-t border-[#F1E6DE] pt-4 space-y-2 text-xs text-[#4F4F4F]">
                                     <div className="flex items-center gap-2">
                                         <Check size={14} className="text-emerald-600" />
-                                        <span>Up to {pkg.staffQuantity ?? 0} staff seats</span>
+                                        <span>Up to {pkg.staffQuantity ?? 0} staff accounts</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Check size={14} className="text-emerald-600" />
-                                        <span>Priority support</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Check size={14} className="text-emerald-600" />
-                                        <span>Advanced analytics</span>
-                                    </div>
+                                    {getDescriptionFeatures(pkg.description).map((feature, featureIndex) => (
+                                        <div key={`${pkg.packageId}-feature-${featureIndex}`} className="flex items-center gap-2">
+                                            <Check size={14} className="text-emerald-600" />
+                                            <span>{feature}</span>
+                                        </div>
+                                    ))}
                                 </div>
 
                                 <div className="mt-5 flex items-center gap-3">

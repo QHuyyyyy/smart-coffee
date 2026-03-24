@@ -198,9 +198,9 @@ export function Recipes() {
                                                     <button className="hover:text-[#573E32]" aria-label="Edit">
                                                         <Pencil size={16} />
                                                     </button>
-                                                    <button className="hover:text-[#C04A3A]" aria-label="Delete">
+                                                    {/* <button className="hover:text-[#C04A3A]" aria-label="Delete">
                                                         <Trash2 size={16} />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
