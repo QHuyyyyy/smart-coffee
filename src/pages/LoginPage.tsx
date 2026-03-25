@@ -10,7 +10,7 @@ import { useAuthStore } from "../stores/auth.store";
 import { toast } from "sonner";
 export function LoginPage() {
     const navigate = useNavigate();
-    const { login, isLoading, error, fetchCurrentUser, logout } = useAuthStore();
+    const { login, isLoading, fetchCurrentUser, logout } = useAuthStore();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
