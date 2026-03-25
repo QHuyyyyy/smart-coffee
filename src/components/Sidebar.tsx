@@ -14,9 +14,10 @@ export function Sidebar() {
     const menuItems = role === 'Admin'
         ? [
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
+            { icon: Users, label: 'Accounts', href: '/admin/accounts' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
             { icon: SquareMenu, label: 'Recipes', href: '/admin/recipes' },
-            { icon: Users, label: 'Accounts', href: '/admin/accounts' },
+
             { icon: ShoppingCart, label: 'Ingredients', href: '/admin/ingredients' },
             { icon: FileText, label: 'Posts', href: '/admin/posts' },
             { icon: Package, label: 'Packages', href: '/admin/subscription-packages' },

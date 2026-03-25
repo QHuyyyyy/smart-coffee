@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../apis/axios';
@@ -41,38 +41,31 @@ interface MenuItemResponse {
     } | null;
 }
 
-interface MenuGroupResponse {
-    menuGroupId: number;
-    name: string;
-    orderIndex: number;
-    menuItems: MenuItemResponse[];
-}
-
-interface MenuResponse {
-    menuId: number;
-    menuHeaderId: number;
-    versionNumber: string;
-    status: string;
-    created: string;
-    isActive: boolean;
-    image?: string | null;
-    menuGroups: MenuGroupResponse[];
-}
-
 const DEFAULT_DRINK_IMAGE =
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAVzZS9IjcSAw4o2Xmd5dO5-iTjx_ztFrne56H-Hn_9OPHcTlDQkaKFF1lxXDgyM7dZyCY3_pBA-of-PJSxlw5H5irCy69OQkdcB0_OLDBk8y7iEtwTTGWQidBXWdLcWzbxYfz0YzVETp-lj3vbX8hVBYThGaSfTP4j3O6qyKHjQ77fp4b5IZo6Z2_k1W-hrddWxvnnK8_a7BNhmwmBynw3pKWsjiT4iWRq85QK9iBStVZ4AqZucwRHUY2h0LV-Lu5uq5bx3_pFZdk";
+    'https://lh3.googleusercontent.com/aida-public/AB6AXuAVzZS9IjcSAw4o2Xmd5dO5-iTjx_ztFrne56H-Hn_9OPHcTlDQkaKFF1lxXDgyM7dZyCY3_pBA-of-PJSxlw5H5irCy69OQkdcB0_OLDBk8y7iEtwTTGWQidBXWdLcWzbxYfz0YzVETp-lj3vbX8hVBYThGaSfTP4j3O6qyKHjQ77fp4b5IZo6Z2_k1W-hrddWxvnnK8_a7BNhmwmBynw3pKWsjiT4iWRq85QK9iBStVZ4AqZucwRHUY2h0LV-Lu5uq5bx3_pFZdk';
+
+const STRENGTH_LEVELS = ['Very Light', 'Light', 'Medium', 'Strong', 'Very Strong'] as const;
+const ACIDITY_LEVELS = ['Very Low', 'Low', 'Medium', 'High', 'Very High'] as const;
+const BITTERNESS_LEVELS = ['Very Low', 'Low', 'Medium', 'High', 'Very High'] as const;
+const SWEETNESS_LEVELS = ['Not sweet', 'Slightly sweet', 'Medium', 'Sweet', 'Very sweet'] as const;
+
+const DEFAULT_STRENGTH = STRENGTH_LEVELS[2];
+const DEFAULT_ACIDITY = ACIDITY_LEVELS[2];
+const DEFAULT_BITTERNESS = BITTERNESS_LEVELS[2];
+const DEFAULT_SWEETNESS = SWEETNESS_LEVELS[2];
+
+const PRICE_OPTIONS = ['Cheap', 'Reasonable', 'A bit expensive', 'Too expensive'] as const;
 
 export function FeedbackPage() {
     const { id } = useParams<{ id: string }>();
     const feedbackId = id ?? '1';
-    // id trên URL là menuItemId
     const menuItemId = Number(id) || 0;
 
     const [isFirstTimeTrying, setIsFirstTimeTrying] = useState<boolean | null>(null);
-    const [strength, setStrength] = useState('');
-    const [acidity, setAcidity] = useState('');
-    const [bitterness, setBitterness] = useState('');
-    const [sweetness, setSweetness] = useState('');
+    const [strength, setStrength] = useState<string>(DEFAULT_STRENGTH);
+    const [acidity, setAcidity] = useState<string>(DEFAULT_ACIDITY);
+    const [bitterness, setBitterness] = useState<string>(DEFAULT_BITTERNESS);
+    const [sweetness, setSweetness] = useState<string>(DEFAULT_SWEETNESS);
     const [rating, setRating] = useState(0);
     const [priceRating, setPriceRating] = useState('');
     const [repurchasable, setRepurchasable] = useState('');
@@ -80,13 +73,9 @@ export function FeedbackPage() {
     const [submitting, setSubmitting] = useState(false);
     const [menuItem, setMenuItem] = useState<MenuItemResponse | null>(null);
     const [loadingMenuItem, setLoadingMenuItem] = useState(false);
-    const [menuItems, setMenuItems] = useState<MenuItemResponse[]>([]);
-    const [loadingMenu, setLoadingMenu] = useState(false);
 
     useEffect(() => {
-        if (!menuItemId) {
-            return;
-        }
+        if (!menuItemId) return;
 
         const fetchMenuItem = async () => {
             try {
@@ -95,681 +84,341 @@ export function FeedbackPage() {
                 setMenuItem(response.data);
             } catch (error) {
                 console.error('Fetch menu item error', error);
-                toast.error('Không tải được thông tin đồ uống.');
+                toast.error('Khong tai duoc thong tin do uong.');
             } finally {
                 setLoadingMenuItem(false);
             }
         };
 
-        fetchMenuItem();
+        void fetchMenuItem();
     }, [menuItemId]);
 
-    // Sau khi biết menuId từ menuItem, gọi tiếp /Menu/{menuId} để lấy các menu items khác
-    useEffect(() => {
-        if (!menuItem?.menuId) {
+    const isFormComplete =
+        isFirstTimeTrying !== null
+        && !!strength
+        && !!acidity
+        && !!bitterness
+        && !!sweetness
+        && rating > 0
+        && !!priceRating
+        && !!repurchasable;
+
+    const tasteProfiles = useMemo(() => {
+        return [
+            {
+                key: 'strength',
+                label: 'Strength',
+                value: strength,
+                levels: STRENGTH_LEVELS,
+                lowLabel: 'Mild',
+                highLabel: 'Bold',
+                onChange: setStrength,
+            },
+            {
+                key: 'acidity',
+                label: 'Acidity',
+                value: acidity,
+                levels: ACIDITY_LEVELS,
+                lowLabel: 'Flat',
+                highLabel: 'Crisp',
+                onChange: setAcidity,
+            },
+            {
+                key: 'bitterness',
+                label: 'Bitterness',
+                value: bitterness,
+                levels: BITTERNESS_LEVELS,
+                lowLabel: 'Smooth',
+                highLabel: 'Intense',
+                onChange: setBitterness,
+            },
+            {
+                key: 'sweetness',
+                label: 'Sweetness',
+                value: sweetness,
+                levels: SWEETNESS_LEVELS,
+                lowLabel: 'Dry',
+                highLabel: 'Syrupy',
+                onChange: setSweetness,
+            },
+        ] as const;
+    }, [strength, acidity, bitterness, sweetness]);
+
+    const handleSubmit = async () => {
+        if (!isFormComplete) {
+            toast.error('Vui long dien day du cac muc bat buoc tru Optional Feedback.');
             return;
         }
 
-        const fetchMenu = async () => {
-            try {
-                setLoadingMenu(true);
-                const response = await api.get<MenuResponse>(`/Menu/${menuItem.menuId}`);
-                const groups = response.data.menuGroups ?? [];
-                const items = groups.flatMap((g) => g.menuItems ?? []);
-                setMenuItems(items);
-            } catch (error) {
-                console.error('Fetch menu error', error);
-                toast.error('Không tải được danh sách đồ uống trong menu.');
-            } finally {
-                setLoadingMenu(false);
-            }
-        };
-
-        fetchMenu();
-    }, [menuItem?.menuId]);
-
-    const orderedMenuItems = menuItems.slice().sort((a, b) => {
-        if (!menuItem) return 0;
-        if (a.menuItemId === menuItem.menuItemId) return -1;
-        if (b.menuItemId === menuItem.menuItemId) return 1;
-        return 0;
-    });
-
-    const handleSubmit = async () => {
         try {
             setSubmitting(true);
 
             const payload = {
-                // Backend đang mong đợi menuId (thực chất là menuItemId được gửi từ URL)
                 menuId: menuItem?.menuId,
-                menuItemId: menuItemId,
-                isFirstTimeTrying: isFirstTimeTrying ?? undefined,
-                strength: strength || undefined,
-                acidity: acidity || undefined,
-                bitterness: bitterness || undefined,
-                sweetness: sweetness || undefined,
+                menuItemId,
+                isFirstTimeTrying,
+                strength,
+                acidity,
+                bitterness,
+                sweetness,
                 rating,
-                priceRating: priceRating || undefined,
-                repurchasable: repurchasable || undefined,
+                priceRating,
+                repurchasable,
                 comment: comment.trim() || undefined,
-                ratedBy: "Others",
+                ratedBy: 'Others',
             };
 
             await api.post('/Feedback/MenuItem', payload);
 
-            toast.success('Gửi phản hồi thành công! Cảm ơn bạn.');
-
-            // Reset form state after successful submit
+            toast.success('Gui phan hoi thanh cong! Cam on ban.');
             setIsFirstTimeTrying(null);
-            setStrength('');
-            setAcidity('');
-            setBitterness('');
-            setSweetness('');
+            setStrength(DEFAULT_STRENGTH);
+            setAcidity(DEFAULT_ACIDITY);
+            setBitterness(DEFAULT_BITTERNESS);
+            setSweetness(DEFAULT_SWEETNESS);
             setRating(0);
             setPriceRating('');
             setRepurchasable('');
             setComment('');
         } catch (error) {
             console.error('Submit feedback error', error);
-            toast.error('Gửi phản hồi thất bại. Vui lòng thử lại.');
+            toast.error('Gui phan hoi that bai. Vui long thu lai.');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const drinkName = menuItem?.shopRecipe?.recipeName || menuItem?.shopBeverage?.name || 'Selected Drink';
+    const drinkImage = menuItem?.shopRecipe?.image || menuItem?.shopBeverage?.imageUrl || DEFAULT_DRINK_IMAGE;
+
     return (
-        <div className="bg-background-light dark:bg-background-dark font-display text-[#1b140d] dark:text-gray-100 min-h-screen w-full overflow-x-hidden transition-colors duration-200">
-            <div className="relative flex min-h-screen w-full flex-col">
-                <header className="w-full bg-white dark:bg-[#1a120b] border-b border-[#e7dbcf] dark:border-[#3a2c22] sticky top-0 z-50">
-                    <div className="max-w-240 mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary text-3xl">local_cafe</span>
-                            <h1 className="text-xl font-bold tracking-tight">SmartCoffee</h1>
-                        </div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Feedback Form #{feedbackId}</div>
-                    </div>
-                </header>
+        <div className="min-h-screen w-full bg-[#fbf9f5] text-[#1b1c1a] antialiased">
+            <header className="sticky top-0 z-50 w-full border-b border-[#d4c3bf]/30 bg-[#fbf9f5] shadow-[0px_12px_32px_rgba(27,28,26,0.04)]">
+                <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
+                    <div className="text-2xl font-black tracking-tight text-[#4E342E]">SmartCoffee</div>
+                    <div className="text-sm font-medium text-[#504442]">Feedback Form #{feedbackId}</div>
+                </div>
+            </header>
 
-                <main className="grow w-full max-w-240 mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                    <div className="flex flex-col gap-2 mb-8">
-                        <h2 className="text-4xl font-black leading-tight tracking-[-0.033em] text-[#1b140d] dark:text-white">
-                            Coffee Drink Feedback
-                        </h2>
-                        <p className="text-[#9a734c] dark:text-[#c49a6c] text-lg font-normal">
-                            We value your opinion! Tell us about your recent brew to help us improve.
-                        </p>
-                    </div>
-
-                    {/* Drink Information */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">info</span>
-                            <h3 className="text-xl font-bold">Drink Information</h3>
-                        </div>
-
-                        <div className="mb-6">
-                            {loadingMenuItem || loadingMenu ? (
-                                <div className="flex items-center justify-center py-10 text-sm text-[#9a734c]">
-                                    Loading Feedback Page
+            <main className="mx-auto w-full max-w-4xl px-6 py-10">
+                <section className="mb-14 space-y-6">
+                    {loadingMenuItem ? (
+                        <div className="flex items-center justify-center py-14 text-sm text-[#504442]">Loading feedback page...</div>
+                    ) : menuItem ? (
+                        <>
+                            <div className="relative overflow-hidden rounded-[2rem] shadow-[0px_12px_32px_rgba(27,28,26,0.06)]">
+                                <img
+                                    src={drinkImage}
+                                    alt={drinkName}
+                                    className="h-80 w-full object-cover md:h-105"
+                                />
+                                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent p-8 md:p-12">
+                                    <div className="flex h-full flex-col justify-end gap-4 md:flex-row md:items-end md:justify-between">
+                                        <div>
+                                            <span className="mb-2 block text-xs font-bold uppercase tracking-[0.2em] text-[#ffdbd0]">
+                                                Premium Signature
+                                            </span>
+                                            <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl">{drinkName}</h1>
+                                            <p className="mt-2 text-lg font-medium text-white/80">SmartCoffee Featured Drink</p>
+                                        </div>
+                                        <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur-md">
+                                            <span className="text-2xl font-black tracking-tight text-white">
+                                                {menuItem.sellingPrice?.toLocaleString('vi-VN')} VND
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                            ) : orderedMenuItems.length > 0 ? (
-                                <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 md:mx-0 md:px-0">
-                                    {orderedMenuItems.map((item) => {
-                                        const isSelected = item.menuItemId === menuItem?.menuItemId;
-                                        const name = item.shopRecipe?.recipeName || item.shopBeverage?.name || 'Đồ uống';
-                                        const sellingPrice = item.sellingPrice || '';
-                                        const imageUrl = item.shopRecipe?.image || item.shopBeverage?.imageUrl || DEFAULT_DRINK_IMAGE;
-
-                                        return (
-                                            <label
-                                                key={item.menuItemId}
-                                                className="cursor-pointer group min-w-37.5 sm:min-w-45 md:min-w-50"
-                                            >
-                                                <input
-                                                    className="peer sr-only"
-                                                    name="drink_type"
-                                                    type="radio"
-                                                    checked={isSelected}
-                                                    readOnly
-                                                />
-                                                <div className="flex flex-col gap-3 pb-3 p-3 rounded-xl border-2 border-transparent peer-checked:border-primary peer-checked:bg-primary/5 hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-all">
-                                                    <div className="w-full aspect-square bg-center bg-cover rounded-lg overflow-hidden relative">
-                                                        <div className="absolute inset-0 bg-black/10" />
-                                                        <div
-                                                            className="w-full h-full bg-cover bg-center"
-                                                            data-alt={name}
-                                                            style={{
-                                                                backgroundImage: `url('${imageUrl}')`,
-                                                            }}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[#1b140d] dark:text-white text-base font-bold leading-normal">{name}</p>
-                                                        {sellingPrice && (
-                                                            <p className="text-[#9a734c] text-sm font-normal leading-normal">{sellingPrice} VND</p>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </label>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-center py-10 text-sm text-red-500">
-                                    No drink information available for this feedback.
-                                </div>
-                            )}
-                        </div>
-
-                        {menuItem && (
-                            <p className="text-sm text-[#9a734c] mb-4">
-                                You are rating:{' '}
-                                <span className="font-semibold">
-                                    {menuItem.shopRecipe?.recipeName || menuItem.shopBeverage?.name || 'Selected Drink'}
-                                </span>
-                            </p>
-                        )}
-
-                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-[#fcfaf8] dark:bg-[#2c2016] rounded-lg">
-                            <span className="text-base font-medium text-[#1b140d] dark:text-white">
-                                Is this your first time trying this drink?
-                            </span>
-                            <div className="flex gap-2">
-                                <label className="has-checked:bg-primary has-checked:text-white has-checked:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
-                                    Yes
-                                    <input
-                                        className="sr-only"
-                                        name="first_time"
-                                        type="radio"
-                                        value="yes"
-                                        onChange={() => setIsFirstTimeTrying(true)}
-                                    />
-                                </label>
-                                <label className="has-checked:bg-primary has-checked:text-white has-checked:border-primary cursor-pointer border border-[#e7dbcf] dark:border-[#4a3b2f] bg-white dark:bg-[#1a120b] px-6 py-2 rounded-lg transition-colors font-medium text-sm">
-                                    No
-                                    <input
-                                        className="sr-only"
-                                        name="first_time"
-                                        type="radio"
-                                        value="no"
-                                        onChange={() => setIsFirstTimeTrying(false)}
-                                    />
-                                </label>
                             </div>
-                        </div>
-                    </section>
 
-                    {/* Remaining sections copied from template */}
-                    {/* Overall Rating */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8 text-center">
-                        <h3 className="text-xl font-bold mb-2">Overall Rating</h3>
-                        <p className="text-[#9a734c] mb-6">How was your experience overall?</p>
-                        <div className="flex justify-center flex-row-reverse gap-2 group/rating">
-                            {[5, 4, 3, 2, 1].map((starValue) => {
-                                const filled = rating >= starValue;
-                                return (
+                            <div className="flex flex-row flex-wrap items-start justify-between gap-4 rounded-2xl bg-white p-6 md:flex-row md:items-center">
+                                <div>
+                                    <p className="text-lg font-bold text-[#1b1c1a]">First-time trying this?</p>
+                                    <p className="text-sm text-[#504442]">Tell us whether this is your debut experience.</p>
+                                </div>
+                                <div className="flex gap-3 sm:ml-auto">
                                     <button
                                         type="button"
-                                        key={starValue}
-                                        onClick={() => setRating(starValue)}
-                                        className="focus:outline-none"
+                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === true
+                                            ? 'border-[#371f17] bg-[#371f17] text-white'
+                                            : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
+                                            }`}
+                                        onClick={() => setIsFirstTimeTrying(true)}
                                     >
-                                        <span
-                                            className={`material-symbols-outlined text-4xl cursor-pointer transition-colors ${filled ? 'text-primary' : 'text-[#e7dbcf]'}`}
-                                        >
-                                            star
-                                        </span>
+                                        Yes
                                     </button>
+                                    <button
+                                        type="button"
+                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === false
+                                            ? 'border-[#371f17] bg-[#371f17] text-white'
+                                            : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
+                                            }`}
+                                        onClick={() => setIsFirstTimeTrying(false)}
+                                    >
+                                        No
+                                    </button>
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex items-center justify-center py-14 text-sm text-red-500">
+                            No drink information available for this feedback.
+                        </div>
+                    )}
+                </section>
+
+                <form className="space-y-16" onSubmit={(e) => e.preventDefault()}>
+
+
+                    <section className="space-y-10">
+                        <div>
+                            <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Taste Profile</h2>
+                            <p className="mt-2 text-sm text-[#504442]">Help us understand the balance of your brew.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-x-12 gap-y-10 md:grid-cols-2">
+                            {tasteProfiles.map((profile) => {
+                                const selectedIndex = Math.max(0, profile.levels.indexOf(profile.value as never));
+                                return (
+                                    <div key={profile.key} className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <label className="font-bold text-[#1b1c1a]">{profile.label}</label>
+                                            <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#805521]">
+                                                {profile.value || 'Choose'}
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={profile.levels.length - 1}
+                                            step={1}
+                                            value={selectedIndex}
+                                            onChange={(e) => profile.onChange(profile.levels[Number(e.target.value)])}
+                                            className="h-2 w-full cursor-pointer rounded-lg bg-[#d4c3bf] accent-[#371f17]"
+                                        />
+                                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-[0.14em] text-[#827471]">
+                                            <span>{profile.lowLabel}</span>
+                                            <span>{profile.highLabel}</span>
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </div>
                     </section>
-
-                    {/* Taste Profile */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">psychiatry</span>
-                            <h3 className="text-xl font-bold">Taste Profile</h3>
-                        </div>
-                        <div className="space-y-6">
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Strength</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="strength"
-                                            type="radio"
-                                            value="Very Light"
-                                            checked={strength === 'Very Light'}
-                                            onChange={() => setStrength('Very Light')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very Light
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="strength"
-                                            type="radio"
-                                            value="Light"
-                                            checked={strength === 'Light'}
-                                            onChange={() => setStrength('Light')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Light
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="strength"
-                                            type="radio"
-                                            value="Medium"
-                                            checked={strength === 'Medium'}
-                                            onChange={() => setStrength('Medium')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Medium
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="strength"
-                                            type="radio"
-                                            value="Strong"
-                                            checked={strength === 'Strong'}
-                                            onChange={() => setStrength('Strong')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Strong
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="strength"
-                                            type="radio"
-                                            value="Very Strong"
-                                            checked={strength === 'Very Strong'}
-                                            onChange={() => setStrength('Very Strong')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very Strong
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Acidity</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="acidity"
-                                            type="radio"
-                                            value="Very Low"
-                                            checked={acidity === 'Very Low'}
-                                            onChange={() => setAcidity('Very Low')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very Low
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="acidity"
-                                            type="radio"
-                                            value="Low"
-                                            checked={acidity === 'Low'}
-                                            onChange={() => setAcidity('Low')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Low
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="acidity"
-                                            type="radio"
-                                            value="Medium"
-                                            checked={acidity === 'Medium'}
-                                            onChange={() => setAcidity('Medium')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Medium
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="acidity"
-                                            type="radio"
-                                            value="High"
-                                            checked={acidity === 'High'}
-                                            onChange={() => setAcidity('High')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            High
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="acidity"
-                                            type="radio"
-                                            value="Very High"
-                                            checked={acidity === 'Very High'}
-                                            onChange={() => setAcidity('Very High')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very High
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Bitterness</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="bitterness"
-                                            type="radio"
-                                            value="Very Low"
-                                            checked={bitterness === 'Very Low'}
-                                            onChange={() => setBitterness('Very Low')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very Low
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="bitterness"
-                                            type="radio"
-                                            value="Low"
-                                            checked={bitterness === 'Low'}
-                                            onChange={() => setBitterness('Low')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Low
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="bitterness"
-                                            type="radio"
-                                            value="Medium"
-                                            checked={bitterness === 'Medium'}
-                                            onChange={() => setBitterness('Medium')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Medium
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="bitterness"
-                                            type="radio"
-                                            value="High"
-                                            checked={bitterness === 'High'}
-                                            onChange={() => setBitterness('High')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            High
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="bitterness"
-                                            type="radio"
-                                            value="Very High"
-                                            checked={bitterness === 'Very High'}
-                                            onChange={() => setBitterness('Very High')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very High
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">Sweetness</label>
-                                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="sweetness"
-                                            type="radio"
-                                            value="Not sweet"
-                                            checked={sweetness === 'Not sweet'}
-                                            onChange={() => setSweetness('Not sweet')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Not sweet
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="sweetness"
-                                            type="radio"
-                                            value="Slightly sweet"
-                                            checked={sweetness === 'Slightly sweet'}
-                                            onChange={() => setSweetness('Slightly sweet')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Slightly sweet
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="sweetness"
-                                            type="radio"
-                                            value="Medium"
-                                            checked={sweetness === 'Medium'}
-                                            onChange={() => setSweetness('Medium')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Medium
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="sweetness"
-                                            type="radio"
-                                            value="Sweet"
-                                            checked={sweetness === 'Sweet'}
-                                            onChange={() => setSweetness('Sweet')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Sweet
-                                        </div>
-                                    </label>
-                                    <label className="cursor-pointer">
-                                        <input
-                                            className="peer sr-only"
-                                            name="sweetness"
-                                            type="radio"
-                                            value="Very sweet"
-                                            checked={sweetness === 'Very sweet'}
-                                            onChange={() => setSweetness('Very sweet')}
-                                        />
-                                        <div className="text-center py-2 px-3 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] text-sm font-medium text-gray-600 dark:text-gray-300 peer-checked:border-primary peer-checked:bg-primary/10 peer-checked:text-primary transition-all">
-                                            Very sweet
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
+                    <section className="space-y-5 text-center">
+                        <h2 className="text-3xl font-bold tracking-tight text-[#1b1c1a]">Overall Experience</h2>
+                        <div className="flex justify-center gap-2">
+                            {[1, 2, 3, 4, 5].map((starValue) => (
+                                <button
+                                    key={starValue}
+                                    type="button"
+                                    className="p-1"
+                                    onClick={() => setRating(starValue)}
+                                >
+                                    <span
+                                        className={`material-symbols-outlined text-5xl ${rating >= starValue ? 'text-[#805521]' : 'text-[#d4c3bf]'}`}
+                                        style={{ fontVariationSettings: "'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 48" }}
+                                    >
+                                        star
+                                    </span>
+                                </button>
+                            ))}
                         </div>
                     </section>
-
-                    {/* Price & Value */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">payments</span>
-                            <h3 className="text-xl font-bold">Price &amp; Value</h3>
-                        </div>
-                        <div className="grid md:grid-cols-2 gap-8">
-                            <div>
-                                <label className="block text-sm font-semibold mb-3">How was the price?</label>
-                                <div className="flex flex-col gap-2">
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
-                                        <input
-                                            className="accent-primary w-4 h-4 text-primary"
-                                            name="price_perception"
-                                            type="radio"
-                                            value="Cheap"
-                                            checked={priceRating === 'Cheap'}
-                                            onChange={() => setPriceRating('Cheap')}
-                                        />
-                                        <span className="text-sm font-medium">Cheap</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
-                                        <input
-                                            className="accent-primary w-4 h-4 text-primary"
-                                            name="price_perception"
-                                            type="radio"
-                                            value="Reasonable"
-                                            checked={priceRating === 'Reasonable'}
-                                            onChange={() => setPriceRating('Reasonable')}
-                                        />
-                                        <span className="text-sm font-medium">Reasonable</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
-                                        <input
-                                            className="accent-primary w-4 h-4 text-primary"
-                                            name="price_perception"
-                                            type="radio"
-                                            value="A bit expensive"
-                                            checked={priceRating === 'A bit expensive'}
-                                            onChange={() => setPriceRating('A bit expensive')}
-                                        />
-                                        <span className="text-sm font-medium">A bit expensive</span>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-3 border border-[#e7dbcf] dark:border-[#3a2c22] rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-[#2c2016] transition-colors has-checked:border-primary has-checked:bg-primary/5">
-                                        <input
-                                            className="accent-primary w-4 h-4 text-primary"
-                                            name="price_perception"
-                                            type="radio"
-                                            value="Too expensive"
-                                            checked={priceRating === 'Too expensive'}
-                                            onChange={() => setPriceRating('Too expensive')}
-                                        />
-                                        <span className="text-sm font-medium">Too expensive</span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Repurchase Intent */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">favorite</span>
-                            <h3 className="text-xl font-bold">Repurchase Intent</h3>
-                        </div>
-                        <div className="space-y-6">
-                            <div className="flex items-center justify-between pb-6">
-                                <span className="font-medium text-base">Will you order this drink again?</span>
-                                <div className="flex gap-2">
-                                    <label className="cursor-pointer group">
-                                        <input
-                                            className="peer sr-only"
-                                            name="order_again"
-                                            type="radio"
-                                            value="yes"
-                                            checked={repurchasable === 'yes'}
-                                            onChange={() => setRepurchasable('yes')}
-                                        />
-                                        <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-green-100 peer-checked:text-green-800 peer-checked:border-green-300 dark:peer-checked:bg-green-900 dark:peer-checked:text-green-100 font-medium text-sm block transition-all">
-                                            Yes
-                                        </span>
-                                    </label>
-                                    <label className="cursor-pointer group">
-                                        <input
-                                            className="peer sr-only"
-                                            name="order_again"
-                                            type="radio"
-                                            value="maybe"
-                                            checked={repurchasable === 'maybe'}
-                                            onChange={() => setRepurchasable('maybe')}
-                                        />
-                                        <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-yellow-100 peer-checked:text-yellow-800 peer-checked:border-yellow-300 dark:peer-checked:bg-yellow-900 dark:peer-checked:text-yellow-100 font-medium text-sm block transition-all">
-                                            Maybe
-                                        </span>
-                                    </label>
-                                    <label className="cursor-pointer group">
-                                        <input
-                                            className="peer sr-only"
-                                            name="order_again"
-                                            type="radio"
-                                            value="no"
-                                            checked={repurchasable === 'no'}
-                                            onChange={() => setRepurchasable('no')}
-                                        />
-                                        <span className="px-5 py-2 rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] peer-checked:bg-red-100 peer-checked:text-red-800 peer-checked:border-red-300 dark:peer-checked:bg-red-900 dark:peer-checked:text-red-100 font-medium text-sm block transition-all">
-                                            No
-                                        </span>
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Optional Feedback */}
-                    <section className="bg-white dark:bg-[#1a120b] rounded-xl shadow-sm border border-[#e7dbcf] dark:border-[#3a2c22] p-6 sm:p-8">
-                        <div className="flex items-center gap-2 mb-6">
-                            <span className="material-symbols-outlined text-primary">edit_note</span>
-                            <h3 className="text-xl font-bold">Optional Feedback</h3>
-                        </div>
+                    <section className="space-y-6">
                         <div>
-                            <label className="block text-sm font-semibold mb-3" htmlFor="comment">
-                                Other comments
-                            </label>
-                            <textarea
-                                id="comment"
-                                value={comment}
-                                onChange={(e) => setComment(e.target.value)}
-                                rows={5}
-                                placeholder="Tell us more about what you liked or disliked..."
-                                className="w-full resize-y rounded-lg border border-[#e7dbcf] dark:border-[#3a2c22] bg-[#fcfaf8] dark:bg-[#2c2016] px-4 py-3 text-base text-[#1b140d] dark:text-white placeholder:text-[#9a734c] focus:outline-none focus:ring-2 focus:ring-primary/40"
-                            />
+                            <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Price and Value</h2>
+                            <p className="mt-2 text-sm text-[#504442]">How do you feel about the investment for this cup?</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                            {PRICE_OPTIONS.map((option) => (
+                                <button
+                                    key={option}
+                                    type="button"
+                                    onClick={() => setPriceRating(option)}
+                                    className={`rounded-2xl border  px-10 py-4  text-center text-sm font-bold transition-all ${priceRating === option
+                                        ? 'border-[#371f17] bg-[#371f17] text-white shadow-[0px_12px_32px_rgba(55,31,23,0.15)]'
+                                        : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
+                                        }`}
+                                >
+                                    {option}
+                                </button>
+                            ))}
                         </div>
                     </section>
 
-                    <div className="flex flex-col items-center gap-6 py-4">
-                        <p className="text-[#9a734c] text-sm">Thank you for helping us make our coffee better!</p>
+                    <section className="space-y-6 rounded-3xl bg-[#eae8e4] p-8 text-center">
+                        <div>
+                            <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Would you order this again?</h2>
+                            <p className="mt-2 text-sm text-[#504442]">Your loyalty is our highest reward.</p>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-4">
+                            <button
+                                type="button"
+                                onClick={() => setRepurchasable('yes')}
+                                className={`rounded-xl px-10 py-4 text-sm  font-bold transition-all ${repurchasable === 'yes'
+                                    ? 'bg-[#371f17] text-white shadow-[0px_12px_32px_rgba(55,31,23,0.15)]'
+                                    : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
+                                    }`}
+                            >
+                                Yes, Absolutely
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRepurchasable('maybe')}
+                                className={`rounded-xl px-10 py-4 text-sm  font-bold transition-all ${repurchasable === 'maybe'
+                                    ? 'bg-[#805521] text-white shadow-[0px_12px_32px_rgba(128,85,33,0.2)]'
+                                    : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
+                                    }`}
+                            >
+                                Maybe
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setRepurchasable('no')}
+                                className={`rounded-xl px-10 py-4 text-sm font-bold transition-all ${repurchasable === 'no'
+                                    ? 'bg-[#ba1a1a] text-white shadow-[0px_12px_32px_rgba(186,26,26,0.2)]'
+                                    : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
+                                    }`}
+                            >
+                                No
+                            </button>
+                        </div>
+                    </section>
+
+                    <section className="space-y-6">
+                        <div>
+                            <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Optional feedback</h2>
+
+                        </div>
+                        <textarea
+                            id="comment"
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            rows={5}
+                            placeholder="Write your thoughts here..."
+                            className="w-full resize-none rounded-2xl border border-[#d4c3bf] bg-[#efeeea] p-6 text-[#1b1c1a] placeholder:text-[#827471] outline-none transition-all focus:border-[#827471] focus:bg-white"
+                        />
+                    </section>
+
+                    <div className="pt-4 text-center">
                         <button
                             type="button"
                             onClick={handleSubmit}
-                            disabled={submitting}
-                            className="w-full sm:w-auto bg-primary disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-bold py-4 px-12 rounded-full hover:bg-[#b8610b] active:scale-95 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2"
+                            disabled={submitting || !isFormComplete || loadingMenuItem || !menuItem}
+                            className="w-full rounded-full bg-linear-to-br from-[#371f17] to-[#4f342b] px-16 py-5 text-xl font-extrabold text-white shadow-[0px_20px_40px_rgba(55,31,23,0.2)] transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:bg-[#9b9089] disabled:shadow-none md:w-auto"
                         >
-                            <span>{submitting ? 'Submitting...' : 'Submit Feedback'}</span>
-                            <span className="material-symbols-outlined text-xl">send</span>
+                            {submitting ? 'Submitting...' : 'Submit Review'}
                         </button>
+                        {!isFormComplete && (
+                            <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#805521]">
+                                Thanks for taking the time to share your feedback! Please complete all required fields before submitting.
+                            </p>
+                        )}
                     </div>
-                </main>
+                </form>
+            </main>
 
-                <footer className="w-full py-8 text-center text-[#9a734c] text-sm dark:text-[#6a5342]">
-                    GSP25SE50
-                </footer>
-            </div>
+            <footer className="py-8 text-center text-sm text-[#504442]">GSP25SE50</footer>
         </div>
     );
 }
