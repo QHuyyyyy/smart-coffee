@@ -23,6 +23,8 @@ import { Wallet } from './pages/supplier/Wallet';
 import { AdminWallet } from './pages/admin/AdminWallet';
 import { useAuthStore } from './stores/auth.store';
 import { AdminPostsPage } from './pages/admin/Posts';
+import { AdminIngredientsPage } from './pages/admin/Ingredients';
+import { AdminAccountsPage } from './pages/admin/Accounts';
 
 function App() {
     const currentUser = useAuthStore((state) => state.currentUser);
@@ -122,6 +124,28 @@ function App() {
                     <ProtectedRoute allowedRoles={["Admin"]}>
                         <Layout>
                             <AdminPostsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/ingredients"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminIngredientsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/accounts"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminAccountsPage />
                         </Layout>
                     </ProtectedRoute>
                 )}

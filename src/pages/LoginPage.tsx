@@ -31,7 +31,7 @@ export function LoginPage() {
                 logout();
             }
         } catch (err: Error | any) {
-            toast.error("Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+            toast.error(err?.response?.data || "Login failed. Please check your credentials.");
         }
     };
 
@@ -53,11 +53,7 @@ export function LoginPage() {
                 <AuthTabs active="signin" />
 
                 <form className="space-y-6" onSubmit={handleSubmit}>
-                    {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
-                            {error}
-                        </div>
-                    )}
+
 
                     <AuthField
                         id="email"

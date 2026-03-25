@@ -63,6 +63,31 @@ type ChangePasswordPayload = {
     newPassword: string;
 };
 
+export type AccountManagementItem = {
+    accountId: number;
+    email: string;
+    role: string;
+    phone?: string | null;
+    status: string;
+    createDate: string;
+    withdrawDate?: string | null;
+};
+
+export type AccountManagementResponse = {
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    items: AccountManagementItem[];
+};
+
+export type AccountManagementQuery = {
+    page: number;
+    pageSize: number;
+    status?: string;
+    role?: string;
+};
+
 export const authService = {
     login: async (payload: LoginPayload) => {
         const response = await api.post<LoginResponse>("/Auth/login", payload);
@@ -131,6 +156,37 @@ export const authService = {
             headers: { "Content-Type": "multipart/form-data" },
         });
         return response.data;
+    },
+
+    getAccounts: async (params: AccountManagementQuery) => {
+        const response = await api.get<AccountManagementResponse>("/Auth/accounts", { params });
+        return response.data;
+    },
+
+    inactiveAccount: async (accountId: number) => {
+        try {
+            const response = await api.post(`/Auth/accounts/${accountId}/inactive`);
+            return response.data;
+        } catch (error: any) {
+            if (error?.response?.status === 404 || error?.response?.status === 405) {
+                const fallbackResponse = await api.put(`/Auth/accounts/${accountId}/inactive`);
+                return fallbackResponse.data;
+            }
+            throw error;
+        }
+    },
+
+    activeAccount: async (accountId: number) => {
+        try {
+            const response = await api.post(`/Auth/accounts/${accountId}/active`);
+            return response.data;
+        } catch (error: any) {
+            if (error?.response?.status === 404 || error?.response?.status === 405) {
+                const fallbackResponse = await api.put(`/Auth/accounts/${accountId}/active`);
+                return fallbackResponse.data;
+            }
+            throw error;
+        }
     },
 
 };
