@@ -184,7 +184,7 @@ export function AdminIngredientsPage() {
                                             handleApplyFilter();
                                         }
                                     }}
-                                    className="pl-9"
+                                    className="pl-9 py-2"
                                 />
                             </div>
 
