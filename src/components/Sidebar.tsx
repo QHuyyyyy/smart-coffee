@@ -1,4 +1,4 @@
-import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee, Wallet, SquareMenu } from 'lucide-react';
+import { ChevronLeft, Home, ShoppingCart, Package, Settings, Coffee, Wallet, SquareMenu, FileText, Users } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuthStore } from '@/stores/auth.store';
@@ -16,6 +16,9 @@ export function Sidebar() {
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
             { icon: SquareMenu, label: 'Recipes', href: '/admin/recipes' },
+            { icon: Users, label: 'Accounts', href: '/admin/accounts' },
+            { icon: ShoppingCart, label: 'Ingredients', href: '/admin/ingredients' },
+            { icon: FileText, label: 'Posts', href: '/admin/posts' },
             { icon: Package, label: 'Packages', href: '/admin/subscription-packages' },
             { icon: ShoppingCart, label: 'Subscriptions', href: '/admin/subscriptions' },
             { icon: Wallet, label: 'Wallet', href: '/wallet' },

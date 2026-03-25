@@ -193,27 +193,27 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                 className={`px-4 py-1.5 rounded-full transition-colors ${mode === "existing" ? "bg-white shadow-sm text-[#3B2618]" : "bg-transparent"}`}
                                 onClick={() => form.setValue("mode", "existing")}
                             >
-                                Link Existing
+                                Select Existing
                             </button>
-                            <button
+                            {/* <button
                                 type="button"
                                 className={`px-4 py-1.5 rounded-full transition-colors ${mode === "new" ? "bg-white shadow-sm text-[#3B2618]" : "bg-transparent"}`}
                                 onClick={() => form.setValue("mode", "new")}
                             >
                                 Create New
-                            </button>
+                            </button> */}
                         </div>
 
                         {mode === "existing" ? (
                             <div className="space-y-2">
-                                <label className="text-xs font-medium text-[#7A685B]">Search Ingredient</label>
+                                <label className="text-xs font-medium text-[#7A685B]">Select Ingredient</label>
                                 <select
                                     className="w-full rounded-xl border border-[#E0D5D0] bg-white px-4 py-2.5 text-sm text-[#3B2618] placeholder:text-[#B8AAA0] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
                                     disabled={loadingIngredients}
                                     value={form.watch("ingredientId") ?? ""}
                                     onChange={(e) => form.setValue("ingredientId", Number(e.target.value))}
                                 >
-                                    <option value="">Search by name</option>
+                                    <option value="">Select existing ingredient of system</option>
                                     {ingredients.map((ing: any) => (
                                         <option key={ing.ingredientId} value={ing.ingredientId}>
                                             {ing.name} ({ing.category})

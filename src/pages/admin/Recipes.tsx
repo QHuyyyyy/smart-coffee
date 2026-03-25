@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil, Trash2 } from "lucide-react";
+import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil } from "lucide-react";
 import {
     Pagination,
     PaginationContent,
@@ -198,9 +198,9 @@ export function Recipes() {
                                                     <button className="hover:text-[#573E32]" aria-label="Edit">
                                                         <Pencil size={16} />
                                                     </button>
-                                                    <button className="hover:text-[#C04A3A]" aria-label="Delete">
+                                                    {/* <button className="hover:text-[#C04A3A]" aria-label="Delete">
                                                         <Trash2 size={16} />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </TableCell>
                                         </TableRow>
