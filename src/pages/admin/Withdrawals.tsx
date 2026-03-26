@@ -6,7 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface WithdrawalRow {
-    walletWithdrawalId: number;
+    withdrawId?: number | null;
+    walletWithdrawalId?: number | null;
     walletId: number | null;
     amount: number | null;
     status: string | null;
@@ -23,6 +24,8 @@ export function AdminWithdrawalsPage() {
     const [totalCount, setTotalCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const getWithdrawalId = (row: WithdrawalRow) => row.withdrawId ?? row.walletWithdrawalId ?? null;
 
     const fetchData = async (targetPage = 1, targetStatus: string | null = status) => {
         try {
@@ -158,7 +161,7 @@ export function AdminWithdrawalsPage() {
                                 <TableHeader>
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
-                                        <TableHead className="text-center">Wallet</TableHead>
+                                        {/* <TableHead className="text-center">Wallet</TableHead> */}
                                         <TableHead className="text-right">Amount</TableHead>
                                         <TableHead className="text-right">Status</TableHead>
                                         <TableHead className="text-right">Date</TableHead>
@@ -167,13 +170,14 @@ export function AdminWithdrawalsPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {!isLoading && rows.map((w) => {
+                                        const withdrawalId = getWithdrawalId(w);
                                         const statusLower = (w.status ?? "").toLowerCase();
                                         return (
-                                            <TableRow key={w.walletWithdrawalId}>
-                                                <TableCell className="font-medium text-[#573E32]">#{w.walletWithdrawalId}</TableCell>
-                                                <TableCell className="text-center font-medium text-[#573E32]">
+                                            <TableRow key={withdrawalId ?? `${w.createAt ?? "unknown"}-${w.amount ?? "unknown"}`}>
+                                                <TableCell className="font-medium text-[#573E32]">{withdrawalId ? `#${withdrawalId}` : "-"}</TableCell>
+                                                {/* <TableCell className="text-center font-medium text-[#573E32]">
                                                     {w.walletId ?? "-"}
-                                                </TableCell>
+                                                </TableCell> */}
                                                 <TableCell className="text-right font-medium text-[#573E32]">
                                                     {w.amount?.toLocaleString("vi-VN") ?? "-"}
                                                 </TableCell>
@@ -190,14 +194,24 @@ export function AdminWithdrawalsPage() {
                                                                 <button
                                                                     type="button"
                                                                     className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
-                                                                    onClick={() => handleUpdateStatus(w.walletWithdrawalId, "Processing")}
+                                                                    onClick={() => {
+                                                                        if (withdrawalId !== null) {
+                                                                            void handleUpdateStatus(withdrawalId, "Processing");
+                                                                        }
+                                                                    }}
+                                                                    disabled={withdrawalId === null}
                                                                 >
                                                                     Confirm
                                                                 </button>
                                                                 <button
                                                                     type="button"
                                                                     className="text-xs font-medium text-red-600 hover:text-red-700"
-                                                                    onClick={() => handleUpdateStatus(w.walletWithdrawalId, "Rejected")}
+                                                                    onClick={() => {
+                                                                        if (withdrawalId !== null) {
+                                                                            void handleUpdateStatus(withdrawalId, "Rejected");
+                                                                        }
+                                                                    }}
+                                                                    disabled={withdrawalId === null}
                                                                 >
                                                                     Reject
                                                                 </button>
@@ -207,7 +221,12 @@ export function AdminWithdrawalsPage() {
                                                             <button
                                                                 type="button"
                                                                 className="text-xs font-medium text-[#573E32] hover:text-[#3b2218]"
-                                                                onClick={() => handleUpdateStatus(w.walletWithdrawalId, "Completed")}
+                                                                onClick={() => {
+                                                                    if (withdrawalId !== null) {
+                                                                        void handleUpdateStatus(withdrawalId, "Completed");
+                                                                    }
+                                                                }}
+                                                                disabled={withdrawalId === null}
                                                             >
                                                                 Mark Completed
                                                             </button>
