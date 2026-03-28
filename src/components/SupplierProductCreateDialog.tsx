@@ -2,13 +2,74 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supplierProductService, type CreateSupplierProductPayload, type SupplierProduct } from "@/apis/supplierProduct.service";
 import { ingredientService } from "@/apis/ingredient.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
+import { DialogDescription } from "@radix-ui/react-dialog";
+
+const INGREDIENT_PAGE_SIZE = 10;
+
+type IngredientOption = {
+    ingredientId: number;
+    name: string;
+    category?: string | null;
+};
+
+type IngredientListEnvelope = {
+    items?: unknown;
+    data?: unknown;
+    ingredients?: unknown;
+    totalCount?: number;
+    totalPages?: number;
+};
+
+const extractIngredientList = (data: unknown): IngredientOption[] => {
+    if (Array.isArray(data)) {
+        return data as IngredientOption[];
+    }
+
+    if (data && typeof data === "object") {
+        const payload = data as { items?: unknown; data?: unknown; ingredients?: unknown };
+
+        if (Array.isArray(payload.items)) {
+            return payload.items as IngredientOption[];
+        }
+
+        if (Array.isArray(payload.data)) {
+            return payload.data as IngredientOption[];
+        }
+
+        if (Array.isArray(payload.ingredients)) {
+            return payload.ingredients as IngredientOption[];
+        }
+    }
+
+    return [];
+};
+
+const extractTotalPages = (data: unknown): number => {
+    if (!data || typeof data !== "object") return 1;
+    const totalPages = (data as IngredientListEnvelope).totalPages;
+    if (typeof totalPages === "number" && totalPages > 0) {
+        return totalPages;
+    }
+    return 1;
+};
+
+const extractTotalCount = (data: unknown): number => {
+    if (!data || typeof data !== "object") return 0;
+    const totalCount = (data as IngredientListEnvelope).totalCount;
+    if (typeof totalCount === "number" && totalCount >= 0) {
+        return totalCount;
+    }
+    return 0;
+};
 
 const formSchema = z.object({
     mode: z.enum(["existing", "new"]),
@@ -43,8 +104,12 @@ interface SupplierProductCreateDialogProps {
 
 export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: SupplierProductCreateDialogProps) {
     const currentUser = useAuthStore((state) => state.currentUser);
-    const [ingredients, setIngredients] = useState<any[]>([]);
+    const [ingredients, setIngredients] = useState<IngredientOption[]>([]);
     const [loadingIngredients, setLoadingIngredients] = useState(false);
+    const [loadingMoreIngredients, setLoadingMoreIngredients] = useState(false);
+    const [ingredientPage, setIngredientPage] = useState(0);
+    const [ingredientTotalPages, setIngredientTotalPages] = useState(1);
+    const [ingredientTotalCount, setIngredientTotalCount] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
@@ -67,13 +132,16 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
     useEffect(() => {
         if (!open) return;
 
-        const fetchIngredients = async () => {
+        const fetchFirstIngredientPage = async () => {
             try {
                 setLoadingIngredients(true);
-                const res = await ingredientService.getAll();
+                const res = await ingredientService.getPaginated({ page: 1, pageSize: INGREDIENT_PAGE_SIZE });
                 const data = res.data;
-                const list = Array.isArray(data) ? data : [];
-                setIngredients(list || []);
+                const list = extractIngredientList(data);
+
+                setIngredients(Array.from(new Map(list.map((item) => [item.ingredientId, item])).values()));
+                setIngredientPage(1);
+                setIngredientTotalPages(extractTotalPages(data));
             } catch (error: any) {
                 console.error("Failed to load ingredients:", error);
                 toast.error(error?.response?.data?.message || "Failed to load ingredients");
@@ -82,8 +150,38 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
             }
         };
 
-        fetchIngredients();
+        setIngredients([]);
+        setIngredientPage(0);
+        setIngredientTotalPages(1);
+        setIngredientTotalCount(0);
+        setLoadingMoreIngredients(false);
+
+        void fetchFirstIngredientPage();
     }, [open]);
+
+    const hasMoreIngredients = ingredientPage < ingredientTotalPages;
+
+    const loadMoreIngredients = async () => {
+        if (loadingIngredients || loadingMoreIngredients || !hasMoreIngredients) return;
+
+        try {
+            setLoadingMoreIngredients(true);
+            const nextPage = ingredientPage + 1;
+            const res = await ingredientService.getPaginated({ page: nextPage, pageSize: INGREDIENT_PAGE_SIZE });
+            const data = res.data;
+            const list = extractIngredientList(data);
+
+            setIngredients((prev) => Array.from(new Map([...prev, ...list].map((item) => [item.ingredientId, item])).values()));
+            setIngredientPage(nextPage);
+            setIngredientTotalPages(extractTotalPages(data));
+            setIngredientTotalCount(extractTotalCount(data));
+        } catch (error: any) {
+            console.error("Failed to load more ingredients:", error);
+            toast.error(error?.response?.data?.message || "Failed to load more ingredients");
+        } finally {
+            setLoadingMoreIngredients(false);
+        }
+    };
 
     const handleClose = () => {
         onOpenChange(false);
@@ -171,9 +269,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                     <DialogTitle className="text-xl font-semibold text-[#1F1F1F]">
                         Add New Supplier Product
                     </DialogTitle>
-                    <p className="text-sm text-[#707070] mt-1">
-                        Link or create a new ingredient listing.
-                    </p>
+                    <DialogDescription className="text-sm text-[#707070]"> Link or create a new ingredient listing.</DialogDescription>
                 </DialogHeader>
 
                 <form
@@ -207,26 +303,71 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                         {mode === "existing" ? (
                             <div className="space-y-2">
                                 <label className="text-xs font-medium text-[#7A685B]">Select Ingredient</label>
-                                <select
-                                    className="w-full rounded-xl border border-[#E0D5D0] bg-white px-4 py-2.5 text-sm text-[#3B2618] placeholder:text-[#B8AAA0] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
-                                    disabled={loadingIngredients}
-                                    value={form.watch("ingredientId") ?? ""}
-                                    onChange={(e) => form.setValue("ingredientId", Number(e.target.value))}
+                                <Select
+                                    disabled={loadingIngredients && ingredients.length === 0}
+                                    value={form.watch("ingredientId") ? String(form.watch("ingredientId")) : undefined}
+                                    onValueChange={(value) => {
+                                        form.setValue("ingredientId", value ? Number(value) : undefined, {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                        });
+                                    }}
                                 >
-                                    <option value="">Select existing ingredient of system</option>
-                                    {ingredients.map((ing: any) => (
-                                        <option key={ing.ingredientId} value={ing.ingredientId}>
-                                            {ing.name} ({ing.category})
-                                        </option>
-                                    ))}
-                                </select>
+                                    <SelectTrigger className="w-full rounded-xl border-[#E0D5D0] bg-white px-4 py-2.5 text-sm text-[#3B2618]">
+                                        <SelectValue placeholder="Select existing ingredient of system" />
+                                    </SelectTrigger>
+                                    <SelectContent className="h-64 max-h-64">
+                                        {ingredients.map((ing, index) => (
+                                            <SelectItem key={`${ing.ingredientId}-${index}`} value={String(ing.ingredientId)}>
+                                                {ing.name} ({ing.category})
+                                            </SelectItem>
+                                        ))}
+
+                                        {loadingIngredients && ingredients.length === 0 && (
+                                            <SelectItem value="__loading_initial" disabled>
+                                                Loading ingredients...
+                                            </SelectItem>
+                                        )}
+
+                                        {loadingMoreIngredients && (
+                                            <SelectItem value="__loading_more" disabled>
+                                                Loading more ingredients...
+                                            </SelectItem>
+                                        )}
+
+                                        {!loadingIngredients && ingredients.length === 0 && (
+                                            <SelectItem value="__empty" disabled>
+                                                No ingredients found
+                                            </SelectItem>
+                                        )}
+
+                                        <div className="border-t border-[#EFE5DC] mt-1 px-2 py-2 bg-white">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className="text-[11px] text-[#B8AAA0]">
+                                                    {ingredients.length}/{ingredientTotalCount} item(s) - page {Math.max(ingredientPage, 1)}/{Math.max(ingredientTotalPages, 1)}
+                                                </p>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="icon"
+                                                    className="h-7 w-7"
+                                                    disabled={loadingIngredients || loadingMoreIngredients || !hasMoreIngredients}
+                                                    onClick={() => void loadMoreIngredients()}
+                                                    aria-label="Load more ingredients"
+                                                >
+                                                    <ChevronDown size={14} className={loadingMoreIngredients ? "animate-pulse" : ""} />
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </SelectContent>
+                                </Select>
                                 {form.formState.errors.ingredientId && (
                                     <p className="text-xs text-red-500 mt-1">
                                         {form.formState.errors.ingredientId.message as string}
                                     </p>
                                 )}
                                 <p className="text-[11px] text-[#B8AAA0]">
-                                    Common ingredients: Sea Salt, Olive Oil, Raw Honey, Cocoa Powder
+                                    Dropdown height is fixed. Press the arrow at the end of the list to load next page.
                                 </p>
                             </div>
                         ) : (

@@ -20,14 +20,14 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import './App.css';
 import { SupplierProfile } from './pages/supplier/Profile';
 import { Wallet } from './pages/supplier/Wallet';
-import { AdminWallet } from './pages/admin/AdminWallet';
-import { useAuthStore } from './stores/auth.store';
+import { Transaction } from './pages/admin/Transaction';
+// import { useAuthStore } from './stores/auth.store';
 import { AdminPostsPage } from './pages/admin/Posts';
 import { AdminIngredientsPage } from './pages/admin/Ingredients';
 import { AdminAccountsPage } from './pages/admin/Accounts';
 
 function App() {
-    const currentUser = useAuthStore((state) => state.currentUser);
+    // const currentUser = useAuthStore((state) => state.currentUser);
 
     return (
         <Routes>
@@ -177,9 +177,19 @@ function App() {
             <Route
                 path="/wallet"
                 element={(
-                    <ProtectedRoute allowedRoles={["Supplier", "Admin"]}>
+                    <ProtectedRoute allowedRoles={["Supplier"]}>
                         <Layout>
-                            {currentUser?.role === "Admin" ? <AdminWallet /> : <Wallet />}
+                            <Wallet />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+            <Route
+                path="/transaction"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <Transaction />
                         </Layout>
                     </ProtectedRoute>
                 )}

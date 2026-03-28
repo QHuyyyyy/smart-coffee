@@ -27,9 +27,23 @@ export type TransactionQueryParams = {
     transactionType?: string;
 };
 
+type TransactionListResponse = TransactionItem[] | { items?: TransactionItem[]; data?: TransactionItem[] };
+
+const extractTransactionItems = (data: TransactionListResponse): TransactionItem[] => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+};
+
 export const transactionService = {
     getPaginated: async (params: TransactionQueryParams) => {
         const response = await api.get<TransactionPaginatedResponse>("/Transaction", { params });
         return response.data;
+    },
+
+    getListByUserId: async (userId: number) => {
+        const response = await api.get<TransactionListResponse>(`/Transaction/list/${userId}`);
+        return extractTransactionItems(response.data);
     },
 };

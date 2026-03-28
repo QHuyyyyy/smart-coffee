@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
-import { walletService, type Wallet } from "@/apis/wallet.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
-import { Loading, InlineLoading } from "@/components/Loading";
+import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
     Pagination,
@@ -15,10 +14,6 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 
-function formatCurrency(amount: number | null | undefined, currency = "VND") {
-    const safeAmount = amount ?? 0;
-    return `${safeAmount.toLocaleString("vi-VN")} ${currency}`;
-}
 
 function formatDateTime(value: string | null | undefined) {
     if (!value) return "-";
@@ -37,38 +32,14 @@ function getStatusClasses(status: string | null | undefined) {
     return "bg-gray-100 text-gray-700 border border-gray-200";
 }
 
-export function AdminWallet() {
+export function Transaction() {
     const currentUser = useAuthStore((state) => state.currentUser);
-
-    const [wallet, setWallet] = useState<Wallet | null>(null);
-    const [walletLoading, setWalletLoading] = useState(false);
-    const [walletError, setWalletError] = useState<string | null>(null);
-
     const [transactions, setTransactions] = useState<TransactionItem[]>([]);
     const [transactionsLoading, setTransactionsLoading] = useState(false);
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
-
-    useEffect(() => {
-        const fetchWallet = async () => {
-            if (!currentUser?.wallet?.walletId) return;
-
-            try {
-                setWalletLoading(true);
-                setWalletError(null);
-                const data = await walletService.getWalletById(currentUser.wallet.walletId);
-                setWallet(data);
-            } catch (error: any) {
-                setWalletError(error?.message || "Failed to load wallet information.");
-            } finally {
-                setWalletLoading(false);
-            }
-        };
-
-        void fetchWallet();
-    }, [currentUser?.wallet?.walletId]);
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -100,22 +71,12 @@ export function AdminWallet() {
     if (!currentUser) {
         return (
             <div className="p-6">
-                <p className="text-red-500">You must be logged in to view wallet information.</p>
+                <p className="text-red-500">You must be logged in to view transaction information.</p>
             </div>
         );
     }
 
-    if (!currentUser.wallet?.walletId) {
-        return (
-            <div className="p-6">
-                <p className="text-gray-700">Wallet information is not available for this account.</p>
-            </div>
-        );
-    }
 
-    if (walletLoading) {
-        return <Loading />;
-    }
 
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
@@ -124,34 +85,13 @@ export function AdminWallet() {
                     <div>
                         <h1 className="text-2xl font-bold leading-tight tracking-[-0.015em] text-[#1F1F1F] flex items-center gap-2">
                             <WalletCards size={22} className="text-[#573E32]" />
-                            Admin Wallet
+                            Transactions
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            Quản lý số dư và theo dõi tất cả giao dịch hệ thống
+                            Manage and review all transactions
                         </p>
                     </div>
                 </div>
-
-                {walletError && <p className="text-red-500 mb-2">{walletError}</p>}
-
-                {wallet && !walletError && (
-                    <div className="bg-white shadow rounded-xl p-6 mt-5">
-                        <div className="flex items-center justify-between gap-4">
-                            <div className="flex flex-col">
-                                <p className="text-xs text-gray-500">Available Balance</p>
-                                <p className="text-3xl md:text-4xl font-semibold tracking-tight text-gray-900">
-                                    {formatCurrency(wallet.availableBalance, wallet.currency)}
-                                </p>
-                            </div>
-                            <div className="flex flex-col items-end text-right">
-                                <p className="text-xs text-gray-500">Held Balance</p>
-                                <p className="text-xl md:text-2xl font-semibold tracking-tight text-gray-900">
-                                    {formatCurrency(wallet.heldBalance, wallet.currency)}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-[#EFEAE5]">
@@ -195,7 +135,7 @@ export function AdminWallet() {
                                                 </span>
                                             </TableCell>
                                             <TableCell className="text-center font-medium text-[#573E32]">
-                                                {formatCurrency(item.totalPrice, wallet?.currency ?? "VND")}
+                                                {item.totalPrice}VND
                                             </TableCell>
                                             <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
                                                 {item.notes ?? "-"}

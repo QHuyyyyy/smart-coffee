@@ -22,7 +22,7 @@ export function Sidebar() {
             { icon: FileText, label: 'Posts', href: '/admin/posts' },
             { icon: Package, label: 'Packages', href: '/admin/subscription-packages' },
             { icon: ShoppingCart, label: 'Subscriptions', href: '/admin/subscriptions' },
-            { icon: Wallet, label: 'Wallet', href: '/wallet' },
+            { icon: Wallet, label: 'Wallet', href: '/transaction' },
             { icon: Wallet, label: 'Withdrawals', href: '/admin/withdrawals' },
         ]
         : role === 'Supplier'
