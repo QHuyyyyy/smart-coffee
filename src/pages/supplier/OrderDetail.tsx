@@ -251,14 +251,24 @@ export function SupplierOrderDetail() {
                             </button>
                         )}
                         {currentStatus === "delivered" && (
-                            <button
-                                type="button"
-                                onClick={handleAutoCompleteDelivered}
-                                disabled={updatingStatus}
-                                className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
-                            >
-                                {updatingStatus ? "Completing..." : "Test Complete (cronjob)"}
-                            </button>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => handleUpdateStatus("Completed")}
+                                    disabled={updatingStatus}
+                                    className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
+                                >
+                                    {updatingStatus ? "Updating..." : "Completed"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleAutoCompleteDelivered}
+                                    disabled={updatingStatus}
+                                    className="rounded-full border border-dashed border-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-[#FF7A1A] hover:bg-[#FFF5EC] disabled:opacity-60"
+                                >
+                                    {updatingStatus ? "Completing..." : "Set All Order Completed"}
+                                </button>
+                            </div>
                         )}
                         {currentStatus === "delivering" && (
                             <div className="flex flex-wrap gap-2">
