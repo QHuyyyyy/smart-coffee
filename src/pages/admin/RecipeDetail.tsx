@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { recipeService } from "@/apis/recipe.service";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 type RecipeDetail = {
     recipeId: number;
@@ -546,40 +547,40 @@ export function RecipeDetail() {
                                 <h3 className="font-bold text-[#1F1F1F]">Ingredients</h3>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead className="bg-gray-50 text-[#707070] font-medium">
-                                        <tr>
-                                            <th className="px-5 py-3">Ingredient Name</th>
-                                            <th className="px-5 py-3 text-right">Quantity</th>
-                                            <th className="px-5 py-3 text-right">Cost</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#EFEAE5]">
+                                <Table>
+                                    <TableHeader className="bg-gray-50 text-[#707070] font-medium">
+                                        <TableRow>
+                                            <TableHead className="px-5 py-3">Ingredient Name</TableHead>
+                                            <TableHead className="px-5 py-3 text-right">Quantity</TableHead>
+                                            <TableHead className="px-5 py-3 text-right">Cost</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody className="divide-y divide-[#EFEAE5]">
                                         {ingredients.length === 0 && (
-                                            <tr>
-                                                <td
+                                            <TableRow>
+                                                <TableCell
                                                     colSpan={3}
                                                     className="px-5 py-4 text-center text-xs text-[#707070]"
                                                 >
                                                     Chưa có nguyên liệu cho recipe này.
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         )}
                                         {ingredients.map((item) => (
-                                            <tr key={item.id} className="hover:bg-gray-50">
-                                                <td className="px-5 py-3 font-medium text-[#1F1F1F]">
+                                            <TableRow key={item.id} className="hover:bg-gray-50">
+                                                <TableCell className="px-5 py-3 font-medium text-[#1F1F1F]">
                                                     {item.ingredient?.name || "Ingredient"}
-                                                </td>
-                                                <td className="px-5 py-3 text-right">
+                                                </TableCell>
+                                                <TableCell className="px-5 py-3 text-right">
                                                     {item.quantity}
-                                                </td>
-                                                <td className="px-5 py-3 text-right text-[#707070]">
+                                                </TableCell>
+                                                <TableCell className="px-5 py-3 text-right text-[#707070]">
                                                     {formatCurrency(item.cost)}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </TableBody>
+                                </Table>
                             </div>
                         </div>
 

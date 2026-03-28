@@ -23,6 +23,23 @@ export type Wallet = {
     walletWithdrawals: WalletWithdrawal[];
 };
 
+export type SupplierWalletWithdrawal = {
+    withdrawId: number;
+    amount: number | null;
+    status: string | null;
+    balanceBefore: number | null;
+    balanceAfter: number | null;
+    createAt: string | null;
+};
+
+export type SupplierWalletWithdrawalsResponse = {
+    totalCount: number;
+    page: number;
+    pageSize: number;
+    totalPages: number;
+    items: SupplierWalletWithdrawal[];
+};
+
 export type UpdateBankInfoPayload = {
     bankName: string;
     bankAccountNumber: string;
@@ -60,6 +77,17 @@ export const walletService = {
     // Admin: list withdrawals with optional filters
     getWithdrawals: async (params: { status?: string; pageSize?: number; page?: number }) => {
         const response = await api.get("/Wallet/withdrawals", { params });
+        return response.data;
+    },
+
+    // Supplier: list withdrawal history by wallet id
+    getWithdrawalsByWalletId: async (
+        walletId: number,
+        params: { status?: string; pageSize?: number; page?: number },
+    ) => {
+        const response = await api.get<SupplierWalletWithdrawalsResponse>(`/Wallet/withdrawals/by-wallet/${walletId}`, {
+            params,
+        });
         return response.data;
     },
 };

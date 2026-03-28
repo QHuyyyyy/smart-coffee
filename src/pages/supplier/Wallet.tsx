@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
-import { walletService, type Wallet, type WalletWithdrawal } from "@/apis/wallet.service";
+import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/apis/wallet.service";
+import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loading } from "@/components/Loading";
 import { toast } from "sonner";
 import angribankLogo from "@/assets/angribank.png";
@@ -21,7 +23,11 @@ function formatDate(value: string | null | undefined) {
     return new Date(value).toLocaleString();
 }
 
-function getTransactionDescription(w: WalletWithdrawal, bankName: string | null, bankAccountNumber: string | null) {
+function getTransactionDescription(
+    w: Pick<SupplierWalletWithdrawal, "amount" | "status">,
+    bankName: string | null,
+    bankAccountNumber: string | null,
+) {
     // API hiện tại không trả về field type, nên ta suy luận đơn giản dựa trên amount và status
     const amount = w.amount ?? 0;
     const status = (w.status ?? "").toLowerCase();
@@ -75,6 +81,32 @@ export function Wallet() {
     const [createdWithdrawId, setCreatedWithdrawId] = useState<number | null>(null);
     const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false);
     const [isVerifyingWithdraw, setIsVerifyingWithdraw] = useState(false);
+    const [withdrawalsData, setWithdrawalsData] = useState<SupplierWalletWithdrawalsResponse | null>(null);
+    const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false);
+    const [withdrawalsError, setWithdrawalsError] = useState<string | null>(null);
+    const [withdrawalsPage, setWithdrawalsPage] = useState(1);
+    const [withdrawalsStatus, setWithdrawalsStatus] = useState("none");
+    const [transactionItems, setTransactionItems] = useState<TransactionItem[]>([]);
+    const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+    const [transactionsError, setTransactionsError] = useState<string | null>(null);
+
+    const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
+        try {
+            setIsLoadingWithdrawals(true);
+            setWithdrawalsError(null);
+            const data = await walletService.getWithdrawalsByWalletId(walletId, {
+                page,
+                pageSize: 10,
+                status,
+            });
+            setWithdrawalsData(data);
+        } catch (err: any) {
+            const message = err?.response?.data?.message ?? err?.message ?? "Failed to load withdrawal history.";
+            setWithdrawalsError(message);
+        } finally {
+            setIsLoadingWithdrawals(false);
+        }
+    };
 
     useEffect(() => {
         const fetchWallet = async () => {
@@ -85,6 +117,7 @@ export function Wallet() {
                 setError(null);
                 const data = await walletService.getWalletById(currentUser.wallet.walletId);
                 setWallet(data);
+                await loadWithdrawals(currentUser.wallet.walletId, 1, "none");
             } catch (err: any) {
                 setError(err?.message || "Failed to load wallet information.");
             } finally {
@@ -95,14 +128,47 @@ export function Wallet() {
         fetchWallet();
     }, [currentUser?.wallet?.walletId]);
 
-    const sortedTransactions = useMemo(() => {
-        if (!wallet?.walletWithdrawals) return [] as WalletWithdrawal[];
-        return [...wallet.walletWithdrawals].sort((a, b) => {
+    useEffect(() => {
+        const fetchTransactions = async () => {
+            if (!currentUser?.accountId || isAdmin) return;
+
+            try {
+                setIsLoadingTransactions(true);
+                setTransactionsError(null);
+                const data = await transactionService.getListByUserId(currentUser.accountId);
+                setTransactionItems(data);
+            } catch (err: any) {
+                const message = err?.response?.data?.message ?? err?.message ?? "Failed to load transaction list.";
+                setTransactionsError(message);
+            } finally {
+                setIsLoadingTransactions(false);
+            }
+        };
+
+        void fetchTransactions();
+    }, [currentUser?.accountId, isAdmin]);
+
+    const transactions = useMemo(() => {
+        if (!withdrawalsData?.items) return [] as SupplierWalletWithdrawal[];
+        return [...withdrawalsData.items].sort((a, b) => {
             const tA = a.createAt ? new Date(a.createAt).getTime() : 0;
             const tB = b.createAt ? new Date(b.createAt).getTime() : 0;
             return tB - tA;
         });
-    }, [wallet?.walletWithdrawals]);
+    }, [withdrawalsData?.items]);
+
+    const handleChangeWithdrawalStatus = async (status: string) => {
+        setWithdrawalsStatus(status);
+        setWithdrawalsPage(1);
+        if (!currentUser?.wallet?.walletId) return;
+        await loadWithdrawals(currentUser.wallet.walletId, 1, status);
+    };
+
+    const handleWithdrawalPageChange = async (nextPage: number) => {
+        if (!currentUser?.wallet?.walletId) return;
+        setWithdrawalsPage(nextPage);
+        await loadWithdrawals(currentUser.wallet.walletId, nextPage, withdrawalsStatus);
+    };
 
     const openBankDialog = () => {
         if (!wallet) return;
@@ -195,6 +261,7 @@ export function Wallet() {
             if (currentUser?.wallet?.walletId) {
                 const data = await walletService.getWalletById(currentUser.wallet.walletId);
                 setWallet(data);
+                await loadWithdrawals(currentUser.wallet.walletId, withdrawalsPage, withdrawalsStatus);
             }
         } catch (err: any) {
             const message = err?.response?.data?.message ?? err?.message ?? "Failed to verify withdrawal.";
@@ -346,67 +413,197 @@ export function Wallet() {
 
                         {/* Recent transactions (hidden for Admin) */}
                         {!isAdmin && (
-                            <div className="bg-white shadow rounded-xl p-6">
-                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                                    <h2 className="text-lg font-semibold text-gray-900">Recent Transactions</h2>
-                                    <div className="inline-flex items-center gap-2 px-3 py-2 border border-gray-200 rounded-md text-sm text-gray-600 bg-gray-50">
-                                        <span className="material-symbols-outlined text-base">calendar_month</span>
-                                        <span>Date range</span>
+                            <>
+                                <div className="bg-white shadow rounded-xl p-6">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                        <h2 className="text-lg font-semibold text-gray-900">
+                                            Withdrawal History
+                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                                ({withdrawalsData?.totalCount ?? 0} items)
+                                            </span>
+                                        </h2>
+                                        <div className="inline-flex items-center gap-2">
+                                            <label className="text-sm text-gray-600">Status</label>
+                                            <select
+                                                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700"
+                                                value={withdrawalsStatus}
+                                                onChange={(e) => void handleChangeWithdrawalStatus(e.target.value)}
+                                            >
+                                                <option value="none">All</option>
+                                                <option value="Pending">Pending</option>
+                                                <option value="Unverified">Unverified</option>
+                                                <option value="Processing">Processing</option>
+                                                <option value="Completed">Completed</option>
+                                                <option value="Rejected">Rejected</option>
+                                                <option value="Cancelled">Cancelled</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {withdrawalsError && (
+                                        <p className="mb-3 text-sm text-red-500">{withdrawalsError}</p>
+                                    )}
+
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="border-b border-gray-200 text-gray-500">
+                                                    <TableHead className="py-3 text-left font-medium">Date</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Description</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Status</TableHead>
+                                                    <TableHead className="py-3 text-right font-medium">Amount</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {!isLoadingWithdrawals && transactions.length === 0 && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="py-6 text-center text-gray-400">
+                                                            No transactions yet.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+
+                                                {isLoadingWithdrawals && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="py-6 text-center text-gray-400">
+                                                            Loading withdrawal history...
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+
+                                                {transactions.map((tx) => {
+                                                    const amountValue = tx.amount ?? 0;
+                                                    const amountDisplay = `-${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
+                                                    const status = (tx.status ?? "").toLowerCase();
+
+                                                    let statusClasses = "bg-gray-100 text-gray-700";
+                                                    if (status === "completed") statusClasses = "bg-green-100 text-green-700";
+                                                    else if (status === "processing" || status === "pending") statusClasses = "bg-yellow-100 text-yellow-700";
+                                                    else if (status === "unverified") statusClasses = "bg-orange-100 text-orange-700";
+                                                    else if (status === "rejected" || status === "cancelled") statusClasses = "bg-red-100 text-red-700";
+
+                                                    return (
+                                                        <TableRow key={tx.withdrawId} className="border-b border-gray-100 last:border-0">
+                                                            <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                                {formatDate(tx.createAt)}
+                                                            </TableCell>
+                                                            <TableCell className="py-3 pr-4 text-gray-700">
+                                                                {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
+                                                            </TableCell>
+                                                            <TableCell className="py-3 pr-4">
+                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                                                                    {tx.status ?? "-"}
+                                                                </span>
+                                                            </TableCell>
+                                                            <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                                {amountDisplay}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    );
+                                                })}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!withdrawalsData || withdrawalsData.page <= 1 || isLoadingWithdrawals}
+                                            onClick={() => void handleWithdrawalPageChange((withdrawalsData?.page ?? 1) - 1)}
+                                        >
+                                            Previous
+                                        </Button>
+                                        <span className="text-sm text-gray-600">
+                                            Page {withdrawalsData?.page ?? withdrawalsPage} / {Math.max(withdrawalsData?.totalPages ?? 1, 1)}
+                                        </span>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!withdrawalsData || withdrawalsData.page >= withdrawalsData.totalPages || isLoadingWithdrawals}
+                                            onClick={() => void handleWithdrawalPageChange((withdrawalsData?.page ?? withdrawalsPage) + 1)}
+                                        >
+                                            Next
+                                        </Button>
                                     </div>
                                 </div>
 
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b border-gray-200 text-gray-500">
-                                                <th className="py-3 text-left font-medium">Date</th>
-                                                <th className="py-3 text-left font-medium">Description</th>
-                                                <th className="py-3 text-left font-medium">Status</th>
-                                                <th className="py-3 text-right font-medium">Amount</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {sortedTransactions.length === 0 && (
-                                                <tr>
-                                                    <td colSpan={4} className="py-6 text-center text-gray-400">
-                                                        No transactions yet.
-                                                    </td>
-                                                </tr>
-                                            )}
+                                <div className="bg-white shadow rounded-xl p-6 mt-6">
+                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                        <h2 className="text-lg font-semibold text-gray-900">
+                                            Transaction List
+                                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                                ({transactionItems.length} items)
+                                            </span>
+                                        </h2>
+                                    </div>
 
-                                            {sortedTransactions.map((tx) => {
-                                                const sign = -1;
-                                                const amountValue = (tx.amount ?? 0) * sign;
-                                                const amountDisplay = `${sign === -1 ? "-" : "+"}${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
-                                                const status = (tx.status ?? "").toLowerCase();
+                                    {transactionsError && (
+                                        <p className="mb-3 text-sm text-red-500">{transactionsError}</p>
+                                    )}
 
-                                                let statusClasses = "bg-gray-100 text-gray-700";
-                                                if (status === "completed") statusClasses = "bg-green-100 text-green-700";
-                                                else if (status === "processing") statusClasses = "bg-yellow-100 text-yellow-700";
+                                    <div className="overflow-x-auto">
+                                        <Table>
+                                            <TableHeader>
+                                                <TableRow className="border-b border-gray-200 text-gray-500">
+                                                    <TableHead className="py-3 text-left font-medium">ID</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Doc No</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Doc Type</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Type</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Transaction Date</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Status</TableHead>
+                                                    <TableHead className="py-3 text-right font-medium">Amount</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {!isLoadingTransactions && transactionItems.length === 0 && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={7} className="py-6 text-center text-gray-400">
+                                                            No transactions found.
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
 
-                                                return (
-                                                    <tr key={tx.walletWithdrawalId} className="border-b border-gray-100 last:border-0">
-                                                        <td className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                            {formatDate(tx.createAt)}
-                                                        </td>
-                                                        <td className="py-3 pr-4 text-gray-700">
-                                                            {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
-                                                        </td>
-                                                        <td className="py-3 pr-4">
-                                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
-                                                                {tx.status ?? "-"}
-                                                            </span>
-                                                        </td>
-                                                        <td className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
-                                                            {amountDisplay}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
+                                                {isLoadingTransactions && (
+                                                    <TableRow>
+                                                        <TableCell colSpan={7} className="py-6 text-center text-gray-400">
+                                                            Loading transactions...
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+
+                                                {transactionItems.map((item) => (
+                                                    <TableRow key={item.transactionId} className="border-b border-gray-100 last:border-0">
+                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                            #{item.transactionId}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                            {item.docNo ?? "-"}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 text-gray-700">
+                                                            {item.docType ?? "-"}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 text-gray-700">
+                                                            {item.transactionType ?? "-"}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                            {formatDate(item.transactionDate)}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 text-gray-700">
+                                                            {item.status ?? "-"}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                            {formatCurrency(item.totalPrice, wallet.currency)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </>
                 )}

@@ -5,6 +5,7 @@ import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.s
 import ghnLogo from "../../assets/ghn.png";
 import { useAuthStore } from "@/stores/auth.store";
 import { Loading } from "@/components/Loading";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export function SupplierOrderDetail() {
     const { currentUser } = useAuthStore();
@@ -375,36 +376,36 @@ export function SupplierOrderDetail() {
                             <p className="text-xs text-[#707070]">No items found for this shipment.</p>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="min-w-full text-sm">
-                                    <thead>
-                                        <tr className="border-b border-[#F1E3D8] text-xs text-[#A08C7A]">
-                                            <th className="py-2 text-left font-semibold">Ingredient</th>
-                                            <th className="py-2 text-right font-semibold">Quantity</th>
-                                            <th className="py-2 text-right font-semibold">Price</th>
-                                            <th className="py-2 text-right font-semibold">Total</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow className="border-b border-[#F1E3D8] text-xs text-[#A08C7A]">
+                                            <TableHead className="py-2 text-left font-semibold">Ingredient</TableHead>
+                                            <TableHead className="py-2 text-right font-semibold">Quantity</TableHead>
+                                            <TableHead className="py-2 text-right font-semibold">Price</TableHead>
+                                            <TableHead className="py-2 text-right font-semibold">Total</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
                                         {shipmentItems.map((item: any, index: number) => (
-                                            <tr key={item.id ?? index} className="border-b border-[#F7EFE7] last:border-0">
-                                                <td className="py-2 pr-4 text-[#1F1F1F]">
+                                            <TableRow key={item.id ?? index} className="border-b border-[#F7EFE7] last:border-0">
+                                                <TableCell className="py-2 pr-4 text-[#1F1F1F]">
                                                     {item.ingredientName ?? item.name ?? "Item"}
-                                                </td>
-                                                <td className="py-2 text-right text-[#573E32]">
+                                                </TableCell>
+                                                <TableCell className="py-2 text-right text-[#573E32]">
                                                     {item.quantity && item.unit
                                                         ? `${item.quantity} ${item.unit}`
                                                         : item.quantity ?? "-"}
-                                                </td>
-                                                <td className="py-2 text-right text-[#573E32]">
+                                                </TableCell>
+                                                <TableCell className="py-2 text-right text-[#573E32]">
                                                     {formatPrice(item.price ?? 0)}
-                                                </td>
-                                                <td className="py-2 text-right font-semibold text-[#1F1F1F]">
+                                                </TableCell>
+                                                <TableCell className="py-2 text-right font-semibold text-[#1F1F1F]">
                                                     {formatPrice((item.price ?? 0) * (item.quantity ?? 0))}
-                                                </td>
-                                            </tr>
+                                                </TableCell>
+                                            </TableRow>
                                         ))}
-                                    </tbody>
-                                </table>
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </div>
@@ -418,17 +419,17 @@ export function SupplierOrderDetail() {
                                 <span>Gross Amount</span>
                                 <span>{formatPrice(order.grossAmount)}</span>
                             </div>
-                            <div className="flex justify-between text-xs text-[#707070]">
-                                <span>Supplier Amount</span>
+                            <div className="flex justify-between text-[11px] text-[#909090] pl-4">
+                                <span>Supplier Amount  ( will be receive when complete )</span>
                                 <span>{formatPrice(order.supplierAmount)}</span>
+                            </div>
+                            <div className="flex justify-between text-[11px] text-[#909090] pl-4">
+                                <span>Commission ( will be count when complete )</span>
+                                <span>{formatPrice(order.comissionAmount)}</span>
                             </div>
                             <div className="flex justify-between text-xs text-[#707070]">
                                 <span>Shipping Fee</span>
                                 <span>{formatPrice(order.shippingFee ?? 0)}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-[#707070]">
-                                <span>Commission</span>
-                                <span>{formatPrice(order.comissionAmount)}</span>
                             </div>
                             <div className="mt-2 border-t border-[#F1E3D8] pt-2 flex justify-between text-xl font-semibold text-[#1F1F1F]">
                                 <span>Total Paid</span>
