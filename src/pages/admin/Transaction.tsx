@@ -163,7 +163,7 @@ export function Transaction() {
                             <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-600">
                                 <Package size={20} />
                             </div>
-                            <h2 className="text-sm font-medium text-[#707070]">Shipping Revenue</h2>
+                            <h2 className="text-sm font-medium text-[#707070]">Shipping Fees</h2>
                         </div>
                         {revenueLoading ? (
                             <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
@@ -233,39 +233,48 @@ export function Transaction() {
                                 <TableHeader>
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
-                                        <TableHead>Doc No</TableHead>
-                                        <TableHead>Doc Type</TableHead>
+
+                                        {/* <TableHead>Doc No</TableHead>
+                                        <TableHead>Doc Type</TableHead> */}
                                         <TableHead>Transaction Type</TableHead>
-                                        <TableHead className="text-center">Transaction Date</TableHead>
-                                        <TableHead className="text-center">Created At</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
+
+                                        <TableHead className="w-24">User  ID</TableHead>
                                         <TableHead className="text-center">Amount</TableHead>
+
                                         <TableHead className="text-center">Notes</TableHead>
+
+                                        <TableHead className="text-center">Status</TableHead>
+                                        <TableHead className="text-center">Transaction Date</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {!transactionsLoading && transactions.map((item) => (
                                         <TableRow key={item.transactionId}>
                                             <TableCell className="font-medium text-[#573E32]">#{item.transactionId}</TableCell>
-                                            <TableCell>{item.docNo ?? "-"}</TableCell>
-                                            <TableCell>{item.docType ?? "-"}</TableCell>
+
+                                            {/* <TableCell>{item.docNo ?? "-"}</TableCell>
+                                            <TableCell>{item.docType ?? "-"}</TableCell> */}
                                             <TableCell>{item.transactionType ?? "-"}</TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(item.transactionDate)}
+
+
+                                            <TableCell className="w-24">#{item.userId}</TableCell>
+                                            <TableCell className="text-center font-medium text-[#573E32]">
+                                                {item.totalPrice != null ? item.totalPrice : ""}VND
                                             </TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(item.createAt)}
+                                            <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
+                                                {item.notes ?? "-"}
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${getStatusClasses(item.status)}`}>
                                                     {item.status ?? "Unknown"}
                                                 </span>
                                             </TableCell>
-                                            <TableCell className="text-center font-medium text-[#573E32]">
-                                                {item.totalPrice}VND
-                                            </TableCell>
-                                            <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
-                                                {item.notes ?? "-"}
+                                            {/* <TableCell className="text-center text-xs text-[#707070]">
+                                                {formatDateTime(item.createAt)}
+                                             
+                                            </TableCell> */}
+                                            <TableCell className="text-center text-xs text-[#707070]">
+                                                {formatDateTime(item.transactionDate)}
                                             </TableCell>
                                         </TableRow>
                                     ))}

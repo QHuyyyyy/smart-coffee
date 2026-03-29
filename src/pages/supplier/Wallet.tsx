@@ -595,6 +595,7 @@ export function Wallet() {
                                                     <TableHead className="py-3 text-left font-medium">Doc No</TableHead>
                                                     <TableHead className="py-3 text-left font-medium">Doc Type</TableHead>
                                                     <TableHead className="py-3 text-left font-medium">Type</TableHead>
+                                                    <TableHead className="py-3 text-left font-medium">Notes</TableHead>
                                                     <TableHead className="py-3 text-left font-medium">Transaction Date</TableHead>
                                                     <TableHead className="py-3 text-left font-medium">Status</TableHead>
                                                     <TableHead className="py-3 text-right font-medium">Amount</TableHead>
@@ -630,6 +631,9 @@ export function Wallet() {
                                                         </TableCell>
                                                         <TableCell className="py-3 pr-4 text-gray-700">
                                                             {item.transactionType ?? "-"}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 text-gray-700">
+                                                            {item.notes ?? "-"}
                                                         </TableCell>
                                                         <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
                                                             {formatDate(item.transactionDate)}
