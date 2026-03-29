@@ -76,6 +76,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                 ingredientId: product.ingredientId,
                 price: values.price,
                 stock: values.stock,
+                holdStock: product.holdStock,
                 packageSize: values.packageSize,
                 status: values.status,
                 description: values.description ?? null,

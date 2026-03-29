@@ -52,6 +52,7 @@ const PaginationLink = ({
         variant: isActive ? "outline" : "ghost",
         size,
       }),
+      isActive && "bg-[#573E32] text-white hover:bg-[#4a352a] hover:text-white border-[#573E32]",
       className
     )}
     {...props}
@@ -106,6 +107,104 @@ const PaginationEllipsis = ({
 )
 PaginationEllipsis.displayName = "PaginationEllipsis"
 
+interface TablePaginationProps {
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+}
+
+const TablePagination = ({ currentPage, totalPages, onPageChange }: TablePaginationProps) => {
+  if (totalPages <= 1) return null;
+  const generatePages = () => {
+    const pages: React.ReactNode[] = [];
+
+    const addPage = (i: number) => {
+      pages.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            href="#"
+            isActive={i === currentPage}
+            onClick={(e) => {
+              e.preventDefault();
+              onPageChange(i);
+            }}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    };
+
+    const addEllipsis = (key: string) => {
+      pages.push(
+        <PaginationItem key={key}>
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    };
+
+    // luôn có page 1
+    addPage(1);
+
+    // ===== CASE: gần đầu =====
+    if (currentPage <= 3) {
+      for (let i = 2; i <= Math.min(3, totalPages - 1); i++) {
+        addPage(i);
+      }
+
+      if (totalPages > 4) addEllipsis("end");
+    }
+
+    // ===== CASE: giữa =====
+    else if (currentPage < totalPages - 2) {
+      addEllipsis("start");
+
+      addPage(currentPage);
+
+      addEllipsis("end");
+    }
+
+    // ===== CASE: gần cuối =====
+    else {
+      if (totalPages > 4) addEllipsis("start");
+
+      for (let i = totalPages - 2; i < totalPages; i++) {
+        addPage(i);
+      }
+    }
+
+    // luôn có page cuối
+    if (totalPages > 1) addPage(totalPages);
+
+    return pages;
+  };
+  return (
+    <Pagination className="w-auto mx-0 justify-end">
+      <PaginationContent>
+        <PaginationItem>
+          <PaginationPrevious
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (currentPage > 1) onPageChange(currentPage - 1);
+            }}
+          />
+        </PaginationItem>
+        {generatePages()}
+        <PaginationItem>
+          <PaginationNext
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              if (currentPage < totalPages) onPageChange(currentPage + 1);
+            }}
+          />
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
+  );
+}
+
 export {
   Pagination,
   PaginationContent,
@@ -114,4 +213,5 @@ export {
   PaginationPrevious,
   PaginationNext,
   PaginationEllipsis,
+  TablePagination,
 }

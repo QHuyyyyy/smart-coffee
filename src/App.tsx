@@ -9,6 +9,7 @@ import { SubscriptionPackagesPage } from './pages/admin/SubscriptionPackages';
 import { SubscriptionsPage } from './pages/admin/Subscriptions';
 import { AdminWithdrawalsPage } from './pages/admin/Withdrawals';
 import { SupplierOrders } from './pages/supplier/Order';
+import { AdminOrders } from './pages/admin/Order';
 import { SupplierOrderDetail } from './pages/supplier/OrderDetail';
 import { SupplierProducts } from './pages/supplier/Product';
 import { SupplierProductDetail } from './pages/supplier/ProductDetail';
@@ -113,6 +114,17 @@ function App() {
                     <ProtectedRoute allowedRoles={["Admin"]}>
                         <Layout>
                             <AdminWithdrawalsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/orders"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminOrders />
                         </Layout>
                     </ProtectedRoute>
                 )}

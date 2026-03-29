@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, Eye, XCircle } from "lucide-react";
+import { ClipboardList, CheckCircle } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { TablePagination } from "@/components/ui/pagination";
-import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.service";
-import { useAuthStore } from "@/stores/auth.store";
-import { useNavigate } from "react-router-dom";
+import { orderService, type SystemOrder } from "@/apis/order.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { TablePagination } from "@/components/ui/pagination";
 
-export function SupplierOrders() {
-    const navigate = useNavigate();
-    const currentUser = useAuthStore((state) => state.currentUser);
-    const [orders, setOrders] = useState<SupplierOrder[]>([]);
+export function AdminOrders() {
+    const [orders, setOrders] = useState<SystemOrder[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [page, setPage] = useState(1);
@@ -20,27 +16,16 @@ export function SupplierOrders() {
     const [statusFilter, setStatusFilter] = useState<string | null>("Pending");
 
     const fetchOrders = async (targetPage = 1, status: string | null = statusFilter) => {
-        if (!currentUser?.supplierId) {
-            setError("Missing supplier information");
-            return;
-        }
-
         try {
             setLoading(true);
             setError(null);
-            const res = await supplierOrderService.getPaginatedBySupplier(
-                currentUser.supplierId,
-                targetPage,
-                pageSize,
-                status ?? undefined,
-            );
+            const res = await orderService.getPaginated(targetPage, pageSize, status ?? undefined);
             const data = res.data as any;
-            const items: SupplierOrder[] = Array.isArray(data)
+            const items: SystemOrder[] = Array.isArray(data)
                 ? data
                 : data.items ?? data.data ?? [];
 
             setOrders(items);
-
             if (typeof data.totalCount === "number") {
                 setTotalCount(data.totalCount);
             } else {
@@ -73,6 +58,12 @@ export function SupplierOrders() {
         void fetchOrders(newPage);
     };
 
+    const handleReset = () => {
+        setStatusFilter(null);
+        setPage(1);
+        void fetchOrders(1, null);
+    };
+
     const formatPrice = (value: number | null | undefined) => {
         if (value === null || value === undefined || Number.isNaN(value)) return "-";
         return `${value.toLocaleString("vi-VN")}₫`;
@@ -86,9 +77,9 @@ export function SupplierOrders() {
 
         if (normalized.includes("pending")) {
             badgeClasses = "bg-amber-50 text-amber-700 border border-amber-100";
-        } else if (normalized.includes("completed") || normalized.includes("success")) {
+        } else if (normalized.includes("completed") || normalized.includes("success") || normalized.includes("refund")) {
             badgeClasses = "bg-emerald-50 text-emerald-700 border border-emerald-100";
-        } else if (normalized.includes("cancel")) {
+        } else if (normalized.includes("cancel") || normalized.includes("reject")) {
             badgeClasses = "bg-red-50 text-red-700 border border-red-100";
         }
 
@@ -99,14 +90,14 @@ export function SupplierOrders() {
         );
     };
 
-    const handleCancelOrder = async (orderId: number) => {
+    const handleRefundOrder = async (orderId: number) => {
         try {
             setLoading(true);
             setError(null);
-            await supplierOrderService.updateStatus(orderId, "Cancelled");
+            await orderService.updateStatus(orderId, "Refunded");
             await fetchOrders(page);
         } catch {
-            setError("Failed to cancel order");
+            setError("Failed to accept refund");
         } finally {
             setLoading(false);
         }
@@ -119,10 +110,10 @@ export function SupplierOrders() {
                     <div>
                         <h1 className="text-2xl font-bold leading-tight tracking-[-0.015em] text-[#1F1F1F] flex items-center gap-2">
                             <ClipboardList size={22} className="text-[#573E32]" />
-                            Supplier Orders
+                            System Orders Management
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            Danh sách đơn đặt hàng từ SmartCoffee
+                            Manage all system orders seamlessly
                         </p>
                     </div>
                 </div>
@@ -162,16 +153,7 @@ export function SupplierOrders() {
                                 );
                             })}
                         </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                setStatusFilter(null);
-                                setPage(1);
-                                void fetchOrders(1, null);
-                            }}
-                        >
+                        <Button type="button" variant="outline" size="sm" onClick={handleReset}>
                             Reset
                         </Button>
                     </div>
@@ -195,7 +177,7 @@ export function SupplierOrders() {
                                         <TableRow key={o.orderId}>
                                             <TableCell className="font-medium text-[#573E32]">{o.orderId}</TableCell>
                                             <TableCell className="text-center font-medium text-[#573E32]">
-                                                {o.ownerName}
+                                                {o.ownerName || "-"}
                                             </TableCell>
                                             <TableCell className="text-right font-medium text-[#573E32]">
                                                 {formatPrice(o.totalPrice)}
@@ -205,20 +187,24 @@ export function SupplierOrders() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex justify-end gap-3 text-[#B0A49E]">
+                                                    {/* We can navigate if there's an admin detail page, skipping detail link for now if none exists */}
+                                                    {/* 
                                                     <button
                                                         className="hover:text-[#573E32]"
                                                         aria-label="View order detail"
-                                                        onClick={() => navigate(`/supplier/orders/${o.orderId}`)}
+                                                        onClick={() => navigate(`/admin/orders/${o.orderId}`)}
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    {!(o.status ?? "").toLowerCase().includes("cancel") && (
+ */}
+                                                    {["cancelled", "rejected"].includes((o.status ?? "").toLowerCase()) && (
                                                         <button
-                                                            className="hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            onClick={() => handleCancelOrder(o.orderId)}
+                                                            className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                                            onClick={() => handleRefundOrder(o.orderId)}
                                                             disabled={loading}
+                                                            title="Accept Refund"
                                                         >
-                                                            <XCircle size={16} />
+                                                            <CheckCircle size={16} /> Refund
                                                         </button>
                                                     )}
                                                 </div>
@@ -257,3 +243,4 @@ export function SupplierOrders() {
         </div>
     );
 }
+

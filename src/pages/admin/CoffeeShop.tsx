@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2, MapPin } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
+import { Button } from "@/components/ui/button";
 import { coffeeShopService } from "@/apis/coffeeShop.service";
 
 type CoffeeShop = {
@@ -16,22 +17,22 @@ export function CoffeeShopPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchShops = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await coffeeShopService.getAll();
-                const data = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
-                setShops(data as CoffeeShop[]);
-            } catch (err) {
-                setError("Không tải được danh sách Coffee Shop");
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchShops = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await coffeeShopService.getAll();
+            const data = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+            setShops(data as CoffeeShop[]);
+        } catch (err) {
+            setError("Không tải được danh sách Coffee Shop");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchShops();
+    useEffect(() => {
+        void fetchShops();
     }, []);
 
     const formatDateTime = (value: string | null | undefined) => {
@@ -60,11 +61,20 @@ export function CoffeeShopPage() {
                 {/* Card */}
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#EFEAE5]">
-                        <h2 className="text-base font-semibold text-[#573E32]">Coffee Shop List</h2>
-                        <span className="text-xs text-[#707070]">
-                            Total: {shops.length}
-
-                        </span>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-base font-semibold text-[#573E32]">Coffee Shop List</h2>
+                            <span className="text-xs text-[#707070]">
+                                Total: {shops.length}
+                            </span>
+                        </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => void fetchShops()}
+                        >
+                            Reset
+                        </Button>
                     </div>
 
                     <div className="px-6 py-4">

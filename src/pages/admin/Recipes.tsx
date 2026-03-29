@@ -1,17 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, SlidersHorizontal, Plus, Coffee, Eye, Pencil } from "lucide-react";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationItem,
-    PaginationLink,
-    PaginationPrevious,
-    PaginationNext,
-    PaginationEllipsis,
-} from "@/components/ui/pagination";
+import { Search, Plus, Coffee, Eye, Pencil } from "lucide-react";
+import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
+import { Button } from "@/components/ui/button";
 import { RecipeCreateDialog } from "@/components/RecipeCreateDialog";
 import { recipeService } from "@/apis/recipe.service";
 import { toast } from "sonner";
@@ -127,10 +120,17 @@ export function Recipes() {
 
                             {/* Actions */}
                             <div className="flex items-center gap-2 self-end sm:self-auto">
-                                <button className="inline-flex items-center gap-2 rounded-full border border-[#E0D5D0] bg-white px-4 py-2 text-sm font-medium text-[#573E32] hover:bg-[#F5F3F1] transition-colors">
-                                    <SlidersHorizontal size={16} />
-                                    <span>Filter</span>
-                                </button>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="rounded-full"
+                                    onClick={() => {
+                                        setPage(1);
+                                        void fetchRecipes(1);
+                                    }}
+                                >
+                                    Reset
+                                </Button>
 
                                 <button
                                     onClick={() => setOpenCreateDialog(true)}
@@ -229,64 +229,7 @@ export function Recipes() {
                                 Showing {fromItem} to {toItem} of {totalCount} entries
                             </p>
                             <div className="sm:ml-auto">
-                                <Pagination className="w-auto mx-0 justify-end">
-                                    <PaginationContent>
-                                        <PaginationItem>
-                                            <PaginationPrevious
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePageChange(page - 1);
-                                                }}
-                                            />
-                                        </PaginationItem>
-                                        {Array.from({ length: totalPages }).slice(0, 5).map((_, index) => {
-                                            const pageNumber = index + 1;
-                                            return (
-                                                <PaginationItem key={pageNumber}>
-                                                    <PaginationLink
-                                                        href="#"
-                                                        isActive={pageNumber === page}
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            handlePageChange(pageNumber);
-                                                        }}
-                                                    >
-                                                        {pageNumber}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            );
-                                        })}
-                                        {totalPages > 5 && (
-                                            <>
-                                                <PaginationItem>
-                                                    <PaginationEllipsis />
-                                                </PaginationItem>
-                                                <PaginationItem>
-                                                    <PaginationLink
-                                                        href="#"
-                                                        isActive={page === totalPages}
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            handlePageChange(totalPages);
-                                                        }}
-                                                    >
-                                                        {totalPages}
-                                                    </PaginationLink>
-                                                </PaginationItem>
-                                            </>
-                                        )}
-                                        <PaginationItem>
-                                            <PaginationNext
-                                                href="#"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    handlePageChange(page + 1);
-                                                }}
-                                            />
-                                        </PaginationItem>
-                                    </PaginationContent>
-                                </Pagination>
+                                <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                             </div>
                         </div>
                     </div>
