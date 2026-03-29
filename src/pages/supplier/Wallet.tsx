@@ -3,6 +3,7 @@ import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/apis/wallet.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
+import { orderService } from "@/apis/order.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,7 @@ export function Wallet() {
     const [transactionItems, setTransactionItems] = useState<TransactionItem[]>([]);
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
+    const [supplierRevenue, setSupplierRevenue] = useState<number | null>(null);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
         try {
@@ -127,6 +129,20 @@ export function Wallet() {
 
         fetchWallet();
     }, [currentUser?.wallet?.walletId]);
+
+    useEffect(() => {
+        const fetchSupplierRevenue = async () => {
+            if (!currentUser?.supplierId) return;
+            try {
+                const revenue = await orderService.getSupplierRevenue(currentUser.supplierId);
+                setSupplierRevenue(revenue);
+            } catch (err) {
+                console.error("Failed to load supplier revenue:", err);
+            }
+        };
+
+        fetchSupplierRevenue();
+    }, [currentUser?.supplierId]);
 
     const fetchTransactions = async () => {
         if (!currentUser?.accountId || isAdmin) return;
@@ -334,6 +350,12 @@ export function Wallet() {
                                         <p className="text-xs text-gray-500">Held Balance</p>
                                         <p className="text-xl md:text-2xl font-semibold tracking-tight text-gray-900">
                                             {formatCurrency(wallet.heldBalance, wallet.currency)}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end text-right">
+                                        <p className="text-xs text-gray-500">Total Revenue</p>
+                                        <p className="text-xl md:text-2xl font-semibold tracking-tight h-[32px] md:h-[36px] flex items-center text-[#F47A1F]">
+                                            {supplierRevenue != null ? formatCurrency(supplierRevenue, wallet.currency) : "Loading..."}
                                         </p>
                                     </div>
                                     {!isAdmin && (

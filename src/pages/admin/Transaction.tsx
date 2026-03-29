@@ -6,6 +6,8 @@ import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
+import { orderService } from "@/apis/order.service";
+import { DollarSign, Package, RefreshCw } from "lucide-react";
 
 
 function formatDateTime(value: string | null | undefined) {
@@ -34,11 +36,42 @@ export function Transaction() {
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
 
+    const [statusFilter, setStatusFilter] = useState("all");
+    const [typeFilter, setTypeFilter] = useState("all");
+
+    const [commissionRevenue, setCommissionRevenue] = useState<number | null>(null);
+    const [subscriptionRevenue, setSubscriptionRevenue] = useState<number | null>(null);
+    const [shippingRevenue, setShippingRevenue] = useState<number | null>(null);
+    const [revenueLoading, setRevenueLoading] = useState(false);
+
+    const fetchRevenues = async () => {
+        try {
+            setRevenueLoading(true);
+            const [comm, sub, ship] = await Promise.all([
+                orderService.getCommissionRevenue(),
+                orderService.getSubscriptionRevenue(),
+                orderService.getShippingRevenue(),
+            ]);
+            setCommissionRevenue(comm);
+            setSubscriptionRevenue(sub);
+            setShippingRevenue(ship);
+        } catch (error) {
+            console.error("Failed to load revenues:", error);
+        } finally {
+            setRevenueLoading(false);
+        }
+    };
+
     const fetchTransactions = async (targetPage = page) => {
         try {
             setTransactionsLoading(true);
             setTransactionsError(null);
-            const response = await transactionService.getPaginated({ page: targetPage, pageSize });
+
+            const params: any = { page: targetPage, pageSize };
+            if (statusFilter !== "all") params.status = statusFilter;
+            if (typeFilter !== "all") params.transactionType = typeFilter;
+
+            const response = await transactionService.getPaginated(params);
             setTransactions(response.items ?? []);
             setTotalCount(response.totalCount ?? 0);
         } catch (error: any) {
@@ -49,9 +82,14 @@ export function Transaction() {
     };
 
     useEffect(() => {
+        void fetchRevenues();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
         void fetchTransactions(page);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [page, pageSize]);
+    }, [page, pageSize, statusFilter, typeFilter]);
 
     const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
     const fromItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -87,20 +125,104 @@ export function Transaction() {
                     </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5] p-6 flex flex-col justify-between">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 flex items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                                <DollarSign size={20} />
+                            </div>
+                            <h2 className="text-sm font-medium text-[#707070]">Commission Revenue</h2>
+                        </div>
+                        {revenueLoading ? (
+                            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
+                        ) : (
+                            <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
+                                {commissionRevenue != null ? `${commissionRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5] p-6 flex flex-col justify-between">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 flex items-center justify-center rounded-full bg-purple-50 text-purple-600">
+                                <RefreshCw size={20} />
+                            </div>
+                            <h2 className="text-sm font-medium text-[#707070]">Subscription Revenue</h2>
+                        </div>
+                        {revenueLoading ? (
+                            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
+                        ) : (
+                            <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
+                                {subscriptionRevenue != null ? `${subscriptionRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                            </p>
+                        )}
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5] p-6 flex flex-col justify-between">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="h-10 w-10 flex items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                <Package size={20} />
+                            </div>
+                            <h2 className="text-sm font-medium text-[#707070]">Shipping Revenue</h2>
+                        </div>
+                        {revenueLoading ? (
+                            <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
+                        ) : (
+                            <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
+                                {shippingRevenue != null ? `${shippingRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                            </p>
+                        )}
+                    </div>
+                </div>
+
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-[#EFEAE5]">
                         <h2 className="text-base font-semibold text-[#573E32]">Recent Transactions</h2>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                setPage(1);
-                                void fetchTransactions(1);
-                            }}
-                        >
-                            Reset
-                        </Button>
+                        <div className="flex items-center gap-2">
+                            {/* <select 
+                               className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-[#F47A1F]"
+                               value={statusFilter}
+                               onChange={(e) => {
+                                   setStatusFilter(e.target.value);
+                                   setPage(1);
+                               }}
+                           >
+                               <option value="all">All Statuses</option>
+                               <option value="Pending">Pending</option>
+                               <option value="Completed">Completed</option>
+                               <option value="Failed">Failed</option>
+                               <option value="Cancelled">Cancelled</option>
+                           </select>
+
+                           <select 
+                               className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700 outline-none hover:border-gray-300 focus:border-[#F47A1F]"
+                               value={typeFilter}
+                               onChange={(e) => {
+                                   setTypeFilter(e.target.value);
+                                   setPage(1);
+                               }}
+                           >
+                               <option value="all">All Types</option>
+                               <option value="Commission">Commission</option>
+                               <option value="Subscription">Subscription</option>
+                               <option value="Shipping">Shipping</option>
+                               <option value="Deposit">Deposit</option>
+                               <option value="Withdrawal">Withdrawal</option>
+                           </select> */}
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                    setStatusFilter("all");
+                                    setTypeFilter("all");
+                                    setPage(1);
+                                }}
+                            >
+                                Reset
+                            </Button>
+                        </div>
                     </div>
 
                     <div className="px-6 py-4">
