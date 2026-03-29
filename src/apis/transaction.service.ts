@@ -2,6 +2,7 @@ import api from "./axios";
 
 export type TransactionItem = {
     transactionId: number;
+    userId: number;
     docNo: number | null;
     docType: string | null;
     transactionDate: string | null;
