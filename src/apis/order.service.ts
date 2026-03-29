@@ -17,6 +17,13 @@ export type SystemOrderPaginatedResponse = {
     items: SystemOrder[];
 };
 
+export type RevenueResponse = {
+    revenueType?: string;
+    fromDate?: string;
+    toDate?: string;
+    totalRevenue: number;
+};
+
 export const orderService = {
     getPaginated: async (page: number, pageSize: number, orderStatus?: string) => {
         return api.get<SystemOrderPaginatedResponse>(`/Order`, {
@@ -34,5 +41,25 @@ export const orderService = {
 
     updateStatus: async (id: number, status: string) => {
         return api.patch<SystemOrder>(`/Order/${id}/status`, { status });
+    },
+
+    getCommissionRevenue: async (fromDate?: string, toDate?: string) => {
+        const response = await api.get<RevenueResponse>(`/Order/revenue/commission`, { params: { fromDate, toDate } });
+        return response.data.totalRevenue;
+    },
+
+    getSubscriptionRevenue: async (fromDate?: string, toDate?: string) => {
+        const response = await api.get<RevenueResponse>(`/Order/revenue/subscription`, { params: { fromDate, toDate } });
+        return response.data.totalRevenue;
+    },
+
+    getShippingRevenue: async (fromDate?: string, toDate?: string) => {
+        const response = await api.get<RevenueResponse>(`/order/revenue/shipping`, { params: { fromDate, toDate } });
+        return response.data.totalRevenue;
+    },
+
+    getSupplierRevenue: async (supplierId: number, fromDate?: string, toDate?: string) => {
+        const response = await api.get<RevenueResponse>(`/Order/revenue/supplier/${supplierId}`, { params: { fromDate, toDate } });
+        return response.data.totalRevenue;
     },
 };
