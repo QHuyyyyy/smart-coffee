@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, Plus, Eye, Pencil, Trash2 } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
+import { TablePagination } from "@/components/ui/pagination";
 import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { SupplierProductCreateDialog } from "@/components/SupplierProductCreateDialog";
@@ -153,6 +153,16 @@ export function SupplierProducts() {
                         <h2 className="text-base font-semibold text-[#573E32]">All Products</h2>
 
                         <div className="flex items-center gap-2 self-end md:self-auto">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => {
+                                    setPage(1);
+                                    void fetchProducts(1);
+                                }}
+                            >
+                                Reset
+                            </Button>
                             <button
                                 type="button"
                                 className="inline-flex items-center gap-2 rounded-full bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#432d23] transition-colors"
@@ -282,64 +292,7 @@ export function SupplierProducts() {
                             Showing {fromItem} to {toItem} of {totalCount} entries
                         </p>
                         <div className="sm:ml-auto">
-                            <Pagination className="w-auto mx-0 justify-end">
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page - 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-                                    {Array.from({ length: totalPages }).slice(0, 5).map((_, index) => {
-                                        const pageNumber = index + 1;
-                                        return (
-                                            <PaginationItem key={pageNumber}>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={pageNumber === page}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(pageNumber);
-                                                    }}
-                                                >
-                                                    {pageNumber}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    })}
-                                    {totalPages > 5 && (
-                                        <>
-                                            <PaginationItem>
-                                                <PaginationEllipsis />
-                                            </PaginationItem>
-                                            <PaginationItem>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={page === totalPages}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(totalPages);
-                                                    }}
-                                                >
-                                                    {totalPages}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        </>
-                                    )}
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page + 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
+                            <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
                 </div>

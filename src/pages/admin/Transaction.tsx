@@ -3,16 +3,9 @@ import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
+import { TablePagination } from "@/components/ui/pagination";
 
 
 function formatDateTime(value: string | null | undefined) {
@@ -41,22 +34,23 @@ export function Transaction() {
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
 
-    useEffect(() => {
-        const fetchTransactions = async () => {
-            try {
-                setTransactionsLoading(true);
-                setTransactionsError(null);
-                const response = await transactionService.getPaginated({ page, pageSize });
-                setTransactions(response.items ?? []);
-                setTotalCount(response.totalCount ?? 0);
-            } catch (error: any) {
-                setTransactionsError(error?.message || "Failed to load transactions.");
-            } finally {
-                setTransactionsLoading(false);
-            }
-        };
+    const fetchTransactions = async (targetPage = page) => {
+        try {
+            setTransactionsLoading(true);
+            setTransactionsError(null);
+            const response = await transactionService.getPaginated({ page: targetPage, pageSize });
+            setTransactions(response.items ?? []);
+            setTotalCount(response.totalCount ?? 0);
+        } catch (error: any) {
+            setTransactionsError(error?.message || "Failed to load transactions.");
+        } finally {
+            setTransactionsLoading(false);
+        }
+    };
 
-        void fetchTransactions();
+    useEffect(() => {
+        void fetchTransactions(page);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [page, pageSize]);
 
     const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
@@ -96,6 +90,17 @@ export function Transaction() {
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-[#EFEAE5]">
                         <h2 className="text-base font-semibold text-[#573E32]">Recent Transactions</h2>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                setPage(1);
+                                void fetchTransactions(1);
+                            }}
+                        >
+                            Reset
+                        </Button>
                     </div>
 
                     <div className="px-6 py-4">
@@ -168,67 +173,7 @@ export function Transaction() {
                             Showing {fromItem} to {toItem} of {totalCount} entries
                         </p>
                         <div className="sm:ml-auto">
-                            <Pagination className="w-auto mx-0 justify-end">
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page - 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-
-                                    {Array.from({ length: totalPages }).slice(0, 5).map((_, index) => {
-                                        const pageNumber = index + 1;
-                                        return (
-                                            <PaginationItem key={pageNumber}>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={pageNumber === page}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(pageNumber);
-                                                    }}
-                                                >
-                                                    {pageNumber}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    })}
-
-                                    {totalPages > 5 && (
-                                        <>
-                                            <PaginationItem>
-                                                <PaginationEllipsis />
-                                            </PaginationItem>
-                                            <PaginationItem>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={page === totalPages}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(totalPages);
-                                                    }}
-                                                >
-                                                    {totalPages}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        </>
-                                    )}
-
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page + 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
+                            <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
                 </div>

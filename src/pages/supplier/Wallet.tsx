@@ -128,24 +128,25 @@ export function Wallet() {
         fetchWallet();
     }, [currentUser?.wallet?.walletId]);
 
+    const fetchTransactions = async () => {
+        if (!currentUser?.accountId || isAdmin) return;
+
+        try {
+            setIsLoadingTransactions(true);
+            setTransactionsError(null);
+            const data = await transactionService.getListByUserId(currentUser.accountId);
+            setTransactionItems(data);
+        } catch (err: any) {
+            const message = err?.response?.data?.message ?? err?.message ?? "Failed to load transaction list.";
+            setTransactionsError(message);
+        } finally {
+            setIsLoadingTransactions(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchTransactions = async () => {
-            if (!currentUser?.accountId || isAdmin) return;
-
-            try {
-                setIsLoadingTransactions(true);
-                setTransactionsError(null);
-                const data = await transactionService.getListByUserId(currentUser.accountId);
-                setTransactionItems(data);
-            } catch (err: any) {
-                const message = err?.response?.data?.message ?? err?.message ?? "Failed to load transaction list.";
-                setTransactionsError(message);
-            } finally {
-                setIsLoadingTransactions(false);
-            }
-        };
-
         void fetchTransactions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser?.accountId, isAdmin]);
 
     const transactions = useMemo(() => {
@@ -437,6 +438,19 @@ export function Wallet() {
                                                 <option value="Rejected">Rejected</option>
                                                 <option value="Cancelled">Cancelled</option>
                                             </select>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+                                                    setWithdrawalsStatus("none");
+                                                    setWithdrawalsPage(1);
+                                                    if (currentUser?.wallet?.walletId) {
+                                                        void loadWithdrawals(currentUser.wallet.walletId, 1, "none");
+                                                    }
+                                                }}
+                                            >
+                                                Reset
+                                            </Button>
                                         </div>
                                     </div>
 
@@ -538,6 +552,13 @@ export function Wallet() {
                                                 ({transactionItems.length} items)
                                             </span>
                                         </h2>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => void fetchTransactions()}
+                                        >
+                                            Reset
+                                        </Button>
                                     </div>
 
                                     {transactionsError && (

@@ -6,15 +6,7 @@ import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import {
-    Pagination,
-    PaginationContent,
-    PaginationEllipsis,
-    PaginationItem,
-    PaginationLink,
-    PaginationNext,
-    PaginationPrevious,
-} from "@/components/ui/pagination";
+import { TablePagination } from "@/components/ui/pagination";
 
 type PostTab = "unapproved" | "approved";
 
@@ -244,7 +236,7 @@ export function AdminPostsPage() {
                                     void fetchPosts(1, defaultFilters, 20);
                                 }}
                             >
-                                Clear
+                                Reset
                             </Button>
                         </div>
                     </div>
@@ -338,64 +330,7 @@ export function AdminPostsPage() {
                             Showing {fromItem} to {toItem} of {totalCount} entries
                         </p>
                         <div className="sm:ml-auto">
-                            <Pagination className="w-auto mx-0 justify-end">
-                                <PaginationContent>
-                                    <PaginationItem>
-                                        <PaginationPrevious
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page - 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-                                    {Array.from({ length: totalPages }).slice(0, 5).map((_, index) => {
-                                        const pageNumber = index + 1;
-                                        return (
-                                            <PaginationItem key={pageNumber}>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={pageNumber === page}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(pageNumber);
-                                                    }}
-                                                >
-                                                    {pageNumber}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        );
-                                    })}
-                                    {totalPages > 5 && (
-                                        <>
-                                            <PaginationItem>
-                                                <PaginationEllipsis />
-                                            </PaginationItem>
-                                            <PaginationItem>
-                                                <PaginationLink
-                                                    href="#"
-                                                    isActive={page === totalPages}
-                                                    onClick={(e) => {
-                                                        e.preventDefault();
-                                                        handlePageChange(totalPages);
-                                                    }}
-                                                >
-                                                    {totalPages}
-                                                </PaginationLink>
-                                            </PaginationItem>
-                                        </>
-                                    )}
-                                    <PaginationItem>
-                                        <PaginationNext
-                                            href="#"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                handlePageChange(page + 1);
-                                            }}
-                                        />
-                                    </PaginationItem>
-                                </PaginationContent>
-                            </Pagination>
+                            <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
                 </div>

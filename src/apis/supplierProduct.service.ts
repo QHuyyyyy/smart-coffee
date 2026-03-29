@@ -58,6 +58,7 @@ type ExistingIngredientPayload = {
     ingredientId: number;
     price: number;
     stock: number;
+    holdStock?: number | null;
     packageSize?: number | null;
     status: string;
     measurement: string;
@@ -72,6 +73,7 @@ type NewIngredientPayload = {
     };
     price: number;
     stock: number;
+    holdStock?: number | null;
     packageSize?: number | null;
     status: string;
     measurement: string;

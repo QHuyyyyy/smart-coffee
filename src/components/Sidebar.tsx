@@ -15,6 +15,7 @@ export function Sidebar() {
         ? [
             { icon: Home, label: 'Dashboard', href: '/admin/dashboard' },
             { icon: Users, label: 'Accounts', href: '/admin/accounts' },
+            { icon: ShoppingCart, label: 'Orders', href: '/admin/orders' },
             { icon: Coffee, label: 'Coffee Shop', href: '/admin/coffee-shop' },
             { icon: SquareMenu, label: 'Recipes', href: '/admin/recipes' },
 
