@@ -22,6 +22,7 @@ export function Sidebar() {
             { icon: ShoppingCart, label: 'Ingredients', href: '/admin/ingredients' },
             { icon: FileText, label: 'Posts', href: '/admin/posts' },
             { icon: Package, label: 'Packages', href: '/admin/subscription-packages' },
+            { icon: Settings, label: 'Fee Settings', href: '/admin/system-settings' },
             { icon: ShoppingCart, label: 'Subscriptions', href: '/admin/subscriptions' },
             { icon: Wallet, label: 'Transaction', href: '/transaction' },
             { icon: Wallet, label: 'Withdrawals', href: '/admin/withdrawals' },

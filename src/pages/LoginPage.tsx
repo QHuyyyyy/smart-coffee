@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -10,10 +10,48 @@ import { useAuthStore } from "../stores/auth.store";
 import { toast } from "sonner";
 export function LoginPage() {
     const navigate = useNavigate();
-    const { login, isLoading, fetchCurrentUser, logout } = useAuthStore();
+    const { token, currentUser, login, isLoading, fetchCurrentUser, logout } = useAuthStore();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+
+    const navigateByRole = (role?: string | null) => {
+        if (role === "Admin") {
+            navigate("/admin/dashboard", { replace: true });
+            return true;
+        }
+        if (role === "Supplier") {
+            navigate("/supplier/dashboard", { replace: true });
+            return true;
+        }
+        return false;
+    };
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const bootstrapLoginFlow = async () => {
+            if (!token) return;
+
+            if (currentUser?.role) {
+                navigateByRole(currentUser.role);
+                return;
+            }
+
+            const user = await fetchCurrentUser();
+            if (!isMounted) return;
+
+            if (!navigateByRole(user?.role)) {
+                logout();
+            }
+        };
+
+        void bootstrapLoginFlow();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [token, currentUser, fetchCurrentUser, logout]);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -22,11 +60,7 @@ export function LoginPage() {
             await login({ email, password });
             const user = await fetchCurrentUser();
 
-            if (user?.role === "Admin") {
-                navigate("/admin/dashboard");
-            } else if (user?.role === "Supplier") {
-                navigate("/supplier/dashboard");
-            } else {
+            if (!navigateByRole(user?.role)) {
                 toast.error("Tài khoản không có quyền truy cập ứng dụng này.");
                 logout();
             }
