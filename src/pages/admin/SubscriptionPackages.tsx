@@ -12,7 +12,23 @@ interface PackageFormState {
     description: string;
     price: string;
     staffQuantity: string;
+    productRecommendLimit: string;
+    menuSuggestLimit: string;
+    menuAnalyzeFeedbackLimit: string;
+    inventoryForecastLimit: string;
+    recipeRecommendLimit: string;
 }
+
+const parseOptionalLimit = (value: string) => {
+    if (!value.trim()) return null;
+
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 0) {
+        return Number.NaN;
+    }
+
+    return parsed;
+};
 
 export function SubscriptionPackagesPage() {
     const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
@@ -23,13 +39,22 @@ export function SubscriptionPackagesPage() {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingPackage, setEditingPackage] = useState<SubscriptionPackage | null>(null);
+    const [activeMenuPackageId, setActiveMenuPackageId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<SubscriptionPackage | null>(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [formState, setFormState] = useState<PackageFormState>({
         name: "",
         description: "",
         price: "",
         staffQuantity: "",
+        productRecommendLimit: "",
+        menuSuggestLimit: "",
+        menuAnalyzeFeedbackLimit: "",
+        inventoryForecastLimit: "",
+        recipeRecommendLimit: "",
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchPackages = async () => {
         try {
@@ -103,6 +128,11 @@ export function SubscriptionPackagesPage() {
             description: "",
             price: "",
             staffQuantity: "",
+            productRecommendLimit: "",
+            menuSuggestLimit: "",
+            menuAnalyzeFeedbackLimit: "",
+            inventoryForecastLimit: "",
+            recipeRecommendLimit: "",
         });
         setIsDialogOpen(true);
     };
@@ -114,6 +144,11 @@ export function SubscriptionPackagesPage() {
             description: pkg.description,
             price: pkg.price?.toString() ?? "",
             staffQuantity: pkg.staffQuantity?.toString() ?? "",
+            productRecommendLimit: pkg.productRecommendLimit?.toString() ?? "",
+            menuSuggestLimit: pkg.menuSuggestLimit?.toString() ?? "",
+            menuAnalyzeFeedbackLimit: pkg.menuAnalyzeFeedbackLimit?.toString() ?? "",
+            inventoryForecastLimit: pkg.inventoryForecastLimit?.toString() ?? "",
+            recipeRecommendLimit: pkg.recipeRecommendLimit?.toString() ?? "",
         });
         setIsDialogOpen(true);
     };
@@ -122,6 +157,34 @@ export function SubscriptionPackagesPage() {
         setIsDialogOpen(false);
         setEditingPackage(null);
         setIsSubmitting(false);
+    };
+
+    const openDeleteDialog = (pkg: SubscriptionPackage) => {
+        setDeleteTarget(pkg);
+        setIsDeleteDialogOpen(true);
+        setActiveMenuPackageId(null);
+    };
+
+    const closeDeleteDialog = () => {
+        if (isDeleting) return;
+        setIsDeleteDialogOpen(false);
+        setDeleteTarget(null);
+    };
+
+    const handleDeletePackage = async () => {
+        if (!deleteTarget) return;
+
+        try {
+            setIsDeleting(true);
+            await subscriptionPackageService.delete(deleteTarget.packageId);
+            toast.success("Xóa gói đăng ký thành công");
+            closeDeleteDialog();
+            void fetchPackages();
+        } catch (err: any) {
+            toast.error(err?.response?.data?.message || "Xóa gói đăng ký thất bại");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const handleInputChange = (field: keyof PackageFormState, value: string) => {
@@ -137,6 +200,11 @@ export function SubscriptionPackagesPage() {
 
         const priceNumber = Number(formState.price);
         const staffQuantityNumber = Number(formState.staffQuantity);
+        const productRecommendLimitNumber = parseOptionalLimit(formState.productRecommendLimit);
+        const menuSuggestLimitNumber = parseOptionalLimit(formState.menuSuggestLimit);
+        const menuAnalyzeFeedbackLimitNumber = parseOptionalLimit(formState.menuAnalyzeFeedbackLimit);
+        const inventoryForecastLimitNumber = parseOptionalLimit(formState.inventoryForecastLimit);
+        const recipeRecommendLimitNumber = parseOptionalLimit(formState.recipeRecommendLimit);
 
         if (Number.isNaN(priceNumber) || priceNumber < 0) {
             toast.error("Giá không hợp lệ");
@@ -146,12 +214,37 @@ export function SubscriptionPackagesPage() {
             toast.error("Số lượng nhân viên không hợp lệ");
             return;
         }
+        if (Number.isNaN(productRecommendLimitNumber)) {
+            toast.error("Product recommend limit không hợp lệ");
+            return;
+        }
+        if (Number.isNaN(menuSuggestLimitNumber)) {
+            toast.error("Menu suggest limit không hợp lệ");
+            return;
+        }
+        if (Number.isNaN(menuAnalyzeFeedbackLimitNumber)) {
+            toast.error("Menu analyze feedback limit không hợp lệ");
+            return;
+        }
+        if (Number.isNaN(inventoryForecastLimitNumber)) {
+            toast.error("Inventory forecast limit không hợp lệ");
+            return;
+        }
+        if (Number.isNaN(recipeRecommendLimitNumber)) {
+            toast.error("Recipe recommend limit không hợp lệ");
+            return;
+        }
 
         const payload = {
             name: formState.name,
             description: formState.description,
             price: priceNumber,
             staffQuantity: staffQuantityNumber,
+            productRecommendLimit: productRecommendLimitNumber,
+            menuSuggestLimit: menuSuggestLimitNumber,
+            menuAnalyzeFeedbackLimit: menuAnalyzeFeedbackLimitNumber,
+            inventoryForecastLimit: inventoryForecastLimitNumber,
+            recipeRecommendLimit: recipeRecommendLimitNumber,
         };
 
         try {
@@ -281,9 +374,24 @@ export function SubscriptionPackagesPage() {
                                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-semibold text-emerald-700">
                                             ACTIVE
                                         </span>
-                                        <button className="p-1 rounded-full hover:bg-black/5 text-[#B0A49E]">
+                                        <button
+                                            type="button"
+                                            className="p-1 rounded-full hover:bg-black/5 text-[#B0A49E]"
+                                            onClick={() => setActiveMenuPackageId((prev) => (prev === pkg.packageId ? null : pkg.packageId))}
+                                        >
                                             <MoreVertical size={16} />
                                         </button>
+                                        {activeMenuPackageId === pkg.packageId && (
+                                            <div className="absolute right-5 top-14 z-20 min-w-36 rounded-xl border border-[#EFEAE5] bg-white py-1 shadow-lg">
+                                                <button
+                                                    type="button"
+                                                    className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                                    onClick={() => openDeleteDialog(pkg)}
+                                                >
+                                                    Delete package
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -292,23 +400,52 @@ export function SubscriptionPackagesPage() {
                                 </div>
 
                                 <div className="mb-5">
-                                    <p className="text-xl font-semibold tracking-tight text-[#1F1F1F]">
-                                        {formatPrice(pkg.price as any)}<p className="text-xs text-[#B0A49E]">/ month</p>
-                                    </p>
-
+                                    <p className="text-xl font-semibold tracking-tight text-[#1F1F1F]">{formatPrice(pkg.price as any)}</p>
+                                    <p className="text-xs text-[#B0A49E]">/ month</p>
                                 </div>
 
                                 <div className="border-t border-[#F1E6DE] pt-4 space-y-2 text-xs text-[#4F4F4F]">
-                                    <div className="flex items-center gap-2">
-                                        <Check size={14} className="text-emerald-600" />
-                                        <span>Up to {pkg.staffQuantity ?? 0} staff accounts</span>
-                                    </div>
+
                                     {getDescriptionFeatures(pkg.description).map((feature, featureIndex) => (
                                         <div key={`${pkg.packageId}-feature-${featureIndex}`} className="flex items-center gap-2">
                                             <Check size={14} className="text-emerald-600" />
                                             <span>{feature}</span>
                                         </div>
                                     ))}
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>Up to {pkg.staffQuantity ?? 0} staff accounts</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>
+                                            Product recommend limit: {pkg.productRecommendLimit == null ? "Unlimited" : pkg.productRecommendLimit}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>
+                                            Menu suggest limit: {pkg.menuSuggestLimit == null ? "Unlimited" : pkg.menuSuggestLimit}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>
+                                            Menu analyze feedback limit: {pkg.menuAnalyzeFeedbackLimit == null ? "Unlimited" : pkg.menuAnalyzeFeedbackLimit}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>
+                                            Inventory forecast limit: {pkg.inventoryForecastLimit == null ? "Unlimited" : pkg.inventoryForecastLimit}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Check size={14} className="text-emerald-600" />
+                                        <span>
+                                            Recipe recommend limit: {pkg.recipeRecommendLimit == null ? "Unlimited" : pkg.recipeRecommendLimit}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="mt-5 flex items-center gap-3">
@@ -390,6 +527,67 @@ export function SubscriptionPackagesPage() {
                             </div>
                         </div>
 
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#4F4F4F]">Product Recommend Limit</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formState.productRecommendLimit}
+                                    onChange={(e) => handleInputChange("productRecommendLimit", e.target.value)}
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#4F4F4F]">Menu Suggest Limit</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formState.menuSuggestLimit}
+                                    onChange={(e) => handleInputChange("menuSuggestLimit", e.target.value)}
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#4F4F4F]">Recipe Recommend Limit</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formState.recipeRecommendLimit}
+                                    onChange={(e) => handleInputChange("recipeRecommendLimit", e.target.value)}
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#4F4F4F]">Menu Analyze Feedback Limit</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formState.menuAnalyzeFeedbackLimit}
+                                    onChange={(e) => handleInputChange("menuAnalyzeFeedbackLimit", e.target.value)}
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-medium text-[#4F4F4F]">Inventory Forecast Limit</label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    value={formState.inventoryForecastLimit}
+                                    onChange={(e) => handleInputChange("inventoryForecastLimit", e.target.value)}
+                                    placeholder="Leave empty for unlimited"
+                                />
+                            </div>
+                        </div>
+
                         <DialogFooter className="mt-4">
                             <Button
                                 type="button"
@@ -408,6 +606,49 @@ export function SubscriptionPackagesPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        closeDeleteDialog();
+                        return;
+                    }
+                    setIsDeleteDialogOpen(true);
+                }}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Confirm Delete Package</DialogTitle>
+                    </DialogHeader>
+
+                    <p className="text-sm text-[#5F5F5F]">
+                        Bạn có chắc muốn xóa gói
+                        {" "}
+                        <span className="font-semibold text-[#1F1F1F]">{deleteTarget?.name ?? "này"}</span>
+                        ? Hành động này không thể hoàn tác.
+                    </p>
+
+                    <DialogFooter className="mt-4">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={closeDeleteDialog}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            className="bg-red-600 text-white hover:bg-red-700"
+                            onClick={handleDeletePackage}
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? "Deleting..." : "Delete"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

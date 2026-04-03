@@ -26,6 +26,7 @@ import { Transaction } from './pages/admin/Transaction';
 import { AdminPostsPage } from './pages/admin/Posts';
 import { AdminIngredientsPage } from './pages/admin/Ingredients';
 import { AdminAccountsPage } from './pages/admin/Accounts';
+import { SystemSettingsPage } from './pages/admin/SystemSettings';
 
 function App() {
     // const currentUser = useAuthStore((state) => state.currentUser);
@@ -158,6 +159,17 @@ function App() {
                     <ProtectedRoute allowedRoles={["Admin"]}>
                         <Layout>
                             <AdminAccountsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/system-settings"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <SystemSettingsPage />
                         </Layout>
                     </ProtectedRoute>
                 )}
