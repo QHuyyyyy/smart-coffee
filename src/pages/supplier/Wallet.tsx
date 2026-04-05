@@ -2,26 +2,46 @@ import { useEffect, useMemo, useState } from "react";
 import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
 import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/apis/wallet.service";
-import { transactionService, type TransactionItem } from "@/apis/transaction.service";
+import {
+    transactionService,
+    type TransactionItem,
+    type TransactionPaginatedResponse,
+} from "@/apis/transaction.service";
 import { orderService } from "@/apis/order.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loading } from "@/components/Loading";
 import { toast } from "sonner";
 import angribankLogo from "@/assets/angribank.png";
+import { formatVND } from "@/utils/currency";
 
 
 function formatCurrency(amount: number | null | undefined, currency: string | null | undefined) {
-    const safeAmount = amount ?? 0;
-    const safeCurrency = currency ?? "VND";
-    return `${safeAmount.toLocaleString("vi-VN")} ${safeCurrency}`;
+    const normalizedCurrency = (currency ?? "VND").trim().toUpperCase();
+    if (normalizedCurrency !== "VND") {
+        const safeAmount = amount ?? 0;
+        return `${safeAmount.toLocaleString("vi-VN")} ${normalizedCurrency}`;
+    }
+    return formatVND(amount);
 }
 
 function formatDate(value: string | null | undefined) {
     if (!value) return "-";
     return new Date(value).toLocaleString();
+}
+
+function getStatusBadgeClasses(status: string | null | undefined) {
+    const normalized = (status ?? "").toLowerCase();
+    if (normalized === "completed") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
+    if (normalized === "processing" || normalized === "pending") return "bg-amber-50 text-amber-700 border border-amber-100";
+    if (normalized === "unverified") return "bg-orange-50 text-orange-700 border border-orange-100";
+    if (normalized === "failed" || normalized === "rejected" || normalized === "cancelled") {
+        return "bg-red-50 text-red-700 border border-red-100";
+    }
+    return "bg-gray-100 text-gray-700 border border-gray-200";
 }
 
 function getTransactionDescription(
@@ -87,9 +107,13 @@ export function Wallet() {
     const [withdrawalsError, setWithdrawalsError] = useState<string | null>(null);
     const [withdrawalsPage, setWithdrawalsPage] = useState(1);
     const [withdrawalsStatus, setWithdrawalsStatus] = useState("none");
+    const [withdrawalsPageSize] = useState(10);
     const [transactionItems, setTransactionItems] = useState<TransactionItem[]>([]);
+    const [transactionsData, setTransactionsData] = useState<TransactionPaginatedResponse | null>(null);
     const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
+    const [transactionsPage, setTransactionsPage] = useState(1);
+    const [transactionsPageSize] = useState(10);
     const [supplierRevenue, setSupplierRevenue] = useState<number | null>(null);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
@@ -98,7 +122,7 @@ export function Wallet() {
             setWithdrawalsError(null);
             const data = await walletService.getWithdrawalsByWalletId(walletId, {
                 page,
-                pageSize: 10,
+                pageSize: withdrawalsPageSize,
                 status,
             });
             setWithdrawalsData(data);
@@ -144,14 +168,18 @@ export function Wallet() {
         fetchSupplierRevenue();
     }, [currentUser?.supplierId]);
 
-    const fetchTransactions = async () => {
+    const fetchTransactions = async (page = transactionsPage) => {
         if (!currentUser?.accountId || isAdmin) return;
 
         try {
             setIsLoadingTransactions(true);
             setTransactionsError(null);
-            const data = await transactionService.getListByUserId(currentUser.accountId);
-            setTransactionItems(data);
+            const data = await transactionService.getListByUserIdPaginated(currentUser.accountId, {
+                page,
+                pageSize: transactionsPageSize,
+            });
+            setTransactionsData(data);
+            setTransactionItems(data.items ?? []);
         } catch (err: any) {
             const message = err?.response?.data?.message ?? err?.message ?? "Failed to load transaction list.";
             setTransactionsError(message);
@@ -186,6 +214,33 @@ export function Wallet() {
         setWithdrawalsPage(nextPage);
         await loadWithdrawals(currentUser.wallet.walletId, nextPage, withdrawalsStatus);
     };
+
+    const handleTransactionPageChange = async (nextPage: number) => {
+        setTransactionsPage(nextPage);
+        await fetchTransactions(nextPage);
+    };
+
+    const transactionsTotalCount = transactionsData?.totalCount ?? 0;
+    const transactionsTotalPages = transactionsTotalCount > 0
+        ? Math.max(1, Math.ceil(transactionsTotalCount / transactionsPageSize))
+        : 1;
+    const transactionsFromItem = transactionsTotalCount === 0
+        ? 0
+        : (transactionsPage - 1) * transactionsPageSize + 1;
+    const transactionsToItem = transactionsTotalCount === 0
+        ? 0
+        : Math.min(transactionsTotalCount, transactionsPage * transactionsPageSize);
+
+    const withdrawalsTotalCount = withdrawalsData?.totalCount ?? 0;
+    const withdrawalsTotalPages = withdrawalsTotalCount > 0
+        ? Math.max(1, Math.ceil(withdrawalsTotalCount / withdrawalsPageSize))
+        : 1;
+    const withdrawalsFromItem = withdrawalsTotalCount === 0
+        ? 0
+        : (withdrawalsPage - 1) * withdrawalsPageSize + 1;
+    const withdrawalsToItem = withdrawalsTotalCount === 0
+        ? 0
+        : Math.min(withdrawalsTotalCount, withdrawalsPage * withdrawalsPageSize);
 
     const openBankDialog = () => {
         if (!wallet) return;
@@ -354,7 +409,7 @@ export function Wallet() {
                                     </div>
                                     <div className="flex flex-col items-end text-right">
                                         <p className="text-xs text-gray-500">Total Revenue</p>
-                                        <p className="text-xl md:text-2xl font-semibold tracking-tight h-[32px] md:h-[36px] flex items-center text-[#F47A1F]">
+                                        <p className="text-xl md:text-2xl font-semibold tracking-tight h-8 md:h-9 flex items-center text-[#F47A1F]">
                                             {supplierRevenue != null ? formatCurrency(supplierRevenue, wallet.currency) : "Loading..."}
                                         </p>
                                     </div>
@@ -370,7 +425,6 @@ export function Wallet() {
                                     )}
                                 </div>
                             </div>
-
                             {/* Right: bank account info (hidden for Admin) */}
                             {!isAdmin && (
                                 <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
@@ -510,13 +564,7 @@ export function Wallet() {
                                                 {transactions.map((tx) => {
                                                     const amountValue = tx.amount ?? 0;
                                                     const amountDisplay = `-${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
-                                                    const status = (tx.status ?? "").toLowerCase();
-
-                                                    let statusClasses = "bg-gray-100 text-gray-700";
-                                                    if (status === "completed") statusClasses = "bg-green-100 text-green-700";
-                                                    else if (status === "processing" || status === "pending") statusClasses = "bg-yellow-100 text-yellow-700";
-                                                    else if (status === "unverified") statusClasses = "bg-orange-100 text-orange-700";
-                                                    else if (status === "rejected" || status === "cancelled") statusClasses = "bg-red-100 text-red-700";
+                                                    const statusClasses = getStatusBadgeClasses(tx.status);
 
                                                     return (
                                                         <TableRow key={tx.withdrawId} className="border-b border-gray-100 last:border-0">
@@ -541,28 +589,21 @@ export function Wallet() {
                                         </Table>
                                     </div>
 
-                                    <div className="mt-4 flex items-center justify-end gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={!withdrawalsData || withdrawalsData.page <= 1 || isLoadingWithdrawals}
-                                            onClick={() => void handleWithdrawalPageChange((withdrawalsData?.page ?? 1) - 1)}
-                                        >
-                                            Previous
-                                        </Button>
-                                        <span className="text-sm text-gray-600">
-                                            Page {withdrawalsData?.page ?? withdrawalsPage} / {Math.max(withdrawalsData?.totalPages ?? 1, 1)}
-                                        </span>
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={!withdrawalsData || withdrawalsData.page >= withdrawalsData.totalPages || isLoadingWithdrawals}
-                                            onClick={() => void handleWithdrawalPageChange((withdrawalsData?.page ?? withdrawalsPage) + 1)}
-                                        >
-                                            Next
-                                        </Button>
+                                    <div className="mt-4 flex w-full flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
+                                        <p>
+                                            Showing {withdrawalsFromItem} to {withdrawalsToItem} of {withdrawalsTotalCount} entries
+                                        </p>
+                                        <div className="sm:ml-auto">
+                                            <TablePagination
+                                                currentPage={withdrawalsPage}
+                                                totalPages={withdrawalsTotalPages}
+                                                onPageChange={(newPage) => {
+                                                    if (isLoadingWithdrawals) return;
+                                                    if (newPage < 1 || newPage > withdrawalsTotalPages || newPage === withdrawalsPage) return;
+                                                    void handleWithdrawalPageChange(newPage);
+                                                }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -571,16 +612,23 @@ export function Wallet() {
                                         <h2 className="text-lg font-semibold text-gray-900">
                                             Transaction List
                                             <span className="ml-2 text-sm font-normal text-gray-500">
-                                                ({transactionItems.length} items)
+                                                ({transactionsData?.totalCount ?? 0} items)
                                             </span>
                                         </h2>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => void fetchTransactions()}
-                                        >
-                                            Reset
-                                        </Button>
+                                        <div className="inline-flex items-center gap-2">
+
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => {
+
+                                                    setTransactionsPage(1);
+                                                    void fetchTransactions(1);
+                                                }}
+                                            >
+                                                Reset
+                                            </Button>
+                                        </div>
                                     </div>
 
                                     {transactionsError && (
@@ -604,7 +652,7 @@ export function Wallet() {
                                             <TableBody>
                                                 {!isLoadingTransactions && transactionItems.length === 0 && (
                                                     <TableRow>
-                                                        <TableCell colSpan={7} className="py-6 text-center text-gray-400">
+                                                        <TableCell colSpan={8} className="py-6 text-center text-gray-400">
                                                             No transactions found.
                                                         </TableCell>
                                                     </TableRow>
@@ -612,7 +660,7 @@ export function Wallet() {
 
                                                 {isLoadingTransactions && (
                                                     <TableRow>
-                                                        <TableCell colSpan={7} className="py-6 text-center text-gray-400">
+                                                        <TableCell colSpan={8} className="py-6 text-center text-gray-400">
                                                             Loading transactions...
                                                         </TableCell>
                                                     </TableRow>
@@ -638,8 +686,10 @@ export function Wallet() {
                                                         <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
                                                             {formatDate(item.transactionDate)}
                                                         </TableCell>
-                                                        <TableCell className="py-3 pr-4 text-gray-700">
-                                                            {item.status ?? "-"}
+                                                        <TableCell className="py-3 pr-4">
+                                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClasses(item.status)}`}>
+                                                                {item.status ?? "-"}
+                                                            </span>
                                                         </TableCell>
                                                         <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
                                                             {formatCurrency(item.totalPrice, wallet.currency)}
@@ -648,6 +698,25 @@ export function Wallet() {
                                                 ))}
                                             </TableBody>
                                         </Table>
+                                    </div>
+
+                                    <div className="mt-4 flex items-center justify-end gap-2">
+                                        <div className="mt-4 flex w-full flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
+                                            <p>
+                                                Showing {transactionsFromItem} to {transactionsToItem} of {transactionsTotalCount} entries
+                                            </p>
+                                            <div className="sm:ml-auto">
+                                                <TablePagination
+                                                    currentPage={transactionsPage}
+                                                    totalPages={transactionsTotalPages}
+                                                    onPageChange={(newPage) => {
+                                                        if (isLoadingTransactions) return;
+                                                        if (newPage < 1 || newPage > transactionsTotalPages || newPage === transactionsPage) return;
+                                                        void handleTransactionPageChange(newPage);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </>

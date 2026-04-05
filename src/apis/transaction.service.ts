@@ -28,6 +28,12 @@ export type TransactionQueryParams = {
     transactionType?: string;
 };
 
+export type TransactionListByUserParams = {
+    page?: number;
+    pageSize?: number;
+    status?: string;
+};
+
 type TransactionListResponse = TransactionItem[] | { items?: TransactionItem[]; data?: TransactionItem[] };
 
 const extractTransactionItems = (data: TransactionListResponse): TransactionItem[] => {
@@ -46,5 +52,10 @@ export const transactionService = {
     getListByUserId: async (userId: number) => {
         const response = await api.get<TransactionListResponse>(`/Transaction/list/${userId}`);
         return extractTransactionItems(response.data);
+    },
+
+    getListByUserIdPaginated: async (userId: number, params: TransactionListByUserParams) => {
+        const response = await api.get<TransactionPaginatedResponse>(`/Transaction/list/${userId}`, { params });
+        return response.data;
     },
 };

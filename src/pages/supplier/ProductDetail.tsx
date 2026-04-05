@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
+import { formatVND } from "@/utils/currency";
 
 export function SupplierProductDetail() {
     const { id } = useParams<{ id: string }>();
@@ -30,8 +31,7 @@ export function SupplierProductDetail() {
     }, [id]);
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")} VND`;
+        return formatVND(value);
     };
 
     const formatRating = (value: number | null | undefined) => {

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TablePagination } from "@/components/ui/pagination";
 import { orderService } from "@/apis/order.service";
 import { DollarSign, Package, RefreshCw } from "lucide-react";
+import { formatVND } from "@/utils/currency";
 
 
 function formatDateTime(value: string | null | undefined) {
@@ -137,7 +138,7 @@ export function Transaction() {
                             <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
                         ) : (
                             <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
-                                {commissionRevenue != null ? `${commissionRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                                {commissionRevenue != null ? formatVND(commissionRevenue) : "-"}
                             </p>
                         )}
                     </div>
@@ -153,7 +154,7 @@ export function Transaction() {
                             <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
                         ) : (
                             <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
-                                {subscriptionRevenue != null ? `${subscriptionRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                                {subscriptionRevenue != null ? formatVND(subscriptionRevenue) : "-"}
                             </p>
                         )}
                     </div>
@@ -169,7 +170,7 @@ export function Transaction() {
                             <div className="h-8 w-24 bg-gray-200 animate-pulse rounded mt-2"></div>
                         ) : (
                             <p className="text-2xl font-bold text-[#1F1F1F] mt-2">
-                                {shippingRevenue != null ? `${shippingRevenue.toLocaleString("vi-VN")} VND` : "-"}
+                                {shippingRevenue != null ? formatVND(shippingRevenue) : "-"}
                             </p>
                         )}
                     </div>
@@ -259,7 +260,7 @@ export function Transaction() {
 
                                             <TableCell className="w-24">#{item.userId}</TableCell>
                                             <TableCell className="text-center font-medium text-[#573E32]">
-                                                {item.totalPrice != null ? item.totalPrice : ""}VND
+                                                {item.totalPrice != null ? formatVND(item.totalPrice) : "-"}
                                             </TableCell>
                                             <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
                                                 {item.notes ?? "-"}
