@@ -19,6 +19,12 @@ export type AdminCommissionRevenueResponse = {
     range?: string;
 };
 
+export type AdminSubscriptionRevenueResponse = {
+    data: DashboardChartPoint[];
+    totalSubscription: number;
+    range?: string;
+};
+
 type NumericResponse = number | Record<string, unknown>;
 
 const getNumericValue = (value: NumericResponse): number => {
@@ -31,6 +37,27 @@ const getNumericValue = (value: NumericResponse): number => {
 export const dashboardService = {
     getCommissionRevenue: async (params?: DashboardRevenueQuery) => {
         const response = await api.get<AdminCommissionRevenueResponse>("/Dashboard/commission-revenue", {
+            params,
+        });
+        return response.data;
+    },
+
+    getSubscriptionRevenue: async (params?: DashboardRevenueQuery) => {
+        const response = await api.get<AdminSubscriptionRevenueResponse>("/Dashboard/subscription-revenue", {
+            params,
+        });
+        return response.data;
+    },
+
+    getTotalRevenue: async (params?: Pick<DashboardRevenueQuery, "month" | "year">) => {
+        const response = await api.get<DashboardChartPoint[]>("/Dashboard/total-revenue", {
+            params,
+        });
+        return response.data;
+    },
+
+    getSupplierTotalRevenue: async (supplierId: number, params?: Pick<DashboardRevenueQuery, "month" | "year">) => {
+        const response = await api.get<DashboardChartPoint[]>(`/Dashboard/supplier/${supplierId}/total-revenue`, {
             params,
         });
         return response.data;
@@ -56,6 +83,11 @@ export const dashboardService = {
 
     getTotalActiveSubscriptions: async () => {
         const response = await api.get<NumericResponse>("/Dashboard/total-active-subscriptions");
+        return getNumericValue(response.data);
+    },
+
+    getTotalTransaction: async () => {
+        const response = await api.get<NumericResponse>("/Dashboard/total-transaction");
         return getNumericValue(response.data);
     },
 

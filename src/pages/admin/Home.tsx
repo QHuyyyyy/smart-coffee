@@ -2,16 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import {
     Bar,
     BarChart,
-    Cell,
+    Legend,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
-import { dashboardService, type DashboardChartPoint } from "@/apis/dashboard.service";
+import { dashboardService } from "@/apis/dashboard.service";
+import { orderService } from "@/apis/order.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
+import { RevenueLineChart } from "@/components/RevenueLineChart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
@@ -35,46 +37,8 @@ type SummaryCard = {
     progressColor: string;
 };
 
-const financeCards: SummaryCard[] = [
-    {
-        title: "Total Revenue",
-        value: "100.000.000 VND",
-        icon: CircleDollarSign,
-        iconColor: "text-emerald-500",
-        iconBg: "bg-emerald-50",
-        progress: 82,
-        progressColor: "bg-emerald-500",
-    },
-    {
-        title: "Platform Fees Collected",
-        value: "90.000.000 VND",
-        icon: WalletCards,
-        iconColor: "text-orange-500",
-        iconBg: "bg-orange-50",
-        progress: 68,
-        progressColor: "bg-orange-500",
-    },
-    {
-        title: "Total Transactions",
-        value: "15,480",
-        icon: WalletCards,
-        iconColor: "text-blue-500",
-        iconBg: "bg-blue-50",
-        progress: 55,
-        progressColor: "bg-blue-500",
-    },
-    {
-        title: "Subscription Revenue",
-        value: "10.000.000 VND",
-        icon: ShieldCheck,
-        iconColor: "text-violet-500",
-        iconBg: "bg-violet-50",
-        progress: 40,
-        progressColor: "bg-violet-500",
-    },
-];
-
 type RevenueFilter = {
+    mode: "day" | "month";
     month: string;
     year: string;
 };
@@ -84,6 +48,12 @@ type DashboardSummary = {
     totalStaffs: number;
     totalSuppliers: number;
     totalActiveSubscriptions: number;
+};
+
+type FinanceSummary = {
+    totalTransactions: number;
+    commissionRevenue: number;
+    subscriptionRevenue: number;
 };
 
 
@@ -102,6 +72,16 @@ function getStatusClasses(status: string | null | undefined) {
         return "bg-red-50 text-red-700 border border-red-100";
     }
     return "bg-gray-100 text-gray-700 border border-gray-200";
+}
+
+function formatChartDayLabel(value: string, mode: "day" | "month") {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    if (mode === "month") {
+        return date.toLocaleDateString("en-US", { month: "2-digit", year: "numeric" });
+    }
+    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
 function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
@@ -131,12 +111,17 @@ function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
 }
 
 export function AdminHome() {
-    const [revenueData, setRevenueData] = useState<DashboardChartPoint[]>([]);
+    const [commissionRevenueData, setCommissionRevenueData] = useState<{ time: string; totalRevenue: number }[]>([]);
+    const [subscriptionRevenueData, setSubscriptionRevenueData] = useState<{ time: string; totalRevenue: number }[]>([]);
     const [totalCommission, setTotalCommission] = useState(0);
-    const [rangeLabel, setRangeLabel] = useState<string>("");
+    const [totalSubscription, setTotalSubscription] = useState(0);
     const [revenueLoading, setRevenueLoading] = useState(false);
     const [revenueError, setRevenueError] = useState<string | null>(null);
-    const [filter, setFilter] = useState<RevenueFilter>({ month: "all", year: "all" });
+    const currentDate = new Date();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const currentYear = String(currentDate.getFullYear());
+    const currentMonthYear = `${currentYear}-${currentMonth}`;
+    const [filter, setFilter] = useState<RevenueFilter>({ mode: "day", month: currentMonthYear, year: currentYear });
 
     const [monitoringSummary, setMonitoringSummary] = useState<DashboardSummary>({
         totalCoffeeShops: 0,
@@ -147,23 +132,36 @@ export function AdminHome() {
     const [monitoringLoading, setMonitoringLoading] = useState(false);
     const [monitoringError, setMonitoringError] = useState<string | null>(null);
 
+    const [financeSummary, setFinanceSummary] = useState<FinanceSummary>({
+        totalTransactions: 0,
+        commissionRevenue: 0,
+        subscriptionRevenue: 0,
+    });
+    const [financeLoading, setFinanceLoading] = useState(false);
+    const [financeError, setFinanceError] = useState<string | null>(null);
+
     const [recentTransactions, setRecentTransactions] = useState<TransactionItem[]>([]);
     const [transactionsLoading, setTransactionsLoading] = useState(false);
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
 
+    const yearOptions = useMemo(() => {
+        const yearNumber = Number(currentYear);
+        return Array.from({ length: 2 }, (_, index) => String(yearNumber - 1 + index));
+    }, [currentYear]);
+
     const monthOptions = useMemo(
         () =>
-            Array.from({ length: 12 }, (_, index) => ({
-                value: String(index + 1),
-                label: `Month ${index + 1}`,
-            })),
-        [],
+            yearOptions.flatMap((year) =>
+                Array.from({ length: 12 }, (_, index) => {
+                    const month = String(index + 1).padStart(2, "0");
+                    return {
+                        value: `${year}-${month}`,
+                        label: `${month}/${year}`,
+                    };
+                }),
+            ),
+        [yearOptions],
     );
-
-    const yearOptions = useMemo(() => {
-        const currentYear = new Date().getFullYear();
-        return Array.from({ length: 7 }, (_, index) => String(currentYear - 5 + index));
-    }, []);
 
     const monitoringCards = useMemo<SummaryCard[]>(
         () => [
@@ -207,6 +205,49 @@ export function AdminHome() {
         [monitoringLoading, monitoringSummary],
     );
 
+    const financeCards = useMemo<SummaryCard[]>(() => {
+        const totalRevenueSummary = financeSummary.commissionRevenue + financeSummary.subscriptionRevenue;
+
+        return [
+            {
+                title: "Total Transactions",
+                value: financeLoading ? "..." : financeSummary.totalTransactions.toLocaleString("en-US"),
+                icon: WalletCards,
+                iconColor: "text-blue-500",
+                iconBg: "bg-blue-50",
+                progress: 100,
+                progressColor: "bg-blue-500",
+            },
+            {
+                title: "Commission Revenue",
+                value: financeLoading ? "..." : formatVND(financeSummary.commissionRevenue),
+                icon: ShieldCheck,
+                iconColor: "text-orange-500",
+                iconBg: "bg-orange-50",
+                progress: 100,
+                progressColor: "bg-orange-500",
+            },
+            {
+                title: "Subscription Revenue",
+                value: financeLoading ? "..." : formatVND(financeSummary.subscriptionRevenue),
+                icon: Handshake,
+                iconColor: "text-violet-500",
+                iconBg: "bg-violet-50",
+                progress: 100,
+                progressColor: "bg-violet-500",
+            },
+            {
+                title: "Total Revenue",
+                value: financeLoading ? "..." : formatVND(totalRevenueSummary),
+                icon: CircleDollarSign,
+                iconColor: "text-emerald-500",
+                iconBg: "bg-emerald-50",
+                progress: 100,
+                progressColor: "bg-emerald-500",
+            },
+        ];
+    }, [financeLoading, financeSummary]);
+
     const parsePositiveInt = (value: string) => {
         if (value === "all") return undefined;
         if (!value.trim()) return undefined;
@@ -215,22 +256,46 @@ export function AdminHome() {
         return parsed;
     };
 
-    const fetchCommissionRevenue = async (nextFilter?: RevenueFilter) => {
+    const parseMonthYear = (value: string) => {
+        const [yearPart, monthPart] = value.split("-");
+        const parsedYear = parsePositiveInt(yearPart ?? "");
+        const parsedMonth = parsePositiveInt(monthPart ?? "");
+
+        if (!parsedYear || !parsedMonth) {
+            return {
+                month: undefined,
+                year: undefined,
+            };
+        }
+
+        return {
+            month: parsedMonth,
+            year: parsedYear,
+        };
+    };
+
+    const fetchRevenueOverview = async (nextFilter?: RevenueFilter) => {
         const target = nextFilter ?? filter;
 
         try {
             setRevenueLoading(true);
             setRevenueError(null);
 
-            const month = parsePositiveInt(target.month);
-            const year = parsePositiveInt(target.year);
+            const monthYearParams = parseMonthYear(target.month);
+            const month = target.mode === "day" ? monthYearParams.month : undefined;
+            const year = target.mode === "day" ? monthYearParams.year : parsePositiveInt(target.year);
 
-            const result = await dashboardService.getCommissionRevenue({ month, year });
-            setRevenueData(result.data ?? []);
-            setTotalCommission(result.totalCommission ?? 0);
-            setRangeLabel(result.range ?? "");
+            const [commissionResult, subscriptionResult] = await Promise.all([
+                dashboardService.getCommissionRevenue({ month, year }),
+                dashboardService.getSubscriptionRevenue({ month, year }),
+            ]);
+
+            setCommissionRevenueData(commissionResult.data ?? []);
+            setSubscriptionRevenueData(subscriptionResult.data ?? []);
+            setTotalCommission(commissionResult.totalCommission ?? 0);
+            setTotalSubscription(subscriptionResult.totalSubscription ?? 0);
         } catch {
-            setRevenueError("Failed to load commission revenue.");
+            setRevenueError("Failed to load revenue overview.");
         } finally {
             setRevenueLoading(false);
         }
@@ -262,6 +327,29 @@ export function AdminHome() {
         }
     };
 
+    const fetchFinanceSummary = async () => {
+        try {
+            setFinanceLoading(true);
+            setFinanceError(null);
+
+            const [totalTransactions, commissionRevenue, subscriptionRevenue] = await Promise.all([
+                dashboardService.getTotalTransaction(),
+                orderService.getCommissionRevenue(),
+                orderService.getSubscriptionRevenue(),
+            ]);
+
+            setFinanceSummary({
+                totalTransactions,
+                commissionRevenue,
+                subscriptionRevenue,
+            });
+        } catch {
+            setFinanceError("Failed to load finance summary.");
+        } finally {
+            setFinanceLoading(false);
+        }
+    };
+
     const fetchRecentTransactions = async () => {
         try {
             setTransactionsLoading(true);
@@ -277,29 +365,57 @@ export function AdminHome() {
     };
 
     useEffect(() => {
-        void fetchCommissionRevenue({ month: "all", year: "all" });
+        void fetchRevenueOverview({ mode: "day", month: currentMonthYear, year: currentYear });
+        void fetchFinanceSummary();
         void fetchMonitoringSummary();
         void fetchRecentTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const revenueBars = useMemo(
-        () =>
-            revenueData.map((item) => ({
-                day: item.time,
-                revenue: Number(item.totalRevenue ?? 0),
-            })),
-        [revenueData],
+        () => {
+            const map = new Map<string, { day: string; commission: number; subscription: number }>();
+
+            commissionRevenueData.forEach((item) => {
+                map.set(item.time, {
+                    day: item.time,
+                    commission: Number(item.totalRevenue ?? 0),
+                    subscription: 0,
+                });
+            });
+
+            subscriptionRevenueData.forEach((item) => {
+                const existing = map.get(item.time);
+                if (existing) {
+                    existing.subscription = Number(item.totalRevenue ?? 0);
+                } else {
+                    map.set(item.time, {
+                        day: item.time,
+                        commission: 0,
+                        subscription: Number(item.totalRevenue ?? 0),
+                    });
+                }
+            });
+
+            return Array.from(map.values()).sort((a, b) => a.day.localeCompare(b.day));
+        },
+        [commissionRevenueData, subscriptionRevenueData],
     );
 
+    const totalRevenue = totalCommission + totalSubscription;
+
     const handleApplyFilter = () => {
-        void fetchCommissionRevenue();
+        void fetchRevenueOverview();
     };
 
     const handleClearFilter = () => {
-        const cleared = { month: "all", year: "all" };
+        const cleared = {
+            mode: filter.mode,
+            month: currentMonthYear,
+            year: currentYear,
+        };
         setFilter(cleared);
-        void fetchCommissionRevenue(cleared);
+        void fetchRevenueOverview(cleared);
     };
 
     return (
@@ -314,6 +430,7 @@ export function AdminHome() {
 
                 <section className="space-y-6">
                     <h2 className="text-xl font-bold text-[#1F1F1F]">Transaction, Fees &amp; Finance Management</h2>
+                    {financeError && <p className="text-sm text-red-600">{financeError}</p>}
                     <SummaryGrid cards={financeCards} />
 
                     <section className="space-y-6">
@@ -324,44 +441,62 @@ export function AdminHome() {
 
 
                     </section>
+                    <RevenueLineChart mode="admin" title="Total Revenue" />
                     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
                         <div className="rounded-xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
                             <div className="mb-4 flex items-center justify-between gap-3">
-                                <p className="text-base font-medium text-[#1F1F1F]">Commission Overview</p>
+                                <p className="text-base font-medium text-[#1F1F1F]">Revenue Overview (Commission &amp; Subscription)</p>
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <Select
-                                        value={filter.month}
-                                        onValueChange={(value) => setFilter((prev) => ({ ...prev, month: value }))}
-                                    >
-                                        <SelectTrigger className="h-8 w-32 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
-                                            <SelectValue placeholder="Month" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All months</SelectItem>
-                                            {monthOptions.map((month) => (
-                                                <SelectItem key={month.value} value={month.value}>
-                                                    {month.label}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+                                        <button
+                                            type="button"
+                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${filter.mode === "day" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                            onClick={() => setFilter((prev) => ({ ...prev, mode: "day" }))}
+                                        >
+                                            By day
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`rounded-md px-3 py-1 text-xs font-semibold transition ${filter.mode === "month" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                            onClick={() => setFilter((prev) => ({ ...prev, mode: "month" }))}
+                                        >
+                                            By month
+                                        </button>
+                                    </div>
 
-                                    <Select
-                                        value={filter.year}
-                                        onValueChange={(value) => setFilter((prev) => ({ ...prev, year: value }))}
-                                    >
-                                        <SelectTrigger className="h-8 w-28 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
-                                            <SelectValue placeholder="Year" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">All years</SelectItem>
-                                            {yearOptions.map((year) => (
-                                                <SelectItem key={year} value={year}>
-                                                    {year}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    {filter.mode === "day" ? (
+                                        <Select
+                                            value={filter.month}
+                                            onValueChange={(value) => setFilter((prev) => ({ ...prev, month: value }))}
+                                        >
+                                            <SelectTrigger className="h-8 w-36 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
+                                                <SelectValue placeholder="Month/Year" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-52 overflow-y-auto">
+                                                {monthOptions.map((month) => (
+                                                    <SelectItem key={month.value} value={month.value}>
+                                                        {month.label}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Select
+                                            value={filter.year}
+                                            onValueChange={(value) => setFilter((prev) => ({ ...prev, year: value }))}
+                                        >
+                                            <SelectTrigger className="h-8 w-28 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
+                                                <SelectValue placeholder="Year" />
+                                            </SelectTrigger>
+                                            <SelectContent className="max-h-52 overflow-y-auto">
+                                                {yearOptions.map((year) => (
+                                                    <SelectItem key={year} value={year}>
+                                                        {year}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
 
                                     <button
                                         type="button"
@@ -383,9 +518,17 @@ export function AdminHome() {
                             </div>
                             <div className="mb-4 flex items-end gap-2">
                                 <p className="text-[32px] font-bold leading-tight text-[#1F1F1F]">
-                                    {formatVND(totalCommission)}
+                                    {formatVND(totalRevenue)}
                                 </p>
-                                <p className="pb-1.5 text-xs font-medium text-[#707070]">{rangeLabel || "Current period"}</p>
+                                {/* <p className="pb-1.5 text-xs font-medium text-[#707070]">{rangeLabel || "Current period"}</p> */}
+                            </div>
+                            <div className="mb-4 flex flex-wrap items-center gap-4 text-xs text-[#707070]">
+                                <p>
+                                    Commission: <span className="font-semibold text-[#573E32]">{formatVND(totalCommission)}</span>
+                                </p>
+                                <p>
+                                    Subscription: <span className="font-semibold text-[#F47A1F]">{formatVND(totalSubscription)}</span>
+                                </p>
                             </div>
                             {revenueLoading ? (
                                 <div className="flex h-65 w-full items-center justify-center text-sm text-[#707070]">Loading chart...</div>
@@ -397,27 +540,31 @@ export function AdminHome() {
                                 <div className="h-65 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={revenueBars} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                                            <XAxis dataKey="day" tick={{ fill: "#8B7E75", fontSize: 12 }} axisLine={false} tickLine={false} />
+                                            <XAxis
+                                                dataKey="day"
+                                                tickFormatter={(value) => formatChartDayLabel(String(value), filter.mode)}
+                                                tick={{ fill: "#8B7E75", fontSize: 12 }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                            />
                                             <YAxis tick={{ fill: "#8B7E75", fontSize: 12 }} axisLine={false} tickLine={false} />
                                             <Tooltip
                                                 cursor={{ fill: "rgba(87,62,50,0.08)" }}
                                                 contentStyle={{ borderRadius: 12, borderColor: "#E7DDD4", color: "#3D2E25" }}
-                                                formatter={(value) => [formatVND(value), "Revenue"]}
+                                                labelFormatter={(label) => formatChartDayLabel(String(label), filter.mode)}
+                                                formatter={(value, name) => [formatVND(Number(value)), name === "commission" ? "Commission" : "Subscription"]}
                                             />
-                                            <Bar dataKey="revenue" radius={[8, 8, 0, 0]} maxBarSize={42}>
-                                                {revenueBars.map((entry, index) => (
-                                                    <Cell
-                                                        key={`${entry.day}-${index}`}
-                                                        fill={index === revenueBars.length - 1 ? "#573E32" : "#7F6657"}
-                                                    />
-                                                ))}
-                                            </Bar>
+                                            <Legend />
+                                            <Bar dataKey="commission" name="Commission" fill="#573E32" radius={[6, 6, 0, 0]} maxBarSize={24} />
+                                            <Bar dataKey="subscription" name="Subscription" fill="#F47A1F" radius={[6, 6, 0, 0]} maxBarSize={24} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             )}
                         </div>
                     </div>
+
+
 
                     <div className="overflow-hidden rounded-xl border border-[#EFEAE5] bg-white">
                         <div className="flex items-center justify-between border-b border-[#EFEAE5] p-6">

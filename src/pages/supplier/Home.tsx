@@ -4,6 +4,7 @@ import { CircleDollarSign, Handshake, ShoppingCart, WalletCards } from "lucide-r
 import { dashboardService } from "@/apis/dashboard.service";
 import { orderService } from "@/apis/order.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
+import { RevenueLineChart } from "@/components/RevenueLineChart";
 import { SupplierOnboardingDialog } from "@/components/SupplierOnboardingDialog";
 import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -205,18 +206,11 @@ export function SupplierHome() {
                     {summaryError && <p className="text-sm text-red-600">{summaryError}</p>}
                     <SummaryGrid cards={cards} />
 
-                    <div className="rounded-xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
-                        <div className="mb-4 flex items-center justify-between gap-3">
-                            <p className="text-base font-medium text-[#1F1F1F]">Revenue Overview</p>
-                        </div>
-                        <div className="mb-3 flex items-end gap-2">
-                            <p className="text-[32px] font-bold leading-tight text-[#1F1F1F]">{formatVND(summary.totalRevenue)}</p>
-                            <p className="pb-1.5 text-xs font-medium text-[#707070]">Current total</p>
-                        </div>
-                        <div className="flex h-44 w-full items-center justify-center rounded-lg border border-dashed border-[#E7DDD4] bg-[#FCFAF8] px-4 text-center text-sm text-[#707070]">
-                            Revenue chart API is pending. Once you provide it, this area will be rendered like Admin chart.
-                        </div>
-                    </div>
+                    <RevenueLineChart
+                        mode="supplier"
+                        supplierId={currentUser?.supplierId ?? undefined}
+                        title="Total Revenue Line Chart"
+                    />
 
                     <div className="overflow-hidden rounded-xl border border-[#EFEAE5] bg-white">
                         <div className="flex items-center justify-between border-b border-[#EFEAE5] p-6">
