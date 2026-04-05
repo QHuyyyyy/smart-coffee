@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useNavigate } from "react-router-dom";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { formatVND } from "@/utils/currency";
 
 export function SupplierOrders() {
     const navigate = useNavigate();
@@ -74,8 +75,7 @@ export function SupplierOrders() {
     };
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     const renderStatus = (status: string | null | undefined) => {

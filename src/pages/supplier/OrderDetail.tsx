@@ -6,6 +6,7 @@ import ghnLogo from "../../assets/ghn.png";
 import { useAuthStore } from "@/stores/auth.store";
 import { Loading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatVND } from "@/utils/currency";
 
 export function SupplierOrderDetail() {
     const { currentUser } = useAuthStore();
@@ -37,8 +38,7 @@ export function SupplierOrderDetail() {
     }, [id]);
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     const formatDateTime = (value: string | null | undefined) => {
@@ -85,10 +85,10 @@ export function SupplierOrderDetail() {
             setUpdatingStatus(true);
             setError(null);
 
-            // When moving from Preparing -> Delivering, also call ship-GHN API
+            // When moving from Pending -> Preparing, also call ship-GHN API
             if (
-                currentStatus === "preparing" &&
-                nextStatus.trim().toLowerCase() === "delivering"
+                currentStatus === "pending" &&
+                nextStatus.trim().toLowerCase() === "preparing"
             ) {
                 await supplierOrderService.shipWithGHN(order.orderId);
             }
@@ -245,7 +245,7 @@ export function SupplierOrderDetail() {
                                 type="button"
                                 onClick={() => handleUpdateStatus("Delivering")}
                                 disabled={updatingStatus}
-                                className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
+                                className="rounded-full bg-[#FF7A1A]  border-dashed px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
                             >
                                 {updatingStatus ? "Updating..." : "Start Delivering"}
                             </button>

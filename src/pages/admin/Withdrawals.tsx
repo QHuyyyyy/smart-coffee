@@ -5,6 +5,7 @@ import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/pagination";
+import { formatVND } from "@/utils/currency";
 
 interface WithdrawalRow {
     withdrawId?: number | null;
@@ -192,7 +193,7 @@ export function AdminWithdrawalsPage() {
                                                     {w.walletId ?? "-"}
                                                 </TableCell> */}
                                                 <TableCell className="text-right font-medium text-[#573E32]">
-                                                    {w.amount?.toLocaleString("vi-VN") ?? "-"}
+                                                    {formatVND(w.amount)}
                                                 </TableCell>
                                                 <TableCell className="text-right text-xs">
                                                     {renderStatusBadge(w.status)}

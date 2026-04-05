@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
+import { formatVND } from "@/utils/currency";
 
 export function SupplierProducts() {
     const currentUser = useAuthStore((state) => state.currentUser);
@@ -75,8 +76,7 @@ export function SupplierProducts() {
     };
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     const formatRating = (value: number | null | undefined) => {

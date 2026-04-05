@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { recipeService } from "@/apis/recipe.service";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatVND } from "@/utils/currency";
 
 type RecipeDetail = {
     recipeId: number;
@@ -62,8 +63,7 @@ type BrewingVariables = {
 type ParsedOccasions = string[];
 
 const formatCurrency = (value: number | null | undefined) => {
-    if (value === null || value === undefined || Number.isNaN(value)) return "-";
-    return `${value.toLocaleString("vi-VN")}₫`;
+    return formatVND(value);
 };
 
 const formatDate = (value: string | null | undefined) => {

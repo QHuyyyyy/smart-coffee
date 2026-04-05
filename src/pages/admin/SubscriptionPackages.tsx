@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { subscriptionPackageService, type SubscriptionPackage } from "@/apis/subscriptionPackage.service";
 import { toast } from "sonner";
+import { formatVND } from "@/utils/currency";
 
 interface PackageFormState {
     name: string;
@@ -115,7 +116,7 @@ export function SubscriptionPackagesPage() {
         },
         {
             title: "Monthly Revenue",
-            value: "89,000,000₫", // UI cứng
+            value: formatVND(89000000), // UI cứng
             icon: BarChart2,
             subtitle: "Estimated subscription revenue",
         },
@@ -266,8 +267,7 @@ export function SubscriptionPackagesPage() {
     };
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value == null || Number.isNaN(Number(value))) return "-";
-        return `${Number(value).toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     const getDescriptionFeatures = (value: string | null | undefined) => {

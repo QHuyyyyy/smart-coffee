@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../apis/axios';
+import { formatVND } from '@/utils/currency';
 
 interface IngredientResponse {
     id: number;
@@ -223,7 +224,7 @@ export function FeedbackPage() {
                                         </div>
                                         <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur-md">
                                             <span className="text-2xl font-black tracking-tight text-white">
-                                                {menuItem.sellingPrice?.toLocaleString('vi-VN')} VND
+                                                {formatVND(menuItem.sellingPrice)}
                                             </span>
                                         </div>
                                     </div>

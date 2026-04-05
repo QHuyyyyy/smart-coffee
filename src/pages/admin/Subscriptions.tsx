@@ -5,6 +5,7 @@ import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { subscriptionService, type Subscription } from "@/apis/subscription.service";
+import { formatVND } from "@/utils/currency";
 
 export function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -156,7 +157,7 @@ export function SubscriptionsPage() {
                                                     </span>
                                                     {sub.package?.price != null && (
                                                         <span className="text-xs text-[#707070]">
-                                                            {(Number(sub.package.price) || 0).toLocaleString("vi-VN")}₫ / month
+                                                            {formatVND(sub.package.price)} / month
                                                         </span>
                                                     )}
                                                 </div>

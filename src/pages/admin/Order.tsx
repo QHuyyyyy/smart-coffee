@@ -5,6 +5,7 @@ import { orderService, type SystemOrder } from "@/apis/order.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/pagination";
+import { formatVND } from "@/utils/currency";
 
 export function AdminOrders() {
     const [orders, setOrders] = useState<SystemOrder[]>([]);
@@ -65,8 +66,7 @@ export function AdminOrders() {
     };
 
     const formatPrice = (value: number | null | undefined) => {
-        if (value === null || value === undefined || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     const renderStatus = (status: string | null | undefined) => {

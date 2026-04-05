@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { RecipeCreateDialog } from "@/components/RecipeCreateDialog";
 import { recipeService } from "@/apis/recipe.service";
 import { toast } from "sonner";
+import { formatVND } from "@/utils/currency";
 
 type Recipe = {
     recipeId: number;
@@ -84,8 +85,7 @@ export function Recipes() {
     };
 
     const formatPrice = (value: number | null) => {
-        if (!value || Number.isNaN(value)) return "-";
-        return `${value.toLocaleString("vi-VN")}₫`;
+        return formatVND(value);
     };
 
     return (
