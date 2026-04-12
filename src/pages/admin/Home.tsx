@@ -10,7 +10,6 @@ import {
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
 import { dashboardService } from "@/apis/dashboard.service";
-import { orderService } from "@/apis/order.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
 import { RevenueLineChart } from "@/components/RevenueLineChart";
@@ -20,12 +19,14 @@ import { formatVND } from "@/utils/currency";
 import {
     BookOpenText,
     CircleDollarSign,
+    Download,
     Handshake,
     Server,
     ShieldCheck,
     Users,
     WalletCards,
 } from "lucide-react";
+import { exportRowsToExcel } from "@/utils/excel";
 
 type SummaryCard = {
     title: string;
@@ -76,6 +77,20 @@ function getStatusClasses(status: string | null | undefined) {
 
 function formatChartDayLabel(value: string, mode: "day" | "month") {
     if (!value) return "-";
+
+    const monthMatch = value.match(/^(\d{4})-(\d{2})$/);
+    if (monthMatch) {
+        const [, year, month] = monthMatch;
+        return `${month}/${year}`;
+    }
+
+    const dayMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+        const [, year, month, day] = dayMatch;
+        if (mode === "month") return `${month}/${year}`;
+        return `${day}/${month}`;
+    }
+
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     if (mode === "month") {
@@ -334,8 +349,8 @@ export function AdminHome() {
 
             const [totalTransactions, commissionRevenue, subscriptionRevenue] = await Promise.all([
                 dashboardService.getTotalTransaction(),
-                orderService.getCommissionRevenue(),
-                orderService.getSubscriptionRevenue(),
+                dashboardService.getCommissionRevenueTotal(),
+                dashboardService.getSubscriptionRevenueTotal(),
             ]);
 
             setFinanceSummary({
@@ -365,32 +380,43 @@ export function AdminHome() {
     };
 
     useEffect(() => {
-        void fetchRevenueOverview({ mode: "day", month: currentMonthYear, year: currentYear });
         void fetchFinanceSummary();
         void fetchMonitoringSummary();
         void fetchRecentTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        void fetchRevenueOverview();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [filter.mode, filter.month, filter.year]);
+
     const revenueBars = useMemo(
         () => {
             const map = new Map<string, { day: string; commission: number; subscription: number }>();
 
             commissionRevenueData.forEach((item) => {
-                map.set(item.time, {
-                    day: item.time,
-                    commission: Number(item.totalRevenue ?? 0),
-                    subscription: 0,
-                });
+                const key = item.time;
+                const existing = map.get(key);
+                if (existing) {
+                    existing.commission = Number(item.totalRevenue ?? 0);
+                } else {
+                    map.set(key, {
+                        day: key,
+                        commission: Number(item.totalRevenue ?? 0),
+                        subscription: 0,
+                    });
+                }
             });
 
             subscriptionRevenueData.forEach((item) => {
-                const existing = map.get(item.time);
+                const key = item.time;
+                const existing = map.get(key);
                 if (existing) {
                     existing.subscription = Number(item.totalRevenue ?? 0);
                 } else {
-                    map.set(item.time, {
-                        day: item.time,
+                    map.set(key, {
+                        day: key,
                         commission: 0,
                         subscription: Number(item.totalRevenue ?? 0),
                     });
@@ -402,20 +428,31 @@ export function AdminHome() {
         [commissionRevenueData, subscriptionRevenueData],
     );
 
+    const monthTicks = useMemo(() => {
+        if (filter.mode !== "month") return undefined;
+        const yearNumber = parsePositiveInt(filter.year);
+        if (!yearNumber) return undefined;
+
+        return Array.from({ length: 12 }, (_, index) => {
+            const month = String(index + 1).padStart(2, "0");
+            return `${yearNumber}-${month}`;
+        });
+    }, [filter.mode, filter.year]);
+
     const totalRevenue = totalCommission + totalSubscription;
 
-    const handleApplyFilter = () => {
-        void fetchRevenueOverview();
-    };
+    const handleExportRevenueOverview = () => {
+        const rows = revenueBars.map((item) => ({
+            Time: formatChartDayLabel(item.day, filter.mode),
+            Commission: item.commission,
+            Subscription: item.subscription,
+        }));
 
-    const handleClearFilter = () => {
-        const cleared = {
-            mode: filter.mode,
-            month: currentMonthYear,
-            year: currentYear,
-        };
-        setFilter(cleared);
-        void fetchRevenueOverview(cleared);
+        exportRowsToExcel({
+            rows,
+            fileName: `admin-revenue-overview-${filter.mode}-${filter.mode === "day" ? filter.month : filter.year}`,
+            sheetName: "RevenueOverview",
+        });
     };
 
     return (
@@ -500,19 +537,12 @@ export function AdminHome() {
 
                                     <button
                                         type="button"
-                                        onClick={handleApplyFilter}
-                                        disabled={revenueLoading}
-                                        className="rounded-lg bg-[#573E32] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                                        onClick={handleExportRevenueOverview}
+                                        disabled={revenueLoading || revenueBars.length === 0}
+                                        aria-label="Export revenue overview to Excel"
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-[#573E32] hover:bg-gray-50 disabled:opacity-50"
                                     >
-                                        Apply
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleClearFilter}
-                                        disabled={revenueLoading}
-                                        className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#573E32] hover:bg-gray-50 disabled:opacity-60"
-                                    >
-                                        Clear
+                                        <Download size={14} />
                                     </button>
                                 </div>
                             </div>
@@ -542,6 +572,9 @@ export function AdminHome() {
                                         <BarChart data={revenueBars} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                                             <XAxis
                                                 dataKey="day"
+                                                ticks={monthTicks}
+                                                interval={filter.mode === "month" ? 0 : "preserveEnd"}
+                                                minTickGap={filter.mode === "month" ? 0 : 8}
                                                 tickFormatter={(value) => formatChartDayLabel(String(value), filter.mode)}
                                                 tick={{ fill: "#8B7E75", fontSize: 12 }}
                                                 axisLine={false}
@@ -552,7 +585,7 @@ export function AdminHome() {
                                                 cursor={{ fill: "rgba(87,62,50,0.08)" }}
                                                 contentStyle={{ borderRadius: 12, borderColor: "#E7DDD4", color: "#3D2E25" }}
                                                 labelFormatter={(label) => formatChartDayLabel(String(label), filter.mode)}
-                                                formatter={(value, name) => [formatVND(Number(value)), name === "commission" ? "Commission" : "Subscription"]}
+                                                formatter={(value, name) => [formatVND(Number(value)), name === "Commission" ? "Commission" : "Subscription"]}
                                             />
                                             <Legend />
                                             <Bar dataKey="commission" name="Commission" fill="#573E32" radius={[6, 6, 0, 0]} maxBarSize={24} />

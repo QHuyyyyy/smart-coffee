@@ -11,6 +11,7 @@ export type SubscriptionPackageInfo = {
 
 export type Subscription = {
     subscriptionId: number;
+    shopName: string | null;
     packageId: number | null;
     ownerId: number | null;
     status: string | null;

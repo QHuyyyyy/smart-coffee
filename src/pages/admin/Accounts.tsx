@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { RotateCcw, UserCheck, UserX, Users } from "lucide-react";
+import { Coffee, Package, RotateCcw, UserCheck, UserX, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,6 @@ import { authService, type AccountManagementItem } from "@/apis/auth.service";
 import { toast } from "sonner";
 
 const DEFAULT_PAGE_SIZE = 20;
-
 const STATUS_OPTIONS: Array<{ label: string; value: string }> = [
     { label: "All", value: "" },
     { label: "Active", value: "Active" },
@@ -18,17 +18,17 @@ const ROLE_OPTIONS = ["", "Admin", "ShopOwner", "Supplier", "Staff"];
 
 export function AdminAccountsPage() {
     const [accounts, setAccounts] = useState<AccountManagementItem[]>([]);
+    const [accountTotalCount, setAccountTotalCount] = useState(0);
+    const [statusFilter, setStatusFilter] = useState("");
+    const [roleFilter, setRoleFilter] = useState("");
+    const [updatingAccountId, setUpdatingAccountId] = useState<number | null>(null);
+    const navigate = useNavigate();
+
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const [page, setPage] = useState(1);
     const [pageSize] = useState(DEFAULT_PAGE_SIZE);
-    const [totalCount, setTotalCount] = useState(0);
-
-    const [statusFilter, setStatusFilter] = useState("");
-    const [roleFilter, setRoleFilter] = useState("");
-
-    const [updatingAccountId, setUpdatingAccountId] = useState<number | null>(null);
 
     const fetchAccounts = async (targetPage = 1, nextStatus = statusFilter, nextRole = roleFilter) => {
         try {
@@ -44,7 +44,7 @@ export function AdminAccountsPage() {
 
             const items = Array.isArray(data?.items) ? data.items : [];
             setAccounts(items);
-            setTotalCount(typeof data?.totalCount === "number" ? data.totalCount : items.length);
+            setAccountTotalCount(typeof data?.totalCount === "number" ? data.totalCount : items.length);
             setPage(typeof data?.page === "number" ? data.page : targetPage);
         } catch (err: any) {
             console.error("Failed to load accounts:", err);
@@ -59,7 +59,19 @@ export function AdminAccountsPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const dynamicRoleOptions = useMemo(() => {
+        const roleSet = new Set(ROLE_OPTIONS.filter((role) => role));
+        accounts.forEach((account) => {
+            if (account.role) {
+                roleSet.add(account.role);
+            }
+        });
+        return ["", ...Array.from(roleSet).sort((a, b) => a.localeCompare(b))];
+    }, [accounts]);
+
+    const totalCount = accountTotalCount;
     const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
+
     const fromItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
     const toItem = totalCount === 0 ? 0 : Math.min(totalCount, page * pageSize);
 
@@ -68,7 +80,7 @@ export function AdminAccountsPage() {
         void fetchAccounts(nextPage);
     };
 
-    const handleResetFilter = () => {
+    const handleReset = () => {
         setStatusFilter("");
         setRoleFilter("");
         setPage(1);
@@ -89,21 +101,11 @@ export function AdminAccountsPage() {
             : "bg-red-50 text-red-700 border border-red-100";
 
         return (
-            <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeClass}`}>
+            <span className={`mx-auto inline-flex items-center justify-center rounded-full px-2.5 py-1 text-[11px] font-medium ${badgeClass}`}>
                 {status || "Unknown"}
             </span>
         );
     };
-
-    const dynamicRoleOptions = useMemo(() => {
-        const roleSet = new Set(ROLE_OPTIONS.filter((role) => role));
-        accounts.forEach((account) => {
-            if (account.role) {
-                roleSet.add(account.role);
-            }
-        });
-        return ["", ...Array.from(roleSet).sort((a, b) => a.localeCompare(b))];
-    }, [accounts]);
 
     const handleToggleStatus = async (account: AccountManagementItem) => {
         const currentStatus = (account.status || "").toLowerCase();
@@ -140,21 +142,35 @@ export function AdminAccountsPage() {
                             Manage account status and filter by role.
                         </p>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => navigate("/admin/coffee-shop")}>
+                            <Coffee size={14} className="mr-1" />
+                            Coffee Shop
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => navigate("/admin/shop-staff")}>
+                            <Users size={14} className="mr-1" />
+                            Staff
+                        </Button>
+                        <Button type="button" variant="outline" size="sm" onClick={() => navigate("/admin/suppliers")}>
+                            <Package size={14} className="mr-1" />
+                            Supplier
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
                     <div className="flex flex-col gap-3 px-6 py-4 border-b border-[#EFEAE5]">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-5">
                                 {STATUS_OPTIONS.map((statusOption) => {
                                     const active = statusFilter === statusOption.value;
                                     return (
                                         <button
                                             key={statusOption.label}
                                             type="button"
-                                            className={`inline-flex items-center justify-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${active
-                                                ? "bg-[#573E32] text-white"
-                                                : "bg-[#F6F1EC] text-[#6E5A4D] hover:bg-[#EDE3DA]"
+                                            className={`inline-flex items-center gap-2 pb-1 border-b-2 transition-colors ${active
+                                                ? "border-[#573E32] text-[#573E32] font-semibold"
+                                                : "border-transparent hover:text-[#573E32]"
                                                 }`}
                                             onClick={() => {
                                                 setStatusFilter(statusOption.value);
@@ -168,9 +184,10 @@ export function AdminAccountsPage() {
                                 })}
                             </div>
 
-                            <div>
+                            <div className="inline-flex items-center gap-2">
+                                <label className="text-sm text-gray-600">Role</label>
                                 <select
-                                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                    className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700"
                                     value={roleFilter}
                                     onChange={(e) => {
                                         const nextRole = e.target.value;
@@ -185,11 +202,9 @@ export function AdminAccountsPage() {
                                         </option>
                                     ))}
                                 </select>
-                            </div>
 
-                            <div className="flex md:justify-end">
-                                <Button type="button" variant="outline" size="icon" onClick={handleResetFilter} title="Reset filters">
-                                    <RotateCcw size={16} />
+                                <Button type="button" variant="outline" size="sm" onClick={handleReset} title="Reload current tab">
+                                    Reset
                                 </Button>
                             </div>
                         </div>
@@ -222,7 +237,7 @@ export function AdminAccountsPage() {
                                                 <TableCell className="text-[#1F1F1F]">{account.email}</TableCell>
                                                 <TableCell className="text-[#707070]">{account.role || "-"}</TableCell>
                                                 <TableCell className="text-[#707070]">{account.phone || "-"}</TableCell>
-                                                <TableCell className="text-center">{renderStatus(account.status)}</TableCell>
+                                                <TableCell className="text-center align-middle">{renderStatus(account.status)}</TableCell>
                                                 <TableCell className="text-center text-xs text-[#707070]">
                                                     {formatDateTime(account.createDate)}
                                                 </TableCell>
@@ -254,7 +269,7 @@ export function AdminAccountsPage() {
                                     {loading && (
                                         <TableRow>
                                             <TableCell colSpan={8} className="py-6 text-center">
-                                                <InlineLoading text="Loading accounts..." />
+                                                <InlineLoading text="Loading data..." />
                                             </TableCell>
                                         </TableRow>
                                     )}
@@ -262,7 +277,7 @@ export function AdminAccountsPage() {
                                     {!loading && accounts.length === 0 && !error && (
                                         <TableRow>
                                             <TableCell colSpan={8} className="py-6 text-center text-[#707070]">
-                                                No accounts found.
+                                                No data found.
                                             </TableCell>
                                         </TableRow>
                                     )}

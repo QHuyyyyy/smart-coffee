@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { orderService } from "@/apis/order.service";
+import { dashboardService } from "@/apis/dashboard.service";
 import { DollarSign, Package, RefreshCw } from "lucide-react";
 import { formatVND } from "@/utils/currency";
 
@@ -49,8 +50,8 @@ export function Transaction() {
         try {
             setRevenueLoading(true);
             const [comm, sub, ship] = await Promise.all([
-                orderService.getCommissionRevenue(),
-                orderService.getSubscriptionRevenue(),
+                dashboardService.getCommissionRevenueTotal(),
+                dashboardService.getSubscriptionRevenueTotal(),
                 orderService.getShippingRevenue(),
             ]);
             setCommissionRevenue(comm);
@@ -238,8 +239,8 @@ export function Transaction() {
                                         {/* <TableHead>Doc No</TableHead>
                                         <TableHead>Doc Type</TableHead> */}
                                         <TableHead>Transaction Type</TableHead>
-
-                                        <TableHead className="w-24">User  ID</TableHead>
+                                        <TableHead className="w-24">UserID</TableHead>
+                                        <TableHead className="w-24">UserName</TableHead>
                                         <TableHead className="text-center">Amount</TableHead>
 
                                         <TableHead className="text-center">Notes</TableHead>
@@ -256,13 +257,13 @@ export function Transaction() {
                                             {/* <TableCell>{item.docNo ?? "-"}</TableCell>
                                             <TableCell>{item.docType ?? "-"}</TableCell> */}
                                             <TableCell>{item.transactionType ?? "-"}</TableCell>
-
-
                                             <TableCell className="w-24">#{item.userId}</TableCell>
+
+                                            <TableCell className="w-24">#{item.userName}</TableCell>
                                             <TableCell className="text-center font-medium text-[#573E32]">
                                                 {item.totalPrice != null ? formatVND(item.totalPrice) : "-"}
                                             </TableCell>
-                                            <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
+                                            <TableCell className="max-w-60 truncate text-[#707070] text-center " title={item.notes ?? ""}>
                                                 {item.notes ?? "-"}
                                             </TableCell>
                                             <TableCell className="text-center">

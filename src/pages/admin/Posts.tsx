@@ -1,35 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
-import { FileText, CheckCircle2, XCircle } from "lucide-react";
+import { FileText, CheckCircle2, XCircle, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { postService, type PostItem } from "@/apis/post.service";
+import { postService, type PostCategoryItem, type PostItem } from "@/apis/post.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
+import { PostDetailModal } from "@/components/PostDetailModal";
 
 type PostTab = "unapproved" | "approved";
 
 type Filters = {
     coffeeShopId: string;
     postCategoryId: string;
-    publishedFrom: string;
-    publishedTo: string;
-    createFrom: string;
-    createTo: string;
+    publishedFrom: Date | null;
+    publishedTo: Date | null;
+    createFrom: Date | null;
+    createTo: Date | null;
     title: string;
-    status: string;
 };
 
 const defaultFilters: Filters = {
     coffeeShopId: "",
     postCategoryId: "",
-    publishedFrom: "",
-    publishedTo: "",
-    createFrom: "",
-    createTo: "",
+    publishedFrom: null,
+    publishedTo: null,
+    createFrom: null,
+    createTo: null,
     title: "",
-    status: "",
 };
 
 function formatDateTime(value: string | null | undefined) {
@@ -39,12 +37,34 @@ function formatDateTime(value: string | null | undefined) {
     return date.toLocaleString("vi-VN");
 }
 
-function normalizeDateTimeLocal(value: string) {
+function normalizeDateTimeLocal(value: Date | null) {
     if (!value) return undefined;
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return undefined;
-    return date.toISOString();
+    if (Number.isNaN(value.getTime())) return undefined;
+    return value.toISOString();
 }
+
+function getPostStatusClasses(status: string | null | undefined) {
+    const normalized = (status ?? "").toLowerCase();
+
+    if (normalized === "pending") {
+        return "bg-[#FFF6E4] text-[#C8811A] border border-[#F2E1B6]";
+    }
+
+    if (normalized === "hidden") {
+        return "bg-[#F2F4F7] text-[#5F6B7A] border border-[#E3E8EE]";
+    }
+
+    if (normalized === "cancelled" || normalized === "canceled") {
+        return "bg-[#FDECEC] text-[#C24242] border border-[#F8D1D1]";
+    }
+
+    if (normalized === "public") {
+        return "bg-[#E8F6EE] text-[#2E8B57] border border-[#CFEAD9]";
+    }
+
+    return "bg-gray-100 text-gray-700 border border-gray-200";
+}
+
 
 export function AdminPostsPage() {
     const [tab, setTab] = useState<PostTab>("unapproved");
@@ -52,11 +72,19 @@ export function AdminPostsPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [actingPostId, setActingPostId] = useState<number | null>(null);
+    const [postCategories, setPostCategories] = useState<PostCategoryItem[]>([]);
+
+    const [detailOpen, setDetailOpen] = useState(false);
+    const [selectedPost, setSelectedPost] = useState<PostItem | null>(null);
 
     const [filters, setFilters] = useState<Filters>(defaultFilters);
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(20);
     const [totalCount, setTotalCount] = useState(0);
+
+    const categoryNameById = useMemo(() => {
+        return new Map(postCategories.map((category) => [category.postCategoryId, category.categoryName]));
+    }, [postCategories]);
 
     const fetchPosts = async (targetPage = page, customFilters?: Filters, customPageSize?: number) => {
         try {
@@ -67,21 +95,22 @@ export function AdminPostsPage() {
             const activePageSize = customPageSize ?? pageSize;
 
             const response = await postService.getPaginated({
-                coffeeShopId: activeFilters.coffeeShopId ? Number(activeFilters.coffeeShopId) : undefined,
-                postCategoryId: activeFilters.postCategoryId ? Number(activeFilters.postCategoryId) : undefined,
-                publishedFrom: normalizeDateTimeLocal(activeFilters.publishedFrom),
-                publishedTo: normalizeDateTimeLocal(activeFilters.publishedTo),
-                isApproved: tab === "approved",
+
+                status: tab === "unapproved" ? "Pending" : undefined,
                 createFrom: normalizeDateTimeLocal(activeFilters.createFrom),
                 createTo: normalizeDateTimeLocal(activeFilters.createTo),
                 title: activeFilters.title.trim() || undefined,
-                status: activeFilters.status.trim() || undefined,
                 pageSize: activePageSize,
                 pageNo: targetPage,
             });
 
-            setPosts(response.items ?? []);
-            setTotalCount(response.totalCount ?? 0);
+            const items = response.items ?? [];
+            const tabFilteredItems = tab === "approved"
+                ? items.filter((item) => (item.status ?? "").toLowerCase() !== "pending")
+                : items;
+
+            setPosts(tabFilteredItems);
+            setTotalCount(tab === "approved" ? tabFilteredItems.length : (response.totalCount ?? 0));
             setPage(targetPage);
         } catch (err: any) {
             setError(err?.response?.data?.message || err?.message || "Failed to load posts");
@@ -93,7 +122,20 @@ export function AdminPostsPage() {
     useEffect(() => {
         void fetchPosts(1);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab, pageSize]);
+    }, [tab, pageSize, filters]);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const data = await postService.getCategories();
+                setPostCategories(Array.isArray(data) ? data : []);
+            } catch {
+                setPostCategories([]);
+            }
+        };
+
+        void fetchCategories();
+    }, []);
 
     const totalPages = useMemo(() => {
         return totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
@@ -139,6 +181,11 @@ export function AdminPostsPage() {
         }
     };
 
+    const handleViewDetails = (post: PostItem) => {
+        setSelectedPost(post);
+        setDetailOpen(true);
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -155,89 +202,64 @@ export function AdminPostsPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
-                    <div className="px-6 pt-4 pb-2 border-b border-[#EFEAE5]">
-                        <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === "unapproved"
-                                    ? "bg-[#573E32] text-white"
-                                    : "bg-[#F5F1EE] text-[#573E32] hover:bg-[#EEE7E2]"
-                                    }`}
-                                onClick={() => handleTabChange("unapproved")}
-                            >
-                                Wait for Approval
-                            </button>
-                            <button
-                                type="button"
-                                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === "approved"
-                                    ? "bg-[#573E32] text-white"
-                                    : "bg-[#F5F1EE] text-[#573E32] hover:bg-[#EEE7E2]"
-                                    }`}
-                                onClick={() => handleTabChange("approved")}
-                            >
-                                Approved
-                            </button>
-                        </div>
-                    </div>
+                    <div className="px-6 py-4 border-b border-[#EFEAE5]">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === "unapproved"
+                                        ? "bg-[#573E32] text-white"
+                                        : "bg-[#F5F1EE] text-[#573E32] hover:bg-[#EEE7E2]"
+                                        }`}
+                                    onClick={() => handleTabChange("unapproved")}
+                                >
+                                    Wait for Approval
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${tab === "approved"
+                                        ? "bg-[#573E32] text-white"
+                                        : "bg-[#F5F1EE] text-[#573E32] hover:bg-[#EEE7E2]"
+                                        }`}
+                                    onClick={() => handleTabChange("approved")}
+                                >
+                                    Approved
+                                </button>
+                            </div>
 
-                    <div className="px-6 py-4 border-b border-[#EFEAE5] grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                        {/* <Input
-                            type="number"
-                            placeholder="coffeeShopId"
-                            value={filters.coffeeShopId}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, coffeeShopId: e.target.value }))}
-                        /> */}
-                        {/* <Input
-                            type="number"
-                            placeholder="postCategoryId"
-                            value={filters.postCategoryId}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, postCategoryId: e.target.value }))}
-                        /> */}
-                        <Input
-                            placeholder="title"
-                            value={filters.title}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, title: e.target.value }))}
-                        />
-                        <Input
-                            type="datetime-local"
-                            placeholder="createFrom"
-                            value={filters.createFrom}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, createFrom: e.target.value }))}
-                        />
-                        <Input
-                            type="datetime-local"
-                            placeholder="createTo"
-                            value={filters.createTo}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, createTo: e.target.value }))}
-                        />
+                            <div className="flex flex-wrap items-end justify-end gap-3">
 
-                        <Input
-                            placeholder="status"
-                            value={filters.status}
-                            onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
-                        />
+                                <div className="flex items-center gap-2 rounded-full bg-[#F5F3F1] px-4 h-11 w-full sm:w-52">
 
-                        <div className="flex ml-auto gap-2 xl:col-span-4">
+                                    <Search size={16} className="text-[#B0A49E]" />
+                                    <input
+                                        type="text"
+                                        placeholder="Title of post"
+                                        value={filters.title}
+                                        onChange={(e) => {
+                                            setPage(1);
+                                            setFilters((prev) => ({ ...prev, title: e.target.value }));
+                                        }}
+                                        className="w-full bg-transparent text-sm text-[#573E32] placeholder:text-[#B0A49E] focus:outline-none"
+                                    />
+                                </div>
 
-                            <Button
-                                type="button"
-                                variant="coffee"
-                                onClick={() => void fetchPosts(1)}
-                            >
-                                Apply Filters
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                    setFilters(defaultFilters);
-                                    setPageSize(20);
-                                    setPage(1);
-                                    void fetchPosts(1, defaultFilters, 20);
-                                }}
-                            >
-                                Reset
-                            </Button>
+
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    className="h-10 rounded-2xl px-4"
+                                    onClick={() => {
+                                        setFilters(defaultFilters);
+                                        setPageSize(20);
+                                        setPage(1);
+                                        void fetchPosts(1, defaultFilters, 20);
+                                    }}
+                                >
+                                    Reset
+                                </Button>
+                            </div>
                         </div>
                     </div>
 
@@ -250,7 +272,7 @@ export function AdminPostsPage() {
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
                                         <TableHead>Title</TableHead>
-                                        <TableHead className="text-center">Coffee Shop</TableHead>
+                                        <TableHead className="text-center">CoffeeShop</TableHead>
                                         <TableHead className="text-center">Category</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-center">Views</TableHead>
@@ -263,12 +285,20 @@ export function AdminPostsPage() {
                                     {!loading && posts.map((post) => (
                                         <TableRow key={post.postId}>
                                             <TableCell className="font-medium text-[#573E32]">#{post.postId}</TableCell>
-                                            <TableCell className="max-w-[220px] truncate" title={post.title ?? ""}>
+                                            <TableCell className="max-w-55 truncate" title={post.title ?? ""}>
                                                 {post.title ?? "-"}
                                             </TableCell>
-                                            <TableCell className="text-center">{post.coffeeShopId ?? "-"}</TableCell>
-                                            <TableCell className="text-center">{post.postCategoryId ?? "-"}</TableCell>
-                                            <TableCell className="text-center">{post.status ?? "-"}</TableCell>
+                                            <TableCell className="text-center">{post.shopName ?? "-"}</TableCell>
+                                            <TableCell className="text-center">
+                                                {post.postCategoryId
+                                                    ? (categoryNameById.get(post.postCategoryId) ?? `#${post.postCategoryId}`)
+                                                    : "-"}
+                                            </TableCell>
+                                            <TableCell className="text-center">
+                                                <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-1 text-[11px] font-medium capitalize ${getPostStatusClasses(post.status)}`}>
+                                                    {post.status ?? "-"}
+                                                </span>
+                                            </TableCell>
                                             <TableCell className="text-center">{post.viewCount ?? 0}</TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
                                                 {formatDateTime(post.createdAt)}
@@ -276,6 +306,14 @@ export function AdminPostsPage() {
                                             <TableCell>
                                                 {tab === "unapproved" ? (
                                                     <div className="flex items-center justify-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#B0A49E] hover:text-[#573E32] hover:bg-[#F5F3F1]"
+                                                            aria-label="View post detail"
+                                                            onClick={() => void handleViewDetails(post)}
+                                                        >
+                                                            <Eye size={16} />
+                                                        </button>
                                                         <Button
                                                             type="button"
                                                             size="sm"
@@ -299,7 +337,16 @@ export function AdminPostsPage() {
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <span className="text-xs text-[#9B8E87]">-</span>
+                                                    <div className="flex items-center justify-center">
+                                                        <button
+                                                            type="button"
+                                                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[#B0A49E] hover:text-[#573E32] hover:bg-[#F5F3F1]"
+                                                            aria-label="View post detail"
+                                                            onClick={() => void handleViewDetails(post)}
+                                                        >
+                                                            <Eye size={16} />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </TableCell>
                                         </TableRow>
@@ -335,6 +382,13 @@ export function AdminPostsPage() {
                     </div>
                 </div>
             </div>
+
+            <PostDetailModal
+                open={detailOpen}
+                onOpenChange={(open) => setDetailOpen(open)}
+                post={selectedPost}
+                categoryName={selectedPost?.postCategoryId ? (categoryNameById.get(selectedPost.postCategoryId) ?? `#${selectedPost.postCategoryId}`) : "-"}
+            />
         </div>
     );
 }
