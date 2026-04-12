@@ -19,6 +19,17 @@ function formatDateTime(value: string | null | undefined) {
     return date.toLocaleString("vi-VN");
 }
 
+function formatDocType(docType: string | null | undefined) {
+    if (!docType) return "-";
+    switch (docType) {
+        case "1": return "Wallet";
+        case "2": return "Order";
+        case "3": return "Withdrawal/Settlement";
+        case "4": return "Subscription";
+        default: return docType;
+    }
+}
+
 function getStatusClasses(status: string | null | undefined) {
     const normalized = (status ?? "").toLowerCase();
     if (normalized === "completed") return "bg-emerald-50 text-emerald-700 border border-emerald-100";
@@ -236,8 +247,8 @@ export function Transaction() {
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
 
-                                        {/* <TableHead>Doc No</TableHead>
-                                        <TableHead>Doc Type</TableHead> */}
+                                        {/* <TableHead>Doc No</TableHead> */}
+                                        <TableHead>Doc Type</TableHead>
                                         <TableHead>Transaction Type</TableHead>
                                         <TableHead className="w-24">UserID</TableHead>
                                         <TableHead className="w-24">UserName</TableHead>
@@ -254,8 +265,8 @@ export function Transaction() {
                                         <TableRow key={item.transactionId}>
                                             <TableCell className="font-medium text-[#573E32]">#{item.transactionId}</TableCell>
 
-                                            {/* <TableCell>{item.docNo ?? "-"}</TableCell>
-                                            <TableCell>{item.docType ?? "-"}</TableCell> */}
+                                            {/* <TableCell>{item.docNo ?? "-"}</TableCell> */}
+                                            <TableCell>{formatDocType(item.docType)}</TableCell>
                                             <TableCell>{item.transactionType ?? "-"}</TableCell>
                                             <TableCell className="w-24">#{item.userId}</TableCell>
 

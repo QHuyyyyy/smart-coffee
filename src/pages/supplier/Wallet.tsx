@@ -28,6 +28,17 @@ function formatCurrency(amount: number | null | undefined, currency: string | nu
     return formatVND(amount);
 }
 
+function formatDocType(docType: string | null | undefined) {
+    if (!docType) return "-";
+    switch (docType) {
+        case "1": return "Wallet";
+        case "2": return "Order";
+        case "3": return "Withdrawal";
+        case "4": return "Subscription";
+        default: return docType;
+    }
+}
+
 function formatDate(value: string | null | undefined) {
     if (!value) return "-";
     return new Date(value).toLocaleString();
@@ -669,7 +680,7 @@ export function Wallet() {
                                                         {item.docNo ?? "-"}
                                                     </TableCell>
                                                     <TableCell className="py-3 pr-4 text-gray-700">
-                                                        {item.docType ?? "-"}
+                                                        {formatDocType(item.docType)}
                                                     </TableCell>
                                                     <TableCell className="py-3 pr-4 text-gray-700">
                                                         {item.transactionType ?? "-"}
