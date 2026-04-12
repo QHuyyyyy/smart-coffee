@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users, CreditCard, CalendarClock, BadgeCheck } from "lucide-react";
+import { Users, BadgeCheck } from "lucide-react";
 import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
@@ -119,14 +119,7 @@ export function SubscriptionsPage() {
                             >
                                 Reset
                             </Button>
-                            <div className="flex items-center gap-1">
-                                <CreditCard size={14} className="text-[#573E32]" />
-                                <span>Total: {totalCount}</span>
-                            </div>
-                            <div className="hidden md:flex items-center gap-1">
-                                <CalendarClock size={14} className="text-[#573E32]" />
-                                <span>Page {page} / {totalPages}</span>
-                            </div>
+
                         </div>
                     </div>
 
@@ -139,7 +132,8 @@ export function SubscriptionsPage() {
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-20">ID</TableHead>
                                         <TableHead>Package</TableHead>
-                                        <TableHead className="text-center">Owner ID</TableHead>
+                                        {/* <TableHead className="text-center">AccountID</TableHead> */}
+                                        <TableHead className="text-center">ShopName</TableHead>
                                         <TableHead className="text-center">Status</TableHead>
                                         <TableHead className="text-center">Start Date</TableHead>
                                         <TableHead className="text-center">End Date</TableHead>
@@ -162,7 +156,8 @@ export function SubscriptionsPage() {
                                                     )}
                                                 </div>
                                             </TableCell>
-                                            <TableCell className="text-center text-[#573E32]">{sub.ownerId ?? "-"}</TableCell>
+                                            {/* <TableCell className="text-center text-[#573E32]">{sub.ownerId ?? "-"}</TableCell> */}
+                                            <TableCell className="text-center text-[#573E32]">{sub.shopName ?? "-"}</TableCell>
                                             <TableCell className="text-center">{renderStatus(sub.status)}</TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
                                                 {formatDateTime(sub.startDate)}

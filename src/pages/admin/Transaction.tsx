@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { orderService } from "@/apis/order.service";
+import { dashboardService } from "@/apis/dashboard.service";
 import { DollarSign, Package, RefreshCw } from "lucide-react";
 import { formatVND } from "@/utils/currency";
 
@@ -16,6 +17,17 @@ function formatDateTime(value: string | null | undefined) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString("vi-VN");
+}
+
+function formatDocType(docType: string | null | undefined) {
+    if (!docType) return "-";
+    switch (docType) {
+        case "1": return "Wallet";
+        case "2": return "Order";
+        case "3": return "Withdrawal/Settlement";
+        case "4": return "Subscription";
+        default: return docType;
+    }
 }
 
 function getStatusClasses(status: string | null | undefined) {
@@ -49,8 +61,8 @@ export function Transaction() {
         try {
             setRevenueLoading(true);
             const [comm, sub, ship] = await Promise.all([
-                orderService.getCommissionRevenue(),
-                orderService.getSubscriptionRevenue(),
+                dashboardService.getCommissionRevenueTotal(),
+                dashboardService.getSubscriptionRevenueTotal(),
                 orderService.getShippingRevenue(),
             ]);
             setCommissionRevenue(comm);
@@ -235,11 +247,11 @@ export function Transaction() {
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
 
-                                        {/* <TableHead>Doc No</TableHead>
-                                        <TableHead>Doc Type</TableHead> */}
+                                        {/* <TableHead>Doc No</TableHead> */}
+                                        <TableHead>Doc Type</TableHead>
                                         <TableHead>Transaction Type</TableHead>
-
-                                        <TableHead className="w-24">User  ID</TableHead>
+                                        <TableHead className="w-24">UserID</TableHead>
+                                        <TableHead className="w-24">UserName</TableHead>
                                         <TableHead className="text-center">Amount</TableHead>
 
                                         <TableHead className="text-center">Notes</TableHead>
@@ -253,16 +265,16 @@ export function Transaction() {
                                         <TableRow key={item.transactionId}>
                                             <TableCell className="font-medium text-[#573E32]">#{item.transactionId}</TableCell>
 
-                                            {/* <TableCell>{item.docNo ?? "-"}</TableCell>
-                                            <TableCell>{item.docType ?? "-"}</TableCell> */}
+                                            {/* <TableCell>{item.docNo ?? "-"}</TableCell> */}
+                                            <TableCell>{formatDocType(item.docType)}</TableCell>
                                             <TableCell>{item.transactionType ?? "-"}</TableCell>
-
-
                                             <TableCell className="w-24">#{item.userId}</TableCell>
+
+                                            <TableCell className="w-24">#{item.userName}</TableCell>
                                             <TableCell className="text-center font-medium text-[#573E32]">
                                                 {item.totalPrice != null ? formatVND(item.totalPrice) : "-"}
                                             </TableCell>
-                                            <TableCell className="max-w-[240px] truncate text-[#707070] text-center " title={item.notes ?? ""}>
+                                            <TableCell className="max-w-60 truncate text-[#707070] text-center " title={item.notes ?? ""}>
                                                 {item.notes ?? "-"}
                                             </TableCell>
                                             <TableCell className="text-center">

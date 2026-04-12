@@ -4,6 +4,7 @@ export type PostItem = {
     postId: number;
     recipeId: number | null;
     coffeeShopId: number | null;
+    shopName: string | null;
     postCategoryId: number | null;
     title: string | null;
     status: string | null;
@@ -35,9 +36,20 @@ export type PostPaginatedResponse = {
     items: PostItem[];
 };
 
+export type PostCategoryItem = {
+    postCategoryId: number;
+    categoryName: string;
+    createdAt: string | null;
+};
+
 export const postService = {
     getPaginated: async (params: PostQueryParams) => {
         const response = await api.get<PostPaginatedResponse>("/Post", { params });
+        return response.data;
+    },
+
+    getCategories: async () => {
+        const response = await api.get<PostCategoryItem[]>("/post-categories");
         return response.data;
     },
 
@@ -47,7 +59,7 @@ export const postService = {
     },
 
     cancel: async (postId: number) => {
-        const response = await api.put<PostItem>(`/admin/posts/${postId}/cancel`);
+        const response = await api.put<PostItem>(`/admin/posts/${postId}/unapprove`);
         return response.data;
     },
 };

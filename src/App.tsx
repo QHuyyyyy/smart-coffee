@@ -26,6 +26,8 @@ import { Transaction } from './pages/admin/Transaction';
 import { AdminPostsPage } from './pages/admin/Posts';
 import { AdminIngredientsPage } from './pages/admin/Ingredients';
 import { AdminAccountsPage } from './pages/admin/Accounts';
+import { AdminShopStaffPage } from './pages/admin/ShopStaff';
+import { AdminSuppliersPage } from './pages/admin/Suppliers';
 import { SystemSettingsPage } from './pages/admin/SystemSettings';
 
 function App() {
@@ -159,6 +161,28 @@ function App() {
                     <ProtectedRoute allowedRoles={["Admin"]}>
                         <Layout>
                             <AdminAccountsPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/shop-staff"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminShopStaffPage />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
+                path="/admin/suppliers"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <AdminSuppliersPage />
                         </Layout>
                     </ProtectedRoute>
                 )}

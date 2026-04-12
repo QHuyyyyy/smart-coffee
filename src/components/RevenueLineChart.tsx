@@ -8,9 +8,11 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
+import { Download } from "lucide-react";
 import { dashboardService, type DashboardChartPoint } from "@/apis/dashboard.service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatVND } from "@/utils/currency";
+import { exportRowsToExcel } from "@/utils/excel";
 
 type RevenueLineChartProps = {
     mode: "admin" | "supplier";
@@ -26,6 +28,20 @@ type RevenueFilter = {
 
 function formatChartLabel(value: string, mode: "day" | "month") {
     if (!value) return "-";
+
+    const monthMatch = value.match(/^(\d{4})-(\d{2})$/);
+    if (monthMatch) {
+        const [, year, month] = monthMatch;
+        return `${month}/${year}`;
+    }
+
+    const dayMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+        const [, year, month, day] = dayMatch;
+        if (mode === "month") return `${month}/${year}`;
+        return `${day}/${month}`;
+    }
+
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     if (mode === "month") {
@@ -118,9 +134,9 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
     };
 
     useEffect(() => {
-        void fetchChart({ mode: "day", month: currentMonthYear, year: currentYear });
+        void fetchChart();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [mode, supplierId]);
+    }, [mode, supplierId, filter.mode, filter.month, filter.year]);
 
     const chartData = useMemo(
         () =>
@@ -133,18 +149,28 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
         [data],
     );
 
-    const handleApply = () => {
-        void fetchChart();
-    };
+    const monthTicks = useMemo(() => {
+        if (filter.mode !== "month") return undefined;
+        const yearNumber = parsePositiveInt(filter.year);
+        if (!yearNumber) return undefined;
 
-    const handleClear = () => {
-        const cleared = {
-            mode: filter.mode,
-            month: currentMonthYear,
-            year: currentYear,
-        };
-        setFilter(cleared);
-        void fetchChart(cleared);
+        return Array.from({ length: 12 }, (_, index) => {
+            const month = String(index + 1).padStart(2, "0");
+            return `${yearNumber}-${month}`;
+        });
+    }, [filter.mode, filter.year]);
+
+    const handleExportExcel = () => {
+        const rows = chartData.map((item) => ({
+            Time: formatChartLabel(item.time, filter.mode),
+            TotalRevenue: item.revenue,
+        }));
+
+        exportRowsToExcel({
+            rows,
+            fileName: `${mode}-total-revenue-${filter.mode}-${filter.mode === "day" ? filter.month : filter.year}`,
+            sheetName: "TotalRevenue",
+        });
     };
 
     return (
@@ -205,19 +231,12 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
 
                     <button
                         type="button"
-                        onClick={handleApply}
-                        disabled={loading}
-                        className="rounded-lg bg-[#573E32] px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-60"
+                        onClick={handleExportExcel}
+                        disabled={loading || chartData.length === 0}
+                        aria-label="Export chart data to Excel"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-[#573E32] hover:bg-gray-50 disabled:opacity-50"
                     >
-                        Apply
-                    </button>
-                    <button
-                        type="button"
-                        onClick={handleClear}
-                        disabled={loading}
-                        className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#573E32] hover:bg-gray-50 disabled:opacity-60"
-                    >
-                        Clear
+                        <Download size={14} />
                     </button>
                 </div>
             </div>
@@ -235,10 +254,14 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
             ) : (
                 <div className="h-65 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                        <LineChart data={chartData} margin={{ top: 8, right: 20, left: -12, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#EFEAE5" vertical={false} />
                             <XAxis
                                 dataKey="time"
+                                ticks={monthTicks}
+                                interval={filter.mode === "month" ? 0 : "preserveEnd"}
+                                minTickGap={filter.mode === "month" ? 0 : 8}
+                                padding={filter.mode === "month" ? { left: 6, right: 16 } : undefined}
                                 tickFormatter={(value) => formatChartLabel(String(value), filter.mode)}
                                 tick={{ fill: "#8B7E75", fontSize: 12 }}
                                 axisLine={false}

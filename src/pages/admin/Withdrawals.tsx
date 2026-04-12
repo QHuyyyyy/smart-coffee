@@ -10,6 +10,7 @@ import { formatVND } from "@/utils/currency";
 interface WithdrawalRow {
     withdrawId?: number | null;
     walletWithdrawalId?: number | null;
+    accountName: string | null;
     walletId: number | null;
     amount: number | null;
     status: string | null;
@@ -175,7 +176,7 @@ export function AdminWithdrawalsPage() {
                                 <TableHeader>
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
-                                        {/* <TableHead className="text-center">Wallet</TableHead> */}
+                                        <TableHead className="text-center">Account</TableHead>
                                         <TableHead className="text-right">Amount</TableHead>
                                         <TableHead className="text-right">Status</TableHead>
                                         <TableHead className="text-right">Date</TableHead>
@@ -189,9 +190,9 @@ export function AdminWithdrawalsPage() {
                                         return (
                                             <TableRow key={withdrawalId ?? `${w.createAt ?? "unknown"}-${w.amount ?? "unknown"}`}>
                                                 <TableCell className="font-medium text-[#573E32]">{withdrawalId ? `#${withdrawalId}` : "-"}</TableCell>
-                                                {/* <TableCell className="text-center font-medium text-[#573E32]">
-                                                    {w.walletId ?? "-"}
-                                                </TableCell> */}
+                                                <TableCell className="text-center font-medium text-[#573E32]">
+                                                    {w.accountName ?? "-"}
+                                                </TableCell>
                                                 <TableCell className="text-right font-medium text-[#573E32]">
                                                     {formatVND(w.amount)}
                                                 </TableCell>

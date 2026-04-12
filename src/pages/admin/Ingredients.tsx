@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
-import { Carrot, Plus, Pencil, Trash2, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Carrot, Plus, Pencil, Search, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { ingredientService, type Ingredient } from "@/apis/ingredient.service";
@@ -87,16 +86,6 @@ export function AdminIngredientsPage() {
         void fetchIngredients(1, "", "");
     };
 
-    const categoryOptions = useMemo(() => {
-        const set = new Set<string>();
-        ingredients.forEach((ingredient) => {
-            if (ingredient.category) {
-                set.add(ingredient.category);
-            }
-        });
-        return Array.from(set).sort((a, b) => a.localeCompare(b));
-    }, [ingredients]);
-
     const formatDateTime = (value: string | null | undefined) => {
         if (!value) return "-";
         const date = new Date(value);
@@ -108,12 +97,6 @@ export function AdminIngredientsPage() {
         if (!value) return "-";
         if (value.startsWith("0001-01-01")) return "-";
         return formatDateTime(value);
-    };
-
-    const handleCategoryChange = (value: string) => {
-        setCategoryFilter(value);
-        setPage(1);
-        void fetchIngredients(1, nameFilter, value);
     };
 
     const handleConfirmDelete = async () => {
@@ -149,23 +132,13 @@ export function AdminIngredientsPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-sm border border-[#EFEAE5]">
-                    <div className="flex flex-col gap-3 px-6 py-4 border-b border-[#EFEAE5]">
-                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                            <h2 className="text-base font-semibold text-[#573E32]">All Ingredients</h2>
-                            <button
-                                type="button"
-                                className="inline-flex items-center gap-2 rounded-full bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#432d23] transition-colors self-end md:self-auto"
-                                onClick={() => setOpenCreateDialog(true)}
-                            >
-                                <Plus size={16} />
-                                <span>Add Ingredient</span>
-                            </button>
-                        </div>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between px-6 py-4 border-b border-[#EFEAE5]">
+                        <h2 className="text-base font-semibold text-[#573E32]">All Ingredients</h2>
 
-                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
-                            <div className="md:col-span-3 relative">
-                                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B8AAA0]" />
-                                <Input
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                            <div className="flex items-center gap-2 rounded-full bg-[#F5F3F1] px-4 py-2 w-full sm:w-80">
+                                <Search size={16} className="text-[#B0A49E]" />
+                                <input
                                     type="text"
                                     placeholder="Search by ingredient name..."
                                     value={nameFilterInput}
@@ -176,32 +149,23 @@ export function AdminIngredientsPage() {
                                             handleApplyFilter();
                                         }
                                     }}
-                                    className="pl-9 py-2"
+                                    className="w-full bg-transparent text-sm text-[#573E32] placeholder:text-[#B0A49E] focus:outline-none"
                                 />
                             </div>
 
-                            <div className="md:col-span-2">
-                                <select
-                                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                    value={categoryFilter}
-                                    onChange={(e) => handleCategoryChange(e.target.value)}
-                                >
-                                    <option value="">All categories</option>
-                                    {categoryOptions.map((category) => (
-                                        <option key={category} value={category}>
-                                            {category}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            <div className="md:col-span-1 flex gap-2">
-                                <Button type="button" variant="coffee" className="w-full" onClick={handleApplyFilter}>
-                                    Search
-                                </Button>
-                                <Button type="button" variant="outline" className="w-full" onClick={handleResetFilter}>
+                            <div className="flex items-center gap-2 self-end sm:self-auto">
+                                <Button type="button" variant="outline" className="rounded-full" onClick={handleResetFilter}>
                                     Reset
                                 </Button>
+
+                                <button
+                                    type="button"
+                                    className="inline-flex items-center gap-2 rounded-full bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#432d23] transition-colors"
+                                    onClick={() => setOpenCreateDialog(true)}
+                                >
+                                    <Plus size={16} />
+                                    <span>Add Ingredient</span>
+                                </button>
                             </div>
                         </div>
                     </div>

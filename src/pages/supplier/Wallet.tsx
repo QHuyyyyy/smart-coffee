@@ -7,7 +7,6 @@ import {
     type TransactionItem,
     type TransactionPaginatedResponse,
 } from "@/apis/transaction.service";
-import { orderService } from "@/apis/order.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +25,17 @@ function formatCurrency(amount: number | null | undefined, currency: string | nu
         return `${safeAmount.toLocaleString("vi-VN")} ${normalizedCurrency}`;
     }
     return formatVND(amount);
+}
+
+function formatDocType(docType: string | null | undefined) {
+    if (!docType) return "-";
+    switch (docType) {
+        case "1": return "Wallet";
+        case "2": return "Order";
+        case "3": return "Withdrawal/Settlement";
+        case "4": return "Subscription";
+        default: return docType;
+    }
 }
 
 function formatDate(value: string | null | undefined) {
@@ -49,7 +59,6 @@ function getTransactionDescription(
     bankName: string | null,
     bankAccountNumber: string | null,
 ) {
-    // API hiện tại không trả về field type, nên ta suy luận đơn giản dựa trên amount và status
     const amount = w.amount ?? 0;
     const status = (w.status ?? "").toLowerCase();
 
@@ -114,7 +123,7 @@ export function Wallet() {
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
     const [transactionsPage, setTransactionsPage] = useState(1);
     const [transactionsPageSize] = useState(10);
-    const [supplierRevenue, setSupplierRevenue] = useState<number | null>(null);
+    const [isNoBankModalOpen, setIsNoBankModalOpen] = useState(false);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
         try {
@@ -153,20 +162,6 @@ export function Wallet() {
 
         fetchWallet();
     }, [currentUser?.wallet?.walletId]);
-
-    useEffect(() => {
-        const fetchSupplierRevenue = async () => {
-            if (!currentUser?.supplierId) return;
-            try {
-                const revenue = await orderService.getSupplierRevenue(currentUser.supplierId);
-                setSupplierRevenue(revenue);
-            } catch (err) {
-                console.error("Failed to load supplier revenue:", err);
-            }
-        };
-
-        fetchSupplierRevenue();
-    }, [currentUser?.supplierId]);
 
     const fetchTransactions = async (page = transactionsPage) => {
         if (!currentUser?.accountId || isAdmin) return;
@@ -251,6 +246,10 @@ export function Wallet() {
     };
 
     const openWithdrawDialog = () => {
+        if (!wallet?.bankName || !wallet?.bankAccountNumber) {
+            setIsNoBankModalOpen(true);
+            return;
+        }
         setWithdrawAmount("");
         setWithdrawOtp("");
         setCreatedWithdrawId(null);
@@ -407,320 +406,313 @@ export function Wallet() {
                                             {formatCurrency(wallet.heldBalance, wallet.currency)}
                                         </p>
                                     </div>
-                                    <div className="flex flex-col items-end text-right">
-                                        <p className="text-xs text-gray-500">Total Revenue</p>
-                                        <p className="text-xl md:text-2xl font-semibold tracking-tight h-8 md:h-9 flex items-center text-[#F47A1F]">
-                                            {supplierRevenue != null ? formatCurrency(supplierRevenue, wallet.currency) : "Loading..."}
-                                        </p>
-                                    </div>
+
                                     {!isAdmin && (
                                         <button
                                             type="button"
                                             className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                             onClick={openWithdrawDialog}
-                                            disabled={!wallet.bankName || !wallet.bankAccountNumber}
                                         >
                                             Request Withdraw
                                         </button>
                                     )}
                                 </div>
                             </div>
-                            {/* Right: bank account info (hidden for Admin) */}
-                            {!isAdmin && (
-                                <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
-                                    </div>
 
-                                    <div className="flex items-center justify-between gap-4">
-                                        <div className="text-sm text-gray-600 flex-1">
-                                            {wallet.bankName && wallet.bankAccountNumber ? (
-                                                <div className="flex items-center gap-3">
-                                                    {getBankLogo(wallet.bankName) ? (
-                                                        <img
-                                                            src={getBankLogo(wallet.bankName) as string}
-                                                            alt={`${wallet.bankName} logo`}
-                                                            className="h-9 w-9 rounded-full object-contain bg-white border border-gray-200"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-9 w-9 rounded-full bg-[#F47A1F]/10 flex items-center justify-center text-xs font-semibold text-[#B87938]">
-                                                            {getBankInitials(wallet.bankName)}
-                                                        </div>
-                                                    )}
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium text-gray-900 leading-tight">
-                                                            {wallet.bankName}
-                                                        </span>
-                                                        <span className="text-xs text-gray-500">
-                                                            {(() => {
-                                                                const raw = wallet.bankAccountNumber ?? "";
-                                                                const last4 = raw.slice(-4);
-                                                                const masked = last4 ? `**** ${last4}` : "";
-                                                                return `Account ${showFullAccount ? raw : masked}`;
-                                                            })()}
-                                                        </span>
+                            <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
+                                <div className="flex items-center justify-between mb-4">
+                                    <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
+                                </div>
+
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="text-sm text-gray-600 flex-1">
+                                        {wallet.bankName && wallet.bankAccountNumber ? (
+                                            <div className="flex items-center gap-3">
+                                                {getBankLogo(wallet.bankName) ? (
+                                                    <img
+                                                        src={getBankLogo(wallet.bankName) as string}
+                                                        alt={`${wallet.bankName} logo`}
+                                                        className="h-9 w-9 rounded-full object-contain bg-white border border-gray-200"
+                                                    />
+                                                ) : (
+                                                    <div className="h-9 w-9 rounded-full bg-[#F47A1F]/10 flex items-center justify-center text-xs font-semibold text-[#B87938]">
+                                                        {getBankInitials(wallet.bankName)}
                                                     </div>
+                                                )}
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium text-gray-900 leading-tight">
+                                                        {wallet.bankName}
+                                                    </span>
+                                                    <span className="text-xs text-gray-500">
+                                                        {(() => {
+                                                            const raw = wallet.bankAccountNumber ?? "";
+                                                            const last4 = raw.slice(-4);
+                                                            const masked = last4 ? `**** ${last4}` : "";
+                                                            return `Account ${showFullAccount ? raw : masked}`;
+                                                        })()}
+                                                    </span>
                                                 </div>
-                                            ) : (
-                                                <p className="text-gray-400">No linked bank account</p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            {wallet.bankName && wallet.bankAccountNumber && (
-                                                <button
-                                                    type="button"
-                                                    className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                                    onClick={() => setShowFullAccount((prev) => !prev)}
-                                                >
-                                                    {showFullAccount ? "Hide" : "View"}
-                                                </button>
-                                            )}
+                                            </div>
+                                        ) : (
+                                            <p className="text-gray-400">No linked bank account</p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        {wallet.bankName && wallet.bankAccountNumber && (
                                             <button
                                                 type="button"
                                                 className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                                onClick={openBankDialog}
+                                                onClick={() => setShowFullAccount((prev) => !prev)}
                                             >
-                                                {wallet.bankName && wallet.bankAccountNumber ? "Edit Bank Account" : "Add Bank Account"}
+                                                {showFullAccount ? "Hide" : "View"}
                                             </button>
-                                        </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
+                                            onClick={openBankDialog}
+                                        >
+                                            {wallet.bankName && wallet.bankAccountNumber ? "Edit Bank Account" : "Add Bank Account"}
+                                        </button>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+
                         </div>
 
                         {/* Recent transactions (hidden for Admin) */}
-                        {!isAdmin && (
-                            <>
-                                <div className="bg-white shadow rounded-xl p-6">
-                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                                        <h2 className="text-lg font-semibold text-gray-900">
-                                            Withdrawal History
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
-                                                ({withdrawalsData?.totalCount ?? 0} items)
-                                            </span>
-                                        </h2>
-                                        <div className="inline-flex items-center gap-2">
-                                            <label className="text-sm text-gray-600">Status</label>
-                                            <select
-                                                className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700"
-                                                value={withdrawalsStatus}
-                                                onChange={(e) => void handleChangeWithdrawalStatus(e.target.value)}
-                                            >
-                                                <option value="none">All</option>
-                                                <option value="Pending">Pending</option>
-                                                <option value="Unverified">Unverified</option>
-                                                <option value="Processing">Processing</option>
-                                                <option value="Completed">Completed</option>
-                                                <option value="Rejected">Rejected</option>
-                                                <option value="Cancelled">Cancelled</option>
-                                            </select>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setWithdrawalsStatus("none");
-                                                    setWithdrawalsPage(1);
-                                                    if (currentUser?.wallet?.walletId) {
-                                                        void loadWithdrawals(currentUser.wallet.walletId, 1, "none");
-                                                    }
-                                                }}
-                                            >
-                                                Reset
-                                            </Button>
-                                        </div>
+
+                        <>
+                            <div className="bg-white shadow rounded-xl p-6">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        Withdrawal History
+                                        <span className="ml-2 text-sm font-normal text-gray-500">
+                                            ({withdrawalsData?.totalCount ?? 0} items)
+                                        </span>
+                                    </h2>
+                                    <div className="inline-flex items-center gap-2">
+                                        <label className="text-sm text-gray-600">Status</label>
+                                        <select
+                                            className="h-9 rounded-md border border-gray-200 bg-white px-3 text-sm text-gray-700"
+                                            value={withdrawalsStatus}
+                                            onChange={(e) => void handleChangeWithdrawalStatus(e.target.value)}
+                                        >
+                                            <option value="none">All</option>
+                                            <option value="Pending">Pending</option>
+                                            <option value="Unverified">Unverified</option>
+                                            <option value="Processing">Processing</option>
+                                            <option value="Completed">Completed</option>
+                                            <option value="Rejected">Rejected</option>
+                                            <option value="Cancelled">Cancelled</option>
+                                        </select>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+                                                setWithdrawalsStatus("none");
+                                                setWithdrawalsPage(1);
+                                                if (currentUser?.wallet?.walletId) {
+                                                    void loadWithdrawals(currentUser.wallet.walletId, 1, "none");
+                                                }
+                                            }}
+                                        >
+                                            Reset
+                                        </Button>
                                     </div>
+                                </div>
 
-                                    {withdrawalsError && (
-                                        <p className="mb-3 text-sm text-red-500">{withdrawalsError}</p>
-                                    )}
+                                {withdrawalsError && (
+                                    <p className="mb-3 text-sm text-red-500">{withdrawalsError}</p>
+                                )}
 
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow className="border-b border-gray-200 text-gray-500">
-                                                    <TableHead className="py-3 text-left font-medium">Date</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Description</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Status</TableHead>
-                                                    <TableHead className="py-3 text-right font-medium">Amount</TableHead>
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="border-b border-gray-200 text-gray-500">
+                                                <TableHead className="py-3 text-left font-medium">Date</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Description</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Status</TableHead>
+                                                <TableHead className="py-3 text-right font-medium">Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {!isLoadingWithdrawals && transactions.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="py-6 text-center text-gray-400">
+                                                        No transactions yet.
+                                                    </TableCell>
                                                 </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {!isLoadingWithdrawals && transactions.length === 0 && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="py-6 text-center text-gray-400">
-                                                            No transactions yet.
+                                            )}
+
+                                            {isLoadingWithdrawals && (
+                                                <TableRow>
+                                                    <TableCell colSpan={4} className="py-6 text-center text-gray-400">
+                                                        Loading withdrawal history...
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {transactions.map((tx) => {
+                                                const amountValue = tx.amount ?? 0;
+                                                const amountDisplay = `-${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
+                                                const statusClasses = getStatusBadgeClasses(tx.status);
+
+                                                return (
+                                                    <TableRow key={tx.withdrawId} className="border-b border-gray-100 last:border-0">
+                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                            {formatDate(tx.createAt)}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4 text-gray-700">
+                                                            {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
+                                                        </TableCell>
+                                                        <TableCell className="py-3 pr-4">
+                                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
+                                                                {tx.status ?? "-"}
+                                                            </span>
+                                                        </TableCell>
+                                                        <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                            {amountDisplay}
                                                         </TableCell>
                                                     </TableRow>
-                                                )}
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
 
-                                                {isLoadingWithdrawals && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={4} className="py-6 text-center text-gray-400">
-                                                            Loading withdrawal history...
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-
-                                                {transactions.map((tx) => {
-                                                    const amountValue = tx.amount ?? 0;
-                                                    const amountDisplay = `-${amountValue.toLocaleString("vi-VN")} ${wallet.currency}`;
-                                                    const statusClasses = getStatusBadgeClasses(tx.status);
-
-                                                    return (
-                                                        <TableRow key={tx.withdrawId} className="border-b border-gray-100 last:border-0">
-                                                            <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                                {formatDate(tx.createAt)}
-                                                            </TableCell>
-                                                            <TableCell className="py-3 pr-4 text-gray-700">
-                                                                {getTransactionDescription(tx, wallet.bankName, wallet.bankAccountNumber)}
-                                                            </TableCell>
-                                                            <TableCell className="py-3 pr-4">
-                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${statusClasses}`}>
-                                                                    {tx.status ?? "-"}
-                                                                </span>
-                                                            </TableCell>
-                                                            <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
-                                                                {amountDisplay}
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    );
-                                                })}
-                                            </TableBody>
-                                        </Table>
+                                <div className="mt-4 flex w-full flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
+                                    <p>
+                                        Showing {withdrawalsFromItem} to {withdrawalsToItem} of {withdrawalsTotalCount} entries
+                                    </p>
+                                    <div className="sm:ml-auto">
+                                        <TablePagination
+                                            currentPage={withdrawalsPage}
+                                            totalPages={withdrawalsTotalPages}
+                                            onPageChange={(newPage) => {
+                                                if (isLoadingWithdrawals) return;
+                                                if (newPage < 1 || newPage > withdrawalsTotalPages || newPage === withdrawalsPage) return;
+                                                void handleWithdrawalPageChange(newPage);
+                                            }}
+                                        />
                                     </div>
+                                </div>
+                            </div>
 
+                            <div className="bg-white shadow rounded-xl p-6 mt-6">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">
+                                        Transaction List
+                                        <span className="ml-2 text-sm font-normal text-gray-500">
+                                            ({transactionsData?.totalCount ?? 0} items)
+                                        </span>
+                                    </h2>
+                                    <div className="inline-flex items-center gap-2">
+
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => {
+
+                                                setTransactionsPage(1);
+                                                void fetchTransactions(1);
+                                            }}
+                                        >
+                                            Reset
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {transactionsError && (
+                                    <p className="mb-3 text-sm text-red-500">{transactionsError}</p>
+                                )}
+
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow className="border-b border-gray-200 text-gray-500">
+                                                <TableHead className="py-3 text-left font-medium">ID</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Doc No</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Doc Type</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Type</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Notes</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Transaction Date</TableHead>
+                                                <TableHead className="py-3 text-left font-medium">Status</TableHead>
+                                                <TableHead className="py-3 text-right font-medium">Amount</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {!isLoadingTransactions && transactionItems.length === 0 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={8} className="py-6 text-center text-gray-400">
+                                                        No transactions found.
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {isLoadingTransactions && (
+                                                <TableRow>
+                                                    <TableCell colSpan={8} className="py-6 text-center text-gray-400">
+                                                        Loading transactions...
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+
+                                            {transactionItems.map((item) => (
+                                                <TableRow key={item.transactionId} className="border-b border-gray-100 last:border-0">
+                                                    <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                        #{item.transactionId}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                        {item.docNo ?? "-"}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4 text-gray-700">
+                                                        {formatDocType(item.docType)}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4 text-gray-700">
+                                                        {item.transactionType ?? "-"}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4 text-gray-700">
+                                                        {item.notes ?? "-"}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
+                                                        {formatDate(item.transactionDate)}
+                                                    </TableCell>
+                                                    <TableCell className="py-3 pr-4">
+                                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClasses(item.status)}`}>
+                                                            {item.status ?? "-"}
+                                                        </span>
+                                                    </TableCell>
+                                                    <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
+                                                        {formatCurrency(item.totalPrice, wallet.currency)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+
+                                <div className="mt-4 flex items-center justify-end gap-2">
                                     <div className="mt-4 flex w-full flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
                                         <p>
-                                            Showing {withdrawalsFromItem} to {withdrawalsToItem} of {withdrawalsTotalCount} entries
+                                            Showing {transactionsFromItem} to {transactionsToItem} of {transactionsTotalCount} entries
                                         </p>
                                         <div className="sm:ml-auto">
                                             <TablePagination
-                                                currentPage={withdrawalsPage}
-                                                totalPages={withdrawalsTotalPages}
+                                                currentPage={transactionsPage}
+                                                totalPages={transactionsTotalPages}
                                                 onPageChange={(newPage) => {
-                                                    if (isLoadingWithdrawals) return;
-                                                    if (newPage < 1 || newPage > withdrawalsTotalPages || newPage === withdrawalsPage) return;
-                                                    void handleWithdrawalPageChange(newPage);
+                                                    if (isLoadingTransactions) return;
+                                                    if (newPage < 1 || newPage > transactionsTotalPages || newPage === transactionsPage) return;
+                                                    void handleTransactionPageChange(newPage);
                                                 }}
                                             />
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </>
 
-                                <div className="bg-white shadow rounded-xl p-6 mt-6">
-                                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
-                                        <h2 className="text-lg font-semibold text-gray-900">
-                                            Transaction List
-                                            <span className="ml-2 text-sm font-normal text-gray-500">
-                                                ({transactionsData?.totalCount ?? 0} items)
-                                            </span>
-                                        </h2>
-                                        <div className="inline-flex items-center gap-2">
-
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => {
-
-                                                    setTransactionsPage(1);
-                                                    void fetchTransactions(1);
-                                                }}
-                                            >
-                                                Reset
-                                            </Button>
-                                        </div>
-                                    </div>
-
-                                    {transactionsError && (
-                                        <p className="mb-3 text-sm text-red-500">{transactionsError}</p>
-                                    )}
-
-                                    <div className="overflow-x-auto">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow className="border-b border-gray-200 text-gray-500">
-                                                    <TableHead className="py-3 text-left font-medium">ID</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Doc No</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Doc Type</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Type</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Notes</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Transaction Date</TableHead>
-                                                    <TableHead className="py-3 text-left font-medium">Status</TableHead>
-                                                    <TableHead className="py-3 text-right font-medium">Amount</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {!isLoadingTransactions && transactionItems.length === 0 && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={8} className="py-6 text-center text-gray-400">
-                                                            No transactions found.
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-
-                                                {isLoadingTransactions && (
-                                                    <TableRow>
-                                                        <TableCell colSpan={8} className="py-6 text-center text-gray-400">
-                                                            Loading transactions...
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-
-                                                {transactionItems.map((item) => (
-                                                    <TableRow key={item.transactionId} className="border-b border-gray-100 last:border-0">
-                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                            #{item.transactionId}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                            {item.docNo ?? "-"}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4 text-gray-700">
-                                                            {item.docType ?? "-"}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4 text-gray-700">
-                                                            {item.transactionType ?? "-"}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4 text-gray-700">
-                                                            {item.notes ?? "-"}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4 whitespace-nowrap text-gray-700">
-                                                            {formatDate(item.transactionDate)}
-                                                        </TableCell>
-                                                        <TableCell className="py-3 pr-4">
-                                                            <span className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusBadgeClasses(item.status)}`}>
-                                                                {item.status ?? "-"}
-                                                            </span>
-                                                        </TableCell>
-                                                        <TableCell className="py-3 text-right font-medium text-gray-900 whitespace-nowrap">
-                                                            {formatCurrency(item.totalPrice, wallet.currency)}
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </div>
-
-                                    <div className="mt-4 flex items-center justify-end gap-2">
-                                        <div className="mt-4 flex w-full flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
-                                            <p>
-                                                Showing {transactionsFromItem} to {transactionsToItem} of {transactionsTotalCount} entries
-                                            </p>
-                                            <div className="sm:ml-auto">
-                                                <TablePagination
-                                                    currentPage={transactionsPage}
-                                                    totalPages={transactionsTotalPages}
-                                                    onPageChange={(newPage) => {
-                                                        if (isLoadingTransactions) return;
-                                                        if (newPage < 1 || newPage > transactionsTotalPages || newPage === transactionsPage) return;
-                                                        void handleTransactionPageChange(newPage);
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </>
-                        )}
                     </>
                 )}
             </div>
@@ -930,6 +922,37 @@ export function Wallet() {
                                     {isVerifyingWithdraw ? "Verifying..." : "Verify OTP"}
                                 </Button>
                             )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* No Bank Info Modal */}
+            <Dialog open={isNoBankModalOpen} onOpenChange={setIsNoBankModalOpen}>
+                <DialogContent className="max-w-sm p-6 text-center">
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold text-red-600">Thông báo</h2>
+                        <p className="text-sm text-gray-600">
+                            Please update your bank account information before making a withdrawal request.
+                        </p>
+                        <div className="flex justify-center gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsNoBankModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                className="bg-[#4b2c20] text-white hover:bg-[#3b2218]"
+                                onClick={() => {
+                                    setIsNoBankModalOpen(false);
+                                    openBankDialog();
+                                }}
+                            >
+                                OK
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

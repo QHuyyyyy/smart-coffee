@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { CircleDollarSign, Handshake, ShoppingCart, WalletCards } from "lucide-react";
+import { CircleDollarSign, Download, Handshake, ShoppingCart, WalletCards } from "lucide-react";
+import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { dashboardService } from "@/apis/dashboard.service";
 import { orderService } from "@/apis/order.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { RevenueLineChart } from "@/components/RevenueLineChart";
 import { SupplierOnboardingDialog } from "@/components/SupplierOnboardingDialog";
 import { InlineLoading } from "@/components/Loading";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuthStore } from "@/stores/auth.store";
 import { formatVND } from "@/utils/currency";
+import { exportRowsToExcel } from "@/utils/excel";
 
 type SummaryCard = {
     title: string;
@@ -28,6 +31,12 @@ type SupplierSummary = {
     totalCommissionFee: number;
 };
 
+type RevenueFilter = {
+    mode: "day" | "month";
+    month: string;
+    year: string;
+};
+
 function formatDateTime(value: string | null | undefined) {
     if (!value) return "-";
     const date = new Date(value);
@@ -43,6 +52,37 @@ function getStatusClasses(status: string | null | undefined) {
         return "bg-red-50 text-red-700 border border-red-100";
     }
     return "bg-gray-100 text-gray-700 border border-gray-200";
+}
+
+function formatChartDayLabel(value: string, mode: "day" | "month") {
+    if (!value) return "-";
+
+    const monthMatch = value.match(/^(\d{4})-(\d{2})$/);
+    if (monthMatch) {
+        const [, year, month] = monthMatch;
+        return `${month}/${year}`;
+    }
+
+    const dayMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+        const [, year, month, day] = dayMatch;
+        if (mode === "month") return `${month}/${year}`;
+        return `${day}/${month}`;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    if (mode === "month") {
+        return date.toLocaleDateString("en-US", { month: "2-digit", year: "numeric" });
+    }
+    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+}
+
+function parsePositiveInt(value: string) {
+    if (!value.trim()) return undefined;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed <= 0) return undefined;
+    return parsed;
 }
 
 function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
@@ -73,6 +113,10 @@ function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
 
 export function SupplierHome() {
     const { currentUser } = useAuthStore();
+    const currentDate = new Date();
+    const currentMonth = String(currentDate.getMonth() + 1).padStart(2, "0");
+    const currentYear = String(currentDate.getFullYear());
+    const currentMonthYear = `${currentYear}-${currentMonth}`;
 
     const [summary, setSummary] = useState<SupplierSummary>({
         totalRevenue: 0,
@@ -86,6 +130,35 @@ export function SupplierHome() {
     const [recentTransactions, setRecentTransactions] = useState<TransactionItem[]>([]);
     const [transactionsLoading, setTransactionsLoading] = useState(false);
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
+
+    const [commissionRevenueData, setCommissionRevenueData] = useState<{ time: string; totalRevenue: number }[]>([]);
+    const [totalCommission, setTotalCommission] = useState(0);
+    const [commissionLoading, setCommissionLoading] = useState(false);
+    const [commissionError, setCommissionError] = useState<string | null>(null);
+    const [commissionFilter, setCommissionFilter] = useState<RevenueFilter>({
+        mode: "day",
+        month: currentMonthYear,
+        year: currentYear,
+    });
+
+    const yearOptions = useMemo(() => {
+        const yearNumber = Number(currentYear);
+        return Array.from({ length: 2 }, (_, index) => String(yearNumber - 1 + index));
+    }, [currentYear]);
+
+    const monthOptions = useMemo(
+        () =>
+            yearOptions.flatMap((year) =>
+                Array.from({ length: 12 }, (_, index) => {
+                    const month = String(index + 1).padStart(2, "0");
+                    return {
+                        value: `${year}-${month}`,
+                        label: `${month}/${year}`,
+                    };
+                }),
+            ),
+        [yearOptions],
+    );
 
     const cards = useMemo<SummaryCard[]>(
         () => [
@@ -184,11 +257,99 @@ export function SupplierHome() {
         }
     };
 
+    const parseMonthYear = (value: string) => {
+        const [yearPart, monthPart] = value.split("-");
+        const parsedYear = parsePositiveInt(yearPart ?? "");
+        const parsedMonth = parsePositiveInt(monthPart ?? "");
+
+        if (!parsedYear || !parsedMonth) {
+            return {
+                month: undefined,
+                year: undefined,
+            };
+        }
+
+        return {
+            month: parsedMonth,
+            year: parsedYear,
+        };
+    };
+
+    const fetchCommissionRevenueOverview = async (nextFilter?: RevenueFilter) => {
+        if (!currentUser?.supplierId) {
+            setCommissionError("Supplier information is not available.");
+            return;
+        }
+
+        const target = nextFilter ?? commissionFilter;
+
+        try {
+            setCommissionLoading(true);
+            setCommissionError(null);
+
+            const monthYearParams = parseMonthYear(target.month);
+            const month = target.mode === "day" ? monthYearParams.month : undefined;
+            const year = target.mode === "day" ? monthYearParams.year : parsePositiveInt(target.year);
+
+            const result = await dashboardService.getSupplierCommissionRevenueCompleted(currentUser.supplierId, {
+                month,
+                year,
+            });
+
+            setCommissionRevenueData(result.data ?? []);
+            setTotalCommission(result.totalCommission ?? 0);
+        } catch {
+            setCommissionError("Failed to load commission fee overview.");
+        } finally {
+            setCommissionLoading(false);
+        }
+    };
+
     useEffect(() => {
         void fetchSummary();
         void fetchRecentTransactions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentUser?.supplierId, currentUser?.accountId]);
+
+    useEffect(() => {
+        void fetchCommissionRevenueOverview();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentUser?.supplierId, commissionFilter.mode, commissionFilter.month, commissionFilter.year]);
+
+    const commissionBars = useMemo(
+        () =>
+            (commissionRevenueData ?? [])
+                .map((item) => ({
+                    day: item.time,
+                    commission: Number(item.totalRevenue ?? 0),
+                }))
+                .sort((a, b) => a.day.localeCompare(b.day)),
+        [commissionRevenueData],
+    );
+
+    const monthTicks = useMemo(() => {
+        if (commissionFilter.mode !== "month") return undefined;
+        const yearNumber = parsePositiveInt(commissionFilter.year);
+        if (!yearNumber) return undefined;
+
+        return Array.from({ length: 12 }, (_, index) => {
+            const month = String(index + 1).padStart(2, "0");
+            return `${yearNumber}-${month}`;
+        });
+    }, [commissionFilter.mode, commissionFilter.year]);
+
+    const handleExportCommissionChart = () => {
+        const rows = commissionBars.map((item) => ({
+            Time: formatChartDayLabel(item.day, commissionFilter.mode),
+            CommissionFee: item.commission,
+        }));
+
+        exportRowsToExcel({
+            rows,
+            fileName: `supplier-commission-fee-${commissionFilter.mode}-${commissionFilter.mode === "day" ? commissionFilter.month : commissionFilter.year}`,
+            sheetName: "CommissionFee",
+        });
+    };
 
     return (
         <div className="mt-24 w-full overflow-y-auto px-10 pb-10">
@@ -211,6 +372,111 @@ export function SupplierHome() {
                         supplierId={currentUser?.supplierId ?? undefined}
                         title="Total Revenue Line Chart"
                     />
+
+                    <div className="rounded-xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between gap-3">
+                            <p className="text-base font-medium text-[#1F1F1F]">Commission Fee (Completed Orders)</p>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+                                    <button
+                                        type="button"
+                                        className={`rounded-md px-3 py-1 text-xs font-semibold transition ${commissionFilter.mode === "day" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                        onClick={() => setCommissionFilter((prev) => ({ ...prev, mode: "day" }))}
+                                    >
+                                        By day
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`rounded-md px-3 py-1 text-xs font-semibold transition ${commissionFilter.mode === "month" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                        onClick={() => setCommissionFilter((prev) => ({ ...prev, mode: "month" }))}
+                                    >
+                                        By month
+                                    </button>
+                                </div>
+
+                                {commissionFilter.mode === "day" ? (
+                                    <Select
+                                        value={commissionFilter.month}
+                                        onValueChange={(value) => setCommissionFilter((prev) => ({ ...prev, month: value }))}
+                                    >
+                                        <SelectTrigger className="h-8 w-36 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
+                                            <SelectValue placeholder="Month/Year" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-52 overflow-y-auto">
+                                            {monthOptions.map((month) => (
+                                                <SelectItem key={month.value} value={month.value}>
+                                                    {month.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Select
+                                        value={commissionFilter.year}
+                                        onValueChange={(value) => setCommissionFilter((prev) => ({ ...prev, year: value }))}
+                                    >
+                                        <SelectTrigger className="h-8 w-28 rounded-lg border-gray-200 bg-gray-50 px-2 text-xs text-gray-900">
+                                            <SelectValue placeholder="Year" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-52 overflow-y-auto">
+                                            {yearOptions.map((year) => (
+                                                <SelectItem key={year} value={year}>
+                                                    {year}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={handleExportCommissionChart}
+                                    disabled={commissionLoading || commissionBars.length === 0}
+                                    aria-label="Export commission fee chart to Excel"
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-[#573E32] hover:bg-gray-50 disabled:opacity-50"
+                                >
+                                    <Download size={14} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="mb-4 flex items-end gap-2">
+                            <p className="text-[32px] font-bold leading-tight text-[#1F1F1F]">{formatVND(totalCommission)}</p>
+                        </div>
+
+                        {commissionLoading ? (
+                            <div className="flex h-65 w-full items-center justify-center text-sm text-[#707070]">Loading chart...</div>
+                        ) : commissionError ? (
+                            <div className="flex h-65 w-full items-center justify-center text-sm text-red-600">{commissionError}</div>
+                        ) : commissionBars.length === 0 ? (
+                            <div className="flex h-65 w-full items-center justify-center text-sm text-[#707070]">No data available.</div>
+                        ) : (
+                            <div className="h-65 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={commissionBars} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                                        <XAxis
+                                            dataKey="day"
+                                            ticks={monthTicks}
+                                            interval={commissionFilter.mode === "month" ? 0 : "preserveEnd"}
+                                            minTickGap={commissionFilter.mode === "month" ? 0 : 8}
+                                            tickFormatter={(value) => formatChartDayLabel(String(value), commissionFilter.mode)}
+                                            tick={{ fill: "#8B7E75", fontSize: 12 }}
+                                            axisLine={false}
+                                            tickLine={false}
+                                        />
+                                        <YAxis tick={{ fill: "#8B7E75", fontSize: 12 }} axisLine={false} tickLine={false} />
+                                        <Tooltip
+                                            cursor={{ fill: "rgba(87,62,50,0.08)" }}
+                                            contentStyle={{ borderRadius: 12, borderColor: "#E7DDD4", color: "#3D2E25" }}
+                                            labelFormatter={(label) => formatChartDayLabel(String(label), commissionFilter.mode)}
+                                            formatter={(value) => [formatVND(Number(value)), "Commission Fee"]}
+                                        />
+                                        <Bar dataKey="commission" name="Commission Fee" fill="#573E32" radius={[6, 6, 0, 0]} maxBarSize={24} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </div>
 
                     <div className="overflow-hidden rounded-xl border border-[#EFEAE5] bg-white">
                         <div className="flex items-center justify-between border-b border-[#EFEAE5] p-6">

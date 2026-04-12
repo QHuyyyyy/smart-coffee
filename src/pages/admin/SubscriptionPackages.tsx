@@ -4,6 +4,7 @@ import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { dashboardService } from "@/apis/dashboard.service";
 import { subscriptionPackageService, type SubscriptionPackage } from "@/apis/subscriptionPackage.service";
 import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
@@ -31,10 +32,27 @@ const parseOptionalLimit = (value: string) => {
     return parsed;
 };
 
+const getCurrentVietnamMonthYear = () => {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        year: "numeric",
+        month: "2-digit",
+    });
+    const parts = formatter.formatToParts(new Date());
+    const month = Number(parts.find((part) => part.type === "month")?.value ?? "0");
+    const year = Number(parts.find((part) => part.type === "year")?.value ?? "0");
+
+    return { month, year };
+};
+
 export function SubscriptionPackagesPage() {
     const [packages, setPackages] = useState<SubscriptionPackage[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [statsLoading, setStatsLoading] = useState(false);
+    const [activeSubscriptions, setActiveSubscriptions] = useState(0);
+    const [totalRevenue, setTotalRevenue] = useState(0);
+    const [monthRevenue, setMonthRevenue] = useState(0);
 
     const [search, setSearch] = useState("");
 
@@ -75,6 +93,32 @@ export function SubscriptionPackagesPage() {
         void fetchPackages();
     }, []);
 
+    const fetchDashboardStats = async () => {
+        try {
+            setStatsLoading(true);
+
+            const { month, year } = getCurrentVietnamMonthYear();
+            const [activeSubscriptionsResult, subscriptionRevenueResult, monthSubscriptionRevenueResult] =
+                await Promise.all([
+                    dashboardService.getTotalActiveSubscriptions(),
+                    dashboardService.getSubscriptionRevenueTotal(),
+                    dashboardService.getSubscriptionRevenue({ month, year }),
+                ]);
+
+            setActiveSubscriptions(activeSubscriptionsResult);
+            setTotalRevenue(subscriptionRevenueResult);
+            setMonthRevenue(monthSubscriptionRevenueResult.totalSubscription ?? 0);
+        } catch {
+            toast.error("Không tải được thống kê doanh thu gói đăng ký");
+        } finally {
+            setStatsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        void fetchDashboardStats();
+    }, []);
+
     const filteredPackages = useMemo(
         () =>
             packages.filter((p) => {
@@ -89,12 +133,7 @@ export function SubscriptionPackagesPage() {
     );
 
     const totalPackages = filteredPackages.length;
-    const totalStaffCapacity = useMemo(
-        () => packages.reduce((sum, p) => sum + (Number(p.staffQuantity) || 0), 0),
-        [packages],
-    );
 
-    // Hard-coded / derived statistics as requested
     const stats = [
         {
             title: "Total Packages",
@@ -103,23 +142,24 @@ export function SubscriptionPackagesPage() {
             subtitle: "Available subscription plans",
         },
         {
-            title: "Total Staff Capacity",
-            value: totalStaffCapacity.toString(),
+            title: "Total Revenue",
+            value: statsLoading ? "..." : formatVND(totalRevenue),
+            icon: BarChart2,
+            subtitle: "Total subscription revenue",
+        },
+        {
+            title: "Month Revenue",
+            value: statsLoading ? "..." : formatVND(monthRevenue),
             icon: Users,
-            subtitle: "Maximum staff across all packages",
+            subtitle: "Current month",
         },
         {
             title: "Active Subscriptions",
-            value: "128", // UI cứng
+            value: statsLoading ? "..." : activeSubscriptions.toLocaleString("en-US"),
             icon: CreditCard,
             subtitle: "Currently active across system",
         },
-        {
-            title: "Monthly Revenue",
-            value: formatVND(89000000), // UI cứng
-            icon: BarChart2,
-            subtitle: "Estimated subscription revenue",
-        },
+
     ];
 
     const openCreateDialog = () => {
