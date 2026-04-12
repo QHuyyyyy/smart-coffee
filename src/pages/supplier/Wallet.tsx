@@ -7,7 +7,6 @@ import {
     type TransactionItem,
     type TransactionPaginatedResponse,
 } from "@/apis/transaction.service";
-import { orderService } from "@/apis/order.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loading } from "@/components/Loading";
 import { toast } from "sonner";
-import angribankLogo from "@/assets/angribank.png";
+// import angribankLogo from "@/assets/angribank.png";
 import { formatVND } from "@/utils/currency";
 
 
@@ -76,23 +75,23 @@ function getTransactionDescription(
 
 
 
-const bankLogos: Record<string, string> = {
-    angribank: angribankLogo,
-};
+// const bankLogos: Record<string, string> = {
+//     angribank: angribankLogo,
+// };
 
-function getBankLogo(bankName: string | null | undefined) {
-    if (!bankName) return null;
-    const key = bankName.trim().toLowerCase();
-    return bankLogos[key] ?? null;
-}
+// function getBankLogo(bankName: string | null | undefined) {
+//     if (!bankName) return null;
+//     const key = bankName.trim().toLowerCase();
+//     return bankLogos[key] ?? null;
+// }
 
-function getBankInitials(bankName: string | null | undefined) {
-    if (!bankName) return "?";
-    const words = bankName.trim().split(/\s+/);
-    const firstTwo = words.slice(0, 2).map((w) => (w[0] ? w[0].toUpperCase() : ""));
-    const joined = firstTwo.join("");
-    return joined || "?";
-}
+// function getBankInitials(bankName: string | null | undefined) {
+//     if (!bankName) return "?";
+//     const words = bankName.trim().split(/\s+/);
+//     const firstTwo = words.slice(0, 2).map((w) => (w[0] ? w[0].toUpperCase() : ""));
+//     const joined = firstTwo.join("");
+//     return joined || "?";
+// }
 
 export function Wallet() {
     const { currentUser } = useAuthStore();
@@ -106,7 +105,7 @@ export function Wallet() {
     const [bankAccountNumber, setBankAccountNumber] = useState("");
     const [isSavingBank, setIsSavingBank] = useState(false);
     const [bankError, setBankError] = useState<string | null>(null);
-    const [showFullAccount, setShowFullAccount] = useState(false);
+    // const [showFullAccount, setShowFullAccount] = useState(false);
     const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState("");
     const [withdrawOtp, setWithdrawOtp] = useState("");
@@ -125,7 +124,6 @@ export function Wallet() {
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
     const [transactionsPage, setTransactionsPage] = useState(1);
     const [transactionsPageSize] = useState(10);
-    const [supplierRevenue, setSupplierRevenue] = useState<number | null>(null);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
         try {
@@ -164,20 +162,6 @@ export function Wallet() {
 
         fetchWallet();
     }, [currentUser?.wallet?.walletId]);
-
-    useEffect(() => {
-        const fetchSupplierRevenue = async () => {
-            if (!currentUser?.supplierId) return;
-            try {
-                const revenue = await orderService.getSupplierRevenue(currentUser.supplierId);
-                setSupplierRevenue(revenue);
-            } catch (err) {
-                console.error("Failed to load supplier revenue:", err);
-            }
-        };
-
-        fetchSupplierRevenue();
-    }, [currentUser?.supplierId]);
 
     const fetchTransactions = async (page = transactionsPage) => {
         if (!currentUser?.accountId || isAdmin) return;
@@ -253,13 +237,13 @@ export function Wallet() {
         ? 0
         : Math.min(withdrawalsTotalCount, withdrawalsPage * withdrawalsPageSize);
 
-    const openBankDialog = () => {
-        if (!wallet) return;
-        setBankName(wallet.bankName ?? "");
-        setBankAccountNumber(wallet.bankAccountNumber ?? "");
-        setBankError(null);
-        setIsBankDialogOpen(true);
-    };
+    // const openBankDialog = () => {
+    //     if (!wallet) return;
+    //     setBankName(wallet.bankName ?? "");
+    //     setBankAccountNumber(wallet.bankAccountNumber ?? "");
+    //     setBankError(null);
+    //     setIsBankDialogOpen(true);
+    // };
 
     const openWithdrawDialog = () => {
         setWithdrawAmount("");

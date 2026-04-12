@@ -3,7 +3,6 @@ import { Carrot, Plus, Pencil, Search, Trash2 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { ingredientService, type Ingredient } from "@/apis/ingredient.service";
