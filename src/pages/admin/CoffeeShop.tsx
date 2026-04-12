@@ -240,9 +240,7 @@ export function CoffeeShopPage() {
                     <div className="flex items-center justify-between px-6 py-4 border-b border-[#EFEAE5]">
                         <div className="flex items-center gap-3">
                             <h2 className="text-base font-semibold text-[#573E32]">Coffee Shop List</h2>
-                            <span className="text-xs text-[#707070]">
-                                Total: {totalCount}
-                            </span>
+
                         </div>
                         <Button
                             type="button"

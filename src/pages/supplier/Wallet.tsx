@@ -14,7 +14,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loading } from "@/components/Loading";
 import { toast } from "sonner";
-// import angribankLogo from "@/assets/angribank.png";
+import angribankLogo from "@/assets/angribank.png";
 import { formatVND } from "@/utils/currency";
 
 
@@ -32,7 +32,7 @@ function formatDocType(docType: string | null | undefined) {
     switch (docType) {
         case "1": return "Wallet";
         case "2": return "Order";
-        case "3": return "Withdrawal";
+        case "3": return "Withdrawal/Settlement";
         case "4": return "Subscription";
         default: return docType;
     }
@@ -59,7 +59,6 @@ function getTransactionDescription(
     bankName: string | null,
     bankAccountNumber: string | null,
 ) {
-    // API hiện tại không trả về field type, nên ta suy luận đơn giản dựa trên amount và status
     const amount = w.amount ?? 0;
     const status = (w.status ?? "").toLowerCase();
 
@@ -75,23 +74,23 @@ function getTransactionDescription(
 
 
 
-// const bankLogos: Record<string, string> = {
-//     angribank: angribankLogo,
-// };
+const bankLogos: Record<string, string> = {
+    angribank: angribankLogo,
+};
 
-// function getBankLogo(bankName: string | null | undefined) {
-//     if (!bankName) return null;
-//     const key = bankName.trim().toLowerCase();
-//     return bankLogos[key] ?? null;
-// }
+function getBankLogo(bankName: string | null | undefined) {
+    if (!bankName) return null;
+    const key = bankName.trim().toLowerCase();
+    return bankLogos[key] ?? null;
+}
 
-// function getBankInitials(bankName: string | null | undefined) {
-//     if (!bankName) return "?";
-//     const words = bankName.trim().split(/\s+/);
-//     const firstTwo = words.slice(0, 2).map((w) => (w[0] ? w[0].toUpperCase() : ""));
-//     const joined = firstTwo.join("");
-//     return joined || "?";
-// }
+function getBankInitials(bankName: string | null | undefined) {
+    if (!bankName) return "?";
+    const words = bankName.trim().split(/\s+/);
+    const firstTwo = words.slice(0, 2).map((w) => (w[0] ? w[0].toUpperCase() : ""));
+    const joined = firstTwo.join("");
+    return joined || "?";
+}
 
 export function Wallet() {
     const { currentUser } = useAuthStore();
@@ -105,7 +104,7 @@ export function Wallet() {
     const [bankAccountNumber, setBankAccountNumber] = useState("");
     const [isSavingBank, setIsSavingBank] = useState(false);
     const [bankError, setBankError] = useState<string | null>(null);
-    // const [showFullAccount, setShowFullAccount] = useState(false);
+    const [showFullAccount, setShowFullAccount] = useState(false);
     const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState("");
     const [withdrawOtp, setWithdrawOtp] = useState("");
@@ -124,6 +123,7 @@ export function Wallet() {
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
     const [transactionsPage, setTransactionsPage] = useState(1);
     const [transactionsPageSize] = useState(10);
+    const [isNoBankModalOpen, setIsNoBankModalOpen] = useState(false);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
         try {
@@ -237,15 +237,19 @@ export function Wallet() {
         ? 0
         : Math.min(withdrawalsTotalCount, withdrawalsPage * withdrawalsPageSize);
 
-    // const openBankDialog = () => {
-    //     if (!wallet) return;
-    //     setBankName(wallet.bankName ?? "");
-    //     setBankAccountNumber(wallet.bankAccountNumber ?? "");
-    //     setBankError(null);
-    //     setIsBankDialogOpen(true);
-    // };
+    const openBankDialog = () => {
+        if (!wallet) return;
+        setBankName(wallet.bankName ?? "");
+        setBankAccountNumber(wallet.bankAccountNumber ?? "");
+        setBankError(null);
+        setIsBankDialogOpen(true);
+    };
 
     const openWithdrawDialog = () => {
+        if (!wallet?.bankName || !wallet?.bankAccountNumber) {
+            setIsNoBankModalOpen(true);
+            return;
+        }
         setWithdrawAmount("");
         setWithdrawOtp("");
         setCreatedWithdrawId(null);
@@ -408,7 +412,6 @@ export function Wallet() {
                                             type="button"
                                             className="px-4 py-2 rounded-md bg-[#4b2c20] text-white text-sm font-medium hover:bg-[#3b2218] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                                             onClick={openWithdrawDialog}
-                                            disabled={!wallet.bankName || !wallet.bankAccountNumber}
                                         >
                                             Request Withdraw
                                         </button>
@@ -416,7 +419,7 @@ export function Wallet() {
                                 </div>
                             </div>
 
-                            {/* <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
+                            <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
                                 <div className="flex items-center justify-between mb-4">
                                     <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
                                 </div>
@@ -473,7 +476,7 @@ export function Wallet() {
                                         </button>
                                     </div>
                                 </div>
-                            </div> */}
+                            </div>
 
                         </div>
 
@@ -919,6 +922,37 @@ export function Wallet() {
                                     {isVerifyingWithdraw ? "Verifying..." : "Verify OTP"}
                                 </Button>
                             )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* No Bank Info Modal */}
+            <Dialog open={isNoBankModalOpen} onOpenChange={setIsNoBankModalOpen}>
+                <DialogContent className="max-w-sm p-6 text-center">
+                    <div className="space-y-4">
+                        <h2 className="text-xl font-semibold text-red-600">Thông báo</h2>
+                        <p className="text-sm text-gray-600">
+                            Please update your bank account information before making a withdrawal request.
+                        </p>
+                        <div className="flex justify-center gap-3 pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsNoBankModalOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="button"
+                                className="bg-[#4b2c20] text-white hover:bg-[#3b2218]"
+                                onClick={() => {
+                                    setIsNoBankModalOpen(false);
+                                    openBankDialog();
+                                }}
+                            >
+                                OK
+                            </Button>
                         </div>
                     </div>
                 </DialogContent>

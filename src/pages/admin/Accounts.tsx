@@ -8,7 +8,7 @@ import { InlineLoading } from "@/components/Loading";
 import { authService, type AccountManagementItem } from "@/apis/auth.service";
 import { toast } from "sonner";
 
-const DEFAULT_PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 10;
 const STATUS_OPTIONS: Array<{ label: string; value: string }> = [
     { label: "All", value: "" },
     { label: "Active", value: "Active" },
