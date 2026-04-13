@@ -1,5 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -10,66 +13,61 @@ import { toast } from "sonner";
 
 type ForgotStep = "request" | "otp" | "reset";
 
+const requestSchema = z.object({
+    email: z.string().trim().min(1, "Please enter your email").email("Please enter a valid email"),
+});
+
+const otpSchema = z.object({
+    otp: z.string().trim().min(4, "OTP must be at least 4 characters"),
+});
+
+const resetSchema = z.object({
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your new password"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
+type RequestFormValues = z.infer<typeof requestSchema>;
+type OtpFormValues = z.infer<typeof otpSchema>;
+type ResetFormValues = z.infer<typeof resetSchema>;
+
 export function ForgotPasswordPage() {
     const navigate = useNavigate();
 
     const [step, setStep] = useState<ForgotStep>("request");
-    const [email, setEmail] = useState("");
-    const [otp, setOtp] = useState("");
-    const [newPassword, setNewPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-    const validateEmail = (): boolean => {
-        if (!email.trim()) {
-            toast.error("Please enter your email");
-            return false;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            toast.error("Please enter a valid email");
-            return false;
-        }
-        return true;
-    };
+    const requestForm = useForm<RequestFormValues>({
+        resolver: zodResolver(requestSchema),
+        defaultValues: {
+            email: "",
+        },
+    });
 
-    const validatePasswords = (): boolean => {
-        if (!newPassword) {
-            toast.error("Please enter a new password");
-            return false;
-        }
-        if (newPassword.length < 6) {
-            toast.error("Password must be at least 6 characters");
-            return false;
-        }
-        if (newPassword !== confirmPassword) {
-            toast.error("Passwords do not match");
-            return false;
-        }
-        return true;
-    };
+    const otpForm = useForm<OtpFormValues>({
+        resolver: zodResolver(otpSchema),
+        defaultValues: {
+            otp: "",
+        },
+    });
 
-    const validateOtp = (): boolean => {
-        if (!otp.trim()) {
-            toast.error("Please enter the OTP");
-            return false;
-        }
-        if (otp.length < 4) {
-            toast.error("OTP must be at least 4 characters");
-            return false;
-        }
-        return true;
-    };
+    const resetForm = useForm<ResetFormValues>({
+        resolver: zodResolver(resetSchema),
+        defaultValues: {
+            newPassword: "",
+            confirmPassword: "",
+        },
+    });
 
-    const handleRequestSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!validateEmail()) return;
+    const handleRequestSubmit = async (values: RequestFormValues) => {
 
         try {
             setIsLoading(true);
-            await authService.forgotPassword({ email });
+            await authService.forgotPassword({ email: values.email.trim() });
             toast.success("OTP has been sent to your email");
             setStep("otp");
         } catch (err: any) {
@@ -79,14 +77,14 @@ export function ForgotPasswordPage() {
         }
     };
 
-    const handleVerifyOtpSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!validateOtp()) return;
+    const handleVerifyOtpSubmit = async (values: OtpFormValues) => {
 
         try {
             setIsLoading(true);
-            await authService.verifyForgotPasswordOtp({ email, otp });
+            await authService.verifyForgotPasswordOtp({
+                email: requestForm.getValues("email").trim(),
+                otp: values.otp.trim(),
+            });
             toast.success("OTP verified successfully");
             setStep("reset");
         } catch (err: any) {
@@ -96,15 +94,15 @@ export function ForgotPasswordPage() {
         }
     };
 
-    const handleResetPasswordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!validatePasswords()) return;
-        if (!validateOtp()) return;
+    const handleResetPasswordSubmit = async (values: ResetFormValues) => {
 
         try {
             setIsLoading(true);
-            await authService.resetPassword({ email, otp, newPassword });
+            await authService.resetPassword({
+                email: requestForm.getValues("email").trim(),
+                otp: otpForm.getValues("otp").trim(),
+                newPassword: values.newPassword,
+            });
             toast.success("Password has been reset successfully");
             navigate("/");
         } catch (err: any) {
@@ -117,20 +115,21 @@ export function ForgotPasswordPage() {
     const handleOtpChange = (index: number, value: string) => {
         const digit = value.replace(/\D/g, "").slice(-1);
 
-        const otpArray = otp.split("");
+        const currentOtp = otpForm.getValues("otp") ?? "";
+        const otpArray = currentOtp.split("");
         while (otpArray.length < 6) {
             otpArray.push("");
         }
 
         if (!digit) {
             otpArray[index] = "";
-            setOtp(otpArray.join(""));
+            otpForm.setValue("otp", otpArray.join(""), { shouldDirty: true, shouldValidate: true });
             return;
         }
 
         otpArray[index] = digit;
         const newOtp = otpArray.join("").slice(0, 6);
-        setOtp(newOtp);
+        otpForm.setValue("otp", newOtp, { shouldDirty: true, shouldValidate: true });
 
         if (digit && index < 5) {
             otpInputRefs.current[index + 1]?.focus();
@@ -139,14 +138,15 @@ export function ForgotPasswordPage() {
 
     const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Backspace") {
-            const otpArray = otp.split("");
+            const currentOtp = otpForm.getValues("otp") ?? "";
+            const otpArray = currentOtp.split("");
             while (otpArray.length < 6) {
                 otpArray.push("");
             }
 
             if (otpArray[index]) {
                 otpArray[index] = "";
-                setOtp(otpArray.join(""));
+                otpForm.setValue("otp", otpArray.join(""), { shouldDirty: true, shouldValidate: true });
             } else if (index > 0) {
                 otpInputRefs.current[index - 1]?.focus();
             }
@@ -154,11 +154,18 @@ export function ForgotPasswordPage() {
     };
 
     const handleResendOtp = async () => {
-        if (!validateEmail()) return;
+        const valid = await requestForm.trigger("email");
+        if (!valid) {
+            const emailMessage = requestForm.formState.errors.email?.message;
+            if (emailMessage) {
+                toast.error(emailMessage);
+            }
+            return;
+        }
 
         try {
             setIsLoading(true);
-            await authService.forgotPassword({ email });
+            await authService.forgotPassword({ email: requestForm.getValues("email").trim() });
             toast.success("A new OTP has been sent to your email");
         } catch (err: any) {
             toast.error(err.message || "Failed to resend OTP");
@@ -185,7 +192,7 @@ export function ForgotPasswordPage() {
                 <AuthTabs active="signin" />
 
                 {step === "request" && (
-                    <form className="space-y-6" onSubmit={handleRequestSubmit}>
+                    <form className="space-y-6" onSubmit={requestForm.handleSubmit(handleRequestSubmit)}>
                         <p className="text-sm text-slate-600">
                             Enter the email associated with your account and we'll send you a code to reset your password.
                         </p>
@@ -195,9 +202,11 @@ export function ForgotPasswordPage() {
                             label="Email"
                             placeholder="Enter your email"
                             type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            {...requestForm.register("email")}
                         />
+                        {requestForm.formState.errors.email && (
+                            <p className="text-xs text-red-500 mt-1">{requestForm.formState.errors.email.message}</p>
+                        )}
 
                         <Button
                             type="submit"
@@ -210,10 +219,10 @@ export function ForgotPasswordPage() {
                 )}
 
                 {step === "otp" && (
-                    <form className="space-y-6" onSubmit={handleVerifyOtpSubmit}>
+                    <form className="space-y-6" onSubmit={otpForm.handleSubmit(handleVerifyOtpSubmit)}>
                         <div className="text-center mb-6">
                             <p className="text-slate-600 text-sm">
-                                We've sent a verification code to <strong>{email}</strong>
+                                We've sent a verification code to <strong>{requestForm.watch("email")}</strong>
                             </p>
                         </div>
 
@@ -221,7 +230,7 @@ export function ForgotPasswordPage() {
                             <p className="text-center text-sm font-medium text-slate-800">Input your OTP</p>
                             <div className="flex justify-center gap-3">
                                 {Array.from({ length: 6 }).map((_, index) => {
-                                    const digit = otp[index] || "";
+                                    const digit = (otpForm.watch("otp") ?? "")[index] || "";
                                     return (
                                         <input
                                             key={index}
@@ -240,6 +249,9 @@ export function ForgotPasswordPage() {
                                     );
                                 })}
                             </div>
+                            {otpForm.formState.errors.otp && (
+                                <p className="text-center text-xs text-red-500">{otpForm.formState.errors.otp.message}</p>
+                            )}
                             <p className="text-center text-xs text-slate-500">
                                 Didn't receive the code?{" "}
                                 <button
@@ -263,7 +275,7 @@ export function ForgotPasswordPage() {
                 )}
 
                 {step === "reset" && (
-                    <form className="space-y-6" onSubmit={handleResetPasswordSubmit}>
+                    <form className="space-y-6" onSubmit={resetForm.handleSubmit(handleResetPasswordSubmit)}>
                         <p className="text-sm text-slate-600">
                             Enter your new password below. Make sure it's something secure and that you remember it.
                         </p>
@@ -273,18 +285,22 @@ export function ForgotPasswordPage() {
                             label="New Password"
                             placeholder="Enter new password"
                             type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
+                            {...resetForm.register("newPassword")}
                         />
+                        {resetForm.formState.errors.newPassword && (
+                            <p className="text-xs text-red-500 mt-1">{resetForm.formState.errors.newPassword.message}</p>
+                        )}
 
                         <AuthField
                             id="confirmPassword"
                             label="Confirm New Password"
                             placeholder="Confirm new password"
                             type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            {...resetForm.register("confirmPassword")}
                         />
+                        {resetForm.formState.errors.confirmPassword && (
+                            <p className="text-xs text-red-500 mt-1">{resetForm.formState.errors.confirmPassword.message}</p>
+                        )}
 
                         <Button
                             type="submit"

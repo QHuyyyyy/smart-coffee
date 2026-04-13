@@ -1,5 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -10,74 +13,60 @@ import { toast } from "sonner";
 
 type RegistrationStep = "register" | "otp";
 
+const registerSchema = z.object({
+    email: z.string().trim().min(1, "Please enter your email").email("Please enter a valid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+    phone: z.string().trim().min(1, "Please enter your phone number"),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+});
+
+const otpSchema = z.object({
+    otp: z.string().trim().min(4, "OTP must be at least 4 characters"),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
+type OtpFormValues = z.infer<typeof otpSchema>;
+
 export function RegisterPage() {
     const navigate = useNavigate();
     const { register, verifyOtp, isLoading, error } = useAuthStore();
 
-    // Registration form state
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-    const [phone, setPhone] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     // OTP form state
-    const [otp, setOtp] = useState("");
     const [step, setStep] = useState<RegistrationStep>("register");
 
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
-    // Validation function
-    const validateRegisterForm = (): boolean => {
-        if (!email.trim()) {
-            toast.error("Please enter your email");
-            return false;
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            toast.error("Please enter a valid email");
-            return false;
-        }
-        if (!password) {
-            toast.error("Please enter a password");
-            return false;
-        }
-        if (password.length < 6) {
-            toast.error("Password must be at least 6 characters");
-            return false;
-        }
-        if (password !== confirmPassword) {
-            toast.error("Passwords do not match");
-            return false;
-        }
-        if (!phone.trim()) {
-            toast.error("Please enter your phone number");
-            return false;
-        }
-        return true;
-    };
+    const registerForm = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            confirmPassword: "",
+            phone: "",
+        },
+    });
 
-    const validateOtpForm = (): boolean => {
-        if (!otp.trim()) {
-            toast.error("Please enter the OTP");
-            return false;
-        }
-        if (otp.length < 4) {
-            toast.error("OTP must be at least 4 characters");
-            return false;
-        }
-        return true;
-    };
+    const otpForm = useForm<OtpFormValues>({
+        resolver: zodResolver(otpSchema),
+        defaultValues: {
+            otp: "",
+        },
+    });
 
-    const handleRegisterSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!validateRegisterForm()) {
-            return;
-        }
+    const handleRegisterSubmit = async (values: RegisterFormValues) => {
 
         try {
-            await register({ email, password, phone });
+            await register({
+                email: values.email.trim(),
+                password: values.password,
+                phone: values.phone.trim(),
+            });
             setStep("otp");
             toast.success("Registration successful! Please verify your email with OTP");
         } catch (err: any) {
@@ -89,15 +78,10 @@ export function RegisterPage() {
         }
     };
 
-    const handleOtpSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        if (!validateOtpForm()) {
-            return;
-        }
+    const handleOtpSubmit = async (values: OtpFormValues) => {
         let role = "Supplier";
         try {
-            await verifyOtp({ email, otp, role });
+            await verifyOtp({ email: registerForm.getValues("email").trim(), otp: values.otp.trim(), role });
             toast.success("Email verified successfully!");
             navigate("/supplier/dashboard");
         } catch (err: any) {
@@ -108,20 +92,21 @@ export function RegisterPage() {
     const handleOtpChange = (index: number, value: string) => {
         const digit = value.replace(/\D/g, "").slice(-1);
 
-        const otpArray = otp.split("");
+        const currentOtp = otpForm.getValues("otp") ?? "";
+        const otpArray = currentOtp.split("");
         while (otpArray.length < 6) {
             otpArray.push("");
         }
 
         if (!digit) {
             otpArray[index] = "";
-            setOtp(otpArray.join(""));
+            otpForm.setValue("otp", otpArray.join(""), { shouldDirty: true, shouldValidate: true });
             return;
         }
 
         otpArray[index] = digit;
         const newOtp = otpArray.join("").slice(0, 6);
-        setOtp(newOtp);
+        otpForm.setValue("otp", newOtp, { shouldDirty: true, shouldValidate: true });
 
         if (digit && index < 5) {
             otpInputRefs.current[index + 1]?.focus();
@@ -130,14 +115,15 @@ export function RegisterPage() {
 
     const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === "Backspace") {
-            const otpArray = otp.split("");
+            const currentOtp = otpForm.getValues("otp") ?? "";
+            const otpArray = currentOtp.split("");
             while (otpArray.length < 6) {
                 otpArray.push("");
             }
 
             if (otpArray[index]) {
                 otpArray[index] = "";
-                setOtp(otpArray.join(""));
+                otpForm.setValue("otp", otpArray.join(""), { shouldDirty: true, shouldValidate: true });
             } else if (index > 0) {
                 otpInputRefs.current[index - 1]?.focus();
             }
@@ -146,7 +132,12 @@ export function RegisterPage() {
 
     const handleResendOtp = async () => {
         try {
-            await register({ email, password, phone });
+            const values = registerForm.getValues();
+            await register({
+                email: values.email.trim(),
+                password: values.password,
+                phone: values.phone.trim(),
+            });
             toast.success("A new OTP has been sent to your email");
         } catch (err: any) {
             toast.error(err.message || "Failed to resend OTP");
@@ -172,7 +163,7 @@ export function RegisterPage() {
 
                 {step === "register" ? (
                     // Registration Form
-                    <form className="space-y-6" onSubmit={handleRegisterSubmit}>
+                    <form className="space-y-6" onSubmit={registerForm.handleSubmit(handleRegisterSubmit)}>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                                 {error}
@@ -184,20 +175,24 @@ export function RegisterPage() {
                             label="Email Address"
                             placeholder="Enter your email"
                             type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            {...registerForm.register("email")}
                             disabled={isLoading}
                         />
+                        {registerForm.formState.errors.email && (
+                            <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.email.message}</p>
+                        )}
 
                         <AuthField
                             id="phone"
                             label="Phone Number"
                             placeholder="Enter your phone number"
                             type="tel"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            {...registerForm.register("phone")}
                             disabled={isLoading}
                         />
+                        {registerForm.formState.errors.phone && (
+                            <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.phone.message}</p>
+                        )}
 
                         <div className="space-y-2">
                             <label className="text-sm font-semibold text-slate-700 block ml-1" htmlFor="password">
@@ -209,8 +204,7 @@ export function RegisterPage() {
                                     label=""
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Enter your password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
+                                    {...registerForm.register("password")}
                                     disabled={isLoading}
                                 />
                                 <button
@@ -223,6 +217,9 @@ export function RegisterPage() {
                                     </span>
                                 </button>
                             </div>
+                            {registerForm.formState.errors.password && (
+                                <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.password.message}</p>
+                            )}
                         </div>
 
                         <div className="space-y-2">
@@ -235,8 +232,7 @@ export function RegisterPage() {
                                     label=""
                                     type={showConfirmPassword ? "text" : "password"}
                                     placeholder="Confirm your password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    {...registerForm.register("confirmPassword")}
                                     disabled={isLoading}
                                 />
                                 <button
@@ -249,6 +245,9 @@ export function RegisterPage() {
                                     </span>
                                 </button>
                             </div>
+                            {registerForm.formState.errors.confirmPassword && (
+                                <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.confirmPassword.message}</p>
+                            )}
                         </div>
 
                         <Button
@@ -272,7 +271,7 @@ export function RegisterPage() {
                     </form>
                 ) : (
                     // OTP Verification Form
-                    <form className="space-y-6" onSubmit={handleOtpSubmit}>
+                    <form className="space-y-6" onSubmit={otpForm.handleSubmit(handleOtpSubmit)}>
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                                 {error}
@@ -281,7 +280,7 @@ export function RegisterPage() {
 
                         <div className="text-center mb-6">
                             <p className="text-slate-600 text-sm">
-                                We've sent a verification code to <strong>{email}</strong>
+                                We've sent a verification code to <strong>{registerForm.watch("email")}</strong>
                             </p>
                         </div>
 
@@ -289,7 +288,7 @@ export function RegisterPage() {
                             <p className="text-center text-sm font-medium text-slate-800">Input your OTP</p>
                             <div className="flex justify-center gap-3">
                                 {Array.from({ length: 6 }).map((_, index) => {
-                                    const digit = otp[index] || "";
+                                    const digit = (otpForm.watch("otp") ?? "")[index] || "";
                                     return (
                                         <input
                                             key={index}
@@ -308,6 +307,9 @@ export function RegisterPage() {
                                     );
                                 })}
                             </div>
+                            {otpForm.formState.errors.otp && (
+                                <p className="text-center text-xs text-red-500">{otpForm.formState.errors.otp.message}</p>
+                            )}
                             <p className="text-center text-xs text-slate-500">
                                 Didn't receive the code?{" "}
                                 <button

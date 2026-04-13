@@ -380,13 +380,7 @@ export function SupplierProfile() {
                         </div>
                     </div>
                     <div className="flex items-center gap-4 self-start md:self-auto">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            className="rounded-full border-[#E6D5C6] text-[#4b2c20] px-5 py-2 h-auto text-sm"
-                        >
-                            View Public Profile
-                        </Button>
+
                         {isEditing ? (
                             <Button
                                 type="button"
@@ -427,17 +421,7 @@ export function SupplierProfile() {
                             <UserCircle2 size={18} />
                             <span>Account Profile</span>
                         </button>
-                        <button
-                            type="button"
-                            className={`pb-3 inline-flex items-center gap-2 border-b-2 text-sm font-medium transition-colors ${activeTab === "notifications"
-                                ? "border-[#4b2c20] text-[#4b2c20]"
-                                : "border-transparent text-[#9A8C80] hover:text-[#4b2c20]"
-                                }`}
-                            onClick={() => setActiveTab("notifications")}
-                        >
-                            <Bell size={18} />
-                            <span>Notifications</span>
-                        </button>
+
                     </div>
                 </div>
 

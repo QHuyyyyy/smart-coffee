@@ -24,6 +24,15 @@ export function Header() {
     const [notificationError, setNotificationError] = useState<string | null>(null);
     const [markingReadId, setMarkingReadId] = useState<number | null>(null);
 
+    const initials = useMemo(() => {
+        const source = (currentUser?.supplierName || currentUser?.email || "").trim();
+        if (!source) return "?";
+        const parts = source.split(/\s+/);
+        if (parts.length === 1) {
+            return parts[0][0]?.toUpperCase() ?? "?";
+        }
+        return `${parts[0][0]?.toUpperCase() ?? ""}${parts[1][0]?.toUpperCase() ?? ""}` || "?";
+    }, [currentUser?.supplierName, currentUser?.email]);
     const loadNotifications = useCallback(async (nextPage = notificationPage) => {
         if (!currentUser?.accountId) return;
 
@@ -184,13 +193,20 @@ export function Header() {
 
                 <div className="flex items-center gap-3">
                     <p className="text-sm font-medium text-[#707070]">Hi, {currentUser?.supplierName || currentUser?.role} </p>
-                    <div
-                        className="w-10 h-10 rounded-full bg-center bg-no-repeat bg-cover"
-                        style={{
-                            backgroundImage:
-                                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAxwbDyD4bBvVCuJaEUb2xlXzqhlBoh_VWXq_CcTNzDHVFdM43poWFPrmbWSUtDe-CbJC_EgCc3eIqv0v2pqk5NwKtcxkaIAX51yKL2rhrbBY0jor79_6wERvo59zxbzpas9D3lav_SjoB9rNoo-of_3v05-MKmx6pCW_hZnx58SsJE2L4tK_XOYL-cRxjijVNWKkMMB2WgDXq0IjA7dYDK-Uui5m4fF9koZs6PgdnDhGuLZx5YPH7ZCmeRqc3gX6jtwxjuNSkShN0")',
-                        }}
-                    />
+                    <button
+                        type="button"
+                        className="h-10 w-10 rounded-full bg-linear-to-br from-[#FEE4D6] to-[#F9D5B5] flex items-center justify-center text-sm font-semibold text-[#4b2c20] overflow-hidden border border-[#E6D5C6] focus:outline-none focus:ring-2 focus:ring-[#F47A1F] focus:ring-offset-2"
+                    >
+                        {currentUser?.image ? (
+                            <img
+                                src={currentUser.image}
+                                alt={currentUser.supplierName ?? currentUser.email}
+                                className="h-full w-full object-cover"
+                            />
+                        ) : (
+                            <span>{initials}</span>
+                        )}
+                    </button>
                 </div>
             </div>
         </header>

@@ -1,5 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { AuthLayout } from "@/components/auth/AuthLayout";
 import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
@@ -8,12 +11,26 @@ import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { useAuthStore } from "../stores/auth.store";
 import { toast } from "sonner";
+
+const loginSchema = z.object({
+    email: z.string().trim().min(1, "Email is required"),
+    password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 export function LoginPage() {
     const navigate = useNavigate();
     const { token, currentUser, login, isLoading, fetchCurrentUser, logout } = useAuthStore();
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+
+    const form = useForm<LoginFormValues>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
 
     const navigateByRole = (role?: string | null) => {
         if (role === "Admin") {
@@ -53,11 +70,9 @@ export function LoginPage() {
         };
     }, [token, currentUser, fetchCurrentUser, logout]);
 
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
+    const handleSubmit = async (values: LoginFormValues) => {
         try {
-            await login({ email, password });
+            await login({ email: values.email.trim(), password: values.password });
             const user = await fetchCurrentUser();
 
             if (!navigateByRole(user?.role)) {
@@ -86,7 +101,7 @@ export function LoginPage() {
 
                 <AuthTabs active="signin" />
 
-                <form className="space-y-6" onSubmit={handleSubmit}>
+                <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
 
 
                     <AuthField
@@ -94,9 +109,11 @@ export function LoginPage() {
                         label="Email or Phone Number"
                         placeholder="Enter your email"
                         type="text"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        {...form.register("email")}
                     />
+                    {form.formState.errors.email && (
+                        <p className="text-xs text-red-500 mt-1">{form.formState.errors.email.message}</p>
+                    )}
 
                     <div className="space-y-2">
                         <label className="text-sm font-semibold text-slate-700 block ml-1" htmlFor="password">
@@ -108,8 +125,7 @@ export function LoginPage() {
                                 label=""
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Enter your password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                {...form.register("password")}
                             />
                             <button
                                 type="button"
@@ -121,6 +137,9 @@ export function LoginPage() {
                                 </span>
                             </button>
                         </div>
+                        {form.formState.errors.password && (
+                            <p className="text-xs text-red-500 mt-1">{form.formState.errors.password.message}</p>
+                        )}
                     </div>
 
                     <div className="flex items-end justify-between text-sm py-2">
