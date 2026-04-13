@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Plus, Coffee, Eye, Pencil } from "lucide-react";
+import { Search, Coffee, Eye, Pencil } from "lucide-react";
 import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
@@ -132,13 +132,13 @@ export function Recipes() {
                                     Reset
                                 </Button>
 
-                                <button
+                                {/* <button
                                     onClick={() => setOpenCreateDialog(true)}
                                     className="inline-flex items-center gap-2 rounded-full bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#432d23] transition-colors"
                                 >
                                     <Plus size={16} />
                                     <span>Add Recipe</span>
-                                </button>
+                                </button> */}
                             </div>
                         </div>
                     </div>

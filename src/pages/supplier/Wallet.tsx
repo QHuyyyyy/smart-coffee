@@ -931,7 +931,7 @@ export function Wallet() {
             <Dialog open={isNoBankModalOpen} onOpenChange={setIsNoBankModalOpen}>
                 <DialogContent className="max-w-sm p-6 text-center">
                     <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-red-600">Thông báo</h2>
+                        <h2 className="text-xl font-semibold text-red-600">Warning</h2>
                         <p className="text-sm text-gray-600">
                             Please update your bank account information before making a withdrawal request.
                         </p>

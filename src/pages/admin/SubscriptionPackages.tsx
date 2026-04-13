@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Package, Users, CreditCard, BarChart2, Plus, Pencil, Filter, Search, Check, MoreVertical } from "lucide-react";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
@@ -9,17 +12,41 @@ import { subscriptionPackageService, type SubscriptionPackage } from "@/apis/sub
 import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
 
-interface PackageFormState {
-    name: string;
-    description: string;
-    price: string;
-    staffQuantity: string;
-    productRecommendLimit: string;
-    menuSuggestLimit: string;
-    menuAnalyzeFeedbackLimit: string;
-    inventoryForecastLimit: string;
-    recipeRecommendLimit: string;
-}
+const numericStringSchema = z
+    .string()
+    .trim()
+    .refine((value) => /^\d+$/.test(value), "Value must be a non-negative integer");
+
+const optionalLimitSchema = z
+    .string()
+    .trim()
+    .refine((value) => value === "" || /^\d+$/.test(value), "Value must be a non-negative integer");
+
+const packageFormSchema = z.object({
+    name: z.string().trim().min(1, "Package name is required"),
+    description: z.string().trim(),
+    price: numericStringSchema,
+    staffQuantity: numericStringSchema,
+    productRecommendLimit: optionalLimitSchema,
+    menuSuggestLimit: optionalLimitSchema,
+    menuAnalyzeFeedbackLimit: optionalLimitSchema,
+    inventoryForecastLimit: optionalLimitSchema,
+    recipeRecommendLimit: optionalLimitSchema,
+});
+
+type PackageFormValues = z.infer<typeof packageFormSchema>;
+
+const defaultPackageFormValues: PackageFormValues = {
+    name: "",
+    description: "",
+    price: "",
+    staffQuantity: "",
+    productRecommendLimit: "",
+    menuSuggestLimit: "",
+    menuAnalyzeFeedbackLimit: "",
+    inventoryForecastLimit: "",
+    recipeRecommendLimit: "",
+};
 
 const parseOptionalLimit = (value: string) => {
     if (!value.trim()) return null;
@@ -61,19 +88,13 @@ export function SubscriptionPackagesPage() {
     const [activeMenuPackageId, setActiveMenuPackageId] = useState<number | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<SubscriptionPackage | null>(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-    const [formState, setFormState] = useState<PackageFormState>({
-        name: "",
-        description: "",
-        price: "",
-        staffQuantity: "",
-        productRecommendLimit: "",
-        menuSuggestLimit: "",
-        menuAnalyzeFeedbackLimit: "",
-        inventoryForecastLimit: "",
-        recipeRecommendLimit: "",
-    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+
+    const form = useForm<PackageFormValues>({
+        resolver: zodResolver(packageFormSchema),
+        defaultValues: defaultPackageFormValues,
+    });
 
     const fetchPackages = async () => {
         try {
@@ -164,23 +185,13 @@ export function SubscriptionPackagesPage() {
 
     const openCreateDialog = () => {
         setEditingPackage(null);
-        setFormState({
-            name: "",
-            description: "",
-            price: "",
-            staffQuantity: "",
-            productRecommendLimit: "",
-            menuSuggestLimit: "",
-            menuAnalyzeFeedbackLimit: "",
-            inventoryForecastLimit: "",
-            recipeRecommendLimit: "",
-        });
+        form.reset(defaultPackageFormValues);
         setIsDialogOpen(true);
     };
 
     const openEditDialog = (pkg: SubscriptionPackage) => {
         setEditingPackage(pkg);
-        setFormState({
+        form.reset({
             name: pkg.name,
             description: pkg.description,
             price: pkg.price?.toString() ?? "",
@@ -197,6 +208,7 @@ export function SubscriptionPackagesPage() {
     const resetDialog = () => {
         setIsDialogOpen(false);
         setEditingPackage(null);
+        form.reset(defaultPackageFormValues);
         setIsSubmitting(false);
     };
 
@@ -228,24 +240,14 @@ export function SubscriptionPackagesPage() {
         }
     };
 
-    const handleInputChange = (field: keyof PackageFormState, value: string) => {
-        setFormState((prev) => ({ ...prev, [field]: value }));
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!formState.name || !formState.price || !formState.staffQuantity) {
-            toast.error("Vui lòng nhập đầy đủ tên, giá và số lượng nhân viên");
-            return;
-        }
-
-        const priceNumber = Number(formState.price);
-        const staffQuantityNumber = Number(formState.staffQuantity);
-        const productRecommendLimitNumber = parseOptionalLimit(formState.productRecommendLimit);
-        const menuSuggestLimitNumber = parseOptionalLimit(formState.menuSuggestLimit);
-        const menuAnalyzeFeedbackLimitNumber = parseOptionalLimit(formState.menuAnalyzeFeedbackLimit);
-        const inventoryForecastLimitNumber = parseOptionalLimit(formState.inventoryForecastLimit);
-        const recipeRecommendLimitNumber = parseOptionalLimit(formState.recipeRecommendLimit);
+    const handleSubmit = async (values: PackageFormValues) => {
+        const priceNumber = Number(values.price);
+        const staffQuantityNumber = Number(values.staffQuantity);
+        const productRecommendLimitNumber = parseOptionalLimit(values.productRecommendLimit);
+        const menuSuggestLimitNumber = parseOptionalLimit(values.menuSuggestLimit);
+        const menuAnalyzeFeedbackLimitNumber = parseOptionalLimit(values.menuAnalyzeFeedbackLimit);
+        const inventoryForecastLimitNumber = parseOptionalLimit(values.inventoryForecastLimit);
+        const recipeRecommendLimitNumber = parseOptionalLimit(values.recipeRecommendLimit);
 
         if (Number.isNaN(priceNumber) || priceNumber < 0) {
             toast.error("Giá không hợp lệ");
@@ -277,8 +279,8 @@ export function SubscriptionPackagesPage() {
         }
 
         const payload = {
-            name: formState.name,
-            description: formState.description,
+            name: values.name.trim(),
+            description: values.description.trim(),
             price: priceNumber,
             staffQuantity: staffQuantityNumber,
             productRecommendLimit: productRecommendLimitNumber,
@@ -524,20 +526,21 @@ export function SubscriptionPackagesPage() {
                         </DialogTitle>
                     </DialogHeader>
 
-                    <form className="space-y-4 mt-2" onSubmit={handleSubmit}>
+                    <form className="space-y-4 mt-2" onSubmit={form.handleSubmit(handleSubmit)}>
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-[#4F4F4F]">Package Name</label>
                             <Input
-                                value={formState.name}
-                                onChange={(e) => handleInputChange("name", e.target.value)}
+                                {...form.register("name")}
                                 placeholder="e.g. Starter, Growth, Enterprise"
                             />
+                            {form.formState.errors.name && (
+                                <p className="text-xs text-red-500">{form.formState.errors.name.message}</p>
+                            )}
                         </div>
                         <div className="space-y-2">
                             <label className="text-xs font-medium text-[#4F4F4F]">Description</label>
                             <textarea
-                                value={formState.description}
-                                onChange={(e) => handleInputChange("description", e.target.value)}
+                                {...form.register("description")}
                                 placeholder="Short description for this package"
                                 className="w-full rounded-2xl border border-slate-200 bg-transparent px-5 py-3 text-sm shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4b2c20]/20 focus-visible:border-[#4b2c20] min-h-20"
                             />
@@ -549,10 +552,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1000"
-                                    value={formState.price}
-                                    onChange={(e) => handleInputChange("price", e.target.value)}
+                                    {...form.register("price")}
                                     placeholder="e.g. 990000"
                                 />
+                                {form.formState.errors.price && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.price.message}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-medium text-[#4F4F4F]">Staff Quantity</label>
@@ -560,10 +565,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.staffQuantity}
-                                    onChange={(e) => handleInputChange("staffQuantity", e.target.value)}
+                                    {...form.register("staffQuantity")}
                                     placeholder="e.g. 5"
                                 />
+                                {form.formState.errors.staffQuantity && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.staffQuantity.message}</p>
+                                )}
                             </div>
                         </div>
 
@@ -574,10 +581,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.productRecommendLimit}
-                                    onChange={(e) => handleInputChange("productRecommendLimit", e.target.value)}
+                                    {...form.register("productRecommendLimit")}
                                     placeholder="Leave empty for unlimited"
                                 />
+                                {form.formState.errors.productRecommendLimit && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.productRecommendLimit.message}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-medium text-[#4F4F4F]">Menu Suggest Limit</label>
@@ -585,10 +594,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.menuSuggestLimit}
-                                    onChange={(e) => handleInputChange("menuSuggestLimit", e.target.value)}
+                                    {...form.register("menuSuggestLimit")}
                                     placeholder="Leave empty for unlimited"
                                 />
+                                {form.formState.errors.menuSuggestLimit && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.menuSuggestLimit.message}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-medium text-[#4F4F4F]">Recipe Recommend Limit</label>
@@ -596,10 +607,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.recipeRecommendLimit}
-                                    onChange={(e) => handleInputChange("recipeRecommendLimit", e.target.value)}
+                                    {...form.register("recipeRecommendLimit")}
                                     placeholder="Leave empty for unlimited"
                                 />
+                                {form.formState.errors.recipeRecommendLimit && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.recipeRecommendLimit.message}</p>
+                                )}
                             </div>
                         </div>
 
@@ -610,10 +623,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.menuAnalyzeFeedbackLimit}
-                                    onChange={(e) => handleInputChange("menuAnalyzeFeedbackLimit", e.target.value)}
+                                    {...form.register("menuAnalyzeFeedbackLimit")}
                                     placeholder="Leave empty for unlimited"
                                 />
+                                {form.formState.errors.menuAnalyzeFeedbackLimit && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.menuAnalyzeFeedbackLimit.message}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <label className="text-xs font-medium text-[#4F4F4F]">Inventory Forecast Limit</label>
@@ -621,10 +636,12 @@ export function SubscriptionPackagesPage() {
                                     type="number"
                                     min="0"
                                     step="1"
-                                    value={formState.inventoryForecastLimit}
-                                    onChange={(e) => handleInputChange("inventoryForecastLimit", e.target.value)}
+                                    {...form.register("inventoryForecastLimit")}
                                     placeholder="Leave empty for unlimited"
                                 />
+                                {form.formState.errors.inventoryForecastLimit && (
+                                    <p className="text-xs text-red-500">{form.formState.errors.inventoryForecastLimit.message}</p>
+                                )}
                             </div>
                         </div>
 

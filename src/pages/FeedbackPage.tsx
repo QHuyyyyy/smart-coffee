@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../apis/axios';
@@ -57,23 +60,55 @@ const DEFAULT_SWEETNESS = SWEETNESS_LEVELS[2];
 
 const PRICE_OPTIONS = ['Cheap', 'Reasonable', 'A bit expensive', 'Too expensive'] as const;
 
+const feedbackSchema = z.object({
+    isFirstTimeTrying: z.enum(['yes', 'no']),
+    strength: z.enum(STRENGTH_LEVELS),
+    acidity: z.enum(ACIDITY_LEVELS),
+    bitterness: z.enum(BITTERNESS_LEVELS),
+    sweetness: z.enum(SWEETNESS_LEVELS),
+    rating: z.number().min(1),
+    priceRating: z.enum(PRICE_OPTIONS),
+    repurchasable: z.enum(['yes', 'maybe', 'no']),
+    comment: z.string(),
+});
+
+type FeedbackFormValues = z.infer<typeof feedbackSchema>;
+
+const defaultFeedbackValues: FeedbackFormValues = {
+    isFirstTimeTrying: 'yes',
+    strength: DEFAULT_STRENGTH,
+    acidity: DEFAULT_ACIDITY,
+    bitterness: DEFAULT_BITTERNESS,
+    sweetness: DEFAULT_SWEETNESS,
+    rating: 0,
+    priceRating: PRICE_OPTIONS[0],
+    repurchasable: 'yes',
+    comment: '',
+};
+
 export function FeedbackPage() {
     const { id } = useParams<{ id: string }>();
     const feedbackId = id ?? '1';
     const menuItemId = Number(id) || 0;
 
-    const [isFirstTimeTrying, setIsFirstTimeTrying] = useState<boolean | null>(null);
-    const [strength, setStrength] = useState<string>(DEFAULT_STRENGTH);
-    const [acidity, setAcidity] = useState<string>(DEFAULT_ACIDITY);
-    const [bitterness, setBitterness] = useState<string>(DEFAULT_BITTERNESS);
-    const [sweetness, setSweetness] = useState<string>(DEFAULT_SWEETNESS);
-    const [rating, setRating] = useState(0);
-    const [priceRating, setPriceRating] = useState('');
-    const [repurchasable, setRepurchasable] = useState('');
-    const [comment, setComment] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [menuItem, setMenuItem] = useState<MenuItemResponse | null>(null);
     const [loadingMenuItem, setLoadingMenuItem] = useState(false);
+
+    const form = useForm<FeedbackFormValues>({
+        resolver: zodResolver(feedbackSchema),
+        defaultValues: defaultFeedbackValues,
+        mode: 'onChange',
+    });
+
+    const isFirstTimeTrying = form.watch('isFirstTimeTrying');
+    const strength = form.watch('strength');
+    const acidity = form.watch('acidity');
+    const bitterness = form.watch('bitterness');
+    const sweetness = form.watch('sweetness');
+    const rating = form.watch('rating');
+    const priceRating = form.watch('priceRating');
+    const repurchasable = form.watch('repurchasable');
 
     useEffect(() => {
         if (!menuItemId) return;
@@ -94,17 +129,17 @@ export function FeedbackPage() {
         void fetchMenuItem();
     }, [menuItemId]);
 
-    const isFormComplete =
-        isFirstTimeTrying !== null
-        && !!strength
-        && !!acidity
-        && !!bitterness
-        && !!sweetness
-        && rating > 0
-        && !!priceRating
-        && !!repurchasable;
+    const isFormComplete = form.formState.isValid;
 
-    const tasteProfiles = useMemo(() => {
+    const tasteProfiles = useMemo<Array<{
+        key: string;
+        label: string;
+        value: string;
+        levels: readonly string[];
+        lowLabel: string;
+        highLabel: string;
+        onChange: (value: string) => void;
+    }>>(() => {
         return [
             {
                 key: 'strength',
@@ -113,7 +148,8 @@ export function FeedbackPage() {
                 levels: STRENGTH_LEVELS,
                 lowLabel: 'Mild',
                 highLabel: 'Bold',
-                onChange: setStrength,
+                onChange: (value: string) =>
+                    form.setValue('strength', value as FeedbackFormValues['strength'], { shouldValidate: true, shouldDirty: true }),
             },
             {
                 key: 'acidity',
@@ -122,7 +158,8 @@ export function FeedbackPage() {
                 levels: ACIDITY_LEVELS,
                 lowLabel: 'Flat',
                 highLabel: 'Crisp',
-                onChange: setAcidity,
+                onChange: (value: string) =>
+                    form.setValue('acidity', value as FeedbackFormValues['acidity'], { shouldValidate: true, shouldDirty: true }),
             },
             {
                 key: 'bitterness',
@@ -131,7 +168,8 @@ export function FeedbackPage() {
                 levels: BITTERNESS_LEVELS,
                 lowLabel: 'Smooth',
                 highLabel: 'Intense',
-                onChange: setBitterness,
+                onChange: (value: string) =>
+                    form.setValue('bitterness', value as FeedbackFormValues['bitterness'], { shouldValidate: true, shouldDirty: true }),
             },
             {
                 key: 'sweetness',
@@ -140,47 +178,35 @@ export function FeedbackPage() {
                 levels: SWEETNESS_LEVELS,
                 lowLabel: 'Dry',
                 highLabel: 'Syrupy',
-                onChange: setSweetness,
+                onChange: (value: string) =>
+                    form.setValue('sweetness', value as FeedbackFormValues['sweetness'], { shouldValidate: true, shouldDirty: true }),
             },
-        ] as const;
-    }, [strength, acidity, bitterness, sweetness]);
+        ];
+    }, [strength, acidity, bitterness, sweetness, form]);
 
-    const handleSubmit = async () => {
-        if (!isFormComplete) {
-            toast.error('Vui long dien day du cac muc bat buoc tru Optional Feedback.');
-            return;
-        }
-
+    const handleSubmit = async (values: FeedbackFormValues) => {
         try {
             setSubmitting(true);
 
             const payload = {
                 menuId: menuItem?.menuId,
                 menuItemId,
-                isFirstTimeTrying,
-                strength,
-                acidity,
-                bitterness,
-                sweetness,
-                rating,
-                priceRating,
-                repurchasable,
-                comment: comment.trim() || undefined,
+                isFirstTimeTrying: values.isFirstTimeTrying === 'yes',
+                strength: values.strength,
+                acidity: values.acidity,
+                bitterness: values.bitterness,
+                sweetness: values.sweetness,
+                rating: values.rating,
+                priceRating: values.priceRating,
+                repurchasable: values.repurchasable,
+                comment: values.comment.trim() || undefined,
                 ratedBy: 'Others',
             };
 
             await api.post('/Feedback/MenuItem', payload);
 
             toast.success('Gui phan hoi thanh cong! Cam on ban.');
-            setIsFirstTimeTrying(null);
-            setStrength(DEFAULT_STRENGTH);
-            setAcidity(DEFAULT_ACIDITY);
-            setBitterness(DEFAULT_BITTERNESS);
-            setSweetness(DEFAULT_SWEETNESS);
-            setRating(0);
-            setPriceRating('');
-            setRepurchasable('');
-            setComment('');
+            form.reset(defaultFeedbackValues);
         } catch (error) {
             console.error('Submit feedback error', error);
             toast.error('Gui phan hoi that bai. Vui long thu lai.');
@@ -239,21 +265,21 @@ export function FeedbackPage() {
                                 <div className="flex gap-3 sm:ml-auto">
                                     <button
                                         type="button"
-                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === true
+                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === 'yes'
                                             ? 'border-[#371f17] bg-[#371f17] text-white'
                                             : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
                                             }`}
-                                        onClick={() => setIsFirstTimeTrying(true)}
+                                        onClick={() => form.setValue('isFirstTimeTrying', 'yes', { shouldValidate: true, shouldDirty: true })}
                                     >
                                         Yes
                                     </button>
                                     <button
                                         type="button"
-                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === false
+                                        className={`rounded-xl border px-5 py-2 text-sm font-bold transition-all ${isFirstTimeTrying === 'no'
                                             ? 'border-[#371f17] bg-[#371f17] text-white'
                                             : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
                                             }`}
-                                        onClick={() => setIsFirstTimeTrying(false)}
+                                        onClick={() => form.setValue('isFirstTimeTrying', 'no', { shouldValidate: true, shouldDirty: true })}
                                     >
                                         No
                                     </button>
@@ -267,9 +293,7 @@ export function FeedbackPage() {
                     )}
                 </section>
 
-                <form className="space-y-16" onSubmit={(e) => e.preventDefault()}>
-
-
+                <form className="space-y-16" onSubmit={form.handleSubmit(handleSubmit)}>
                     <section className="space-y-10">
                         <div>
                             <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Taste Profile</h2>
@@ -313,7 +337,7 @@ export function FeedbackPage() {
                                     key={starValue}
                                     type="button"
                                     className="p-1"
-                                    onClick={() => setRating(starValue)}
+                                    onClick={() => form.setValue('rating', starValue, { shouldValidate: true, shouldDirty: true })}
                                 >
                                     <span
                                         className={`material-symbols-outlined text-5xl ${rating >= starValue ? 'text-[#805521]' : 'text-[#d4c3bf]'}`}
@@ -335,7 +359,7 @@ export function FeedbackPage() {
                                 <button
                                     key={option}
                                     type="button"
-                                    onClick={() => setPriceRating(option)}
+                                    onClick={() => form.setValue('priceRating', option, { shouldValidate: true, shouldDirty: true })}
                                     className={`rounded-2xl border  px-10 py-4  text-center text-sm font-bold transition-all ${priceRating === option
                                         ? 'border-[#371f17] bg-[#371f17] text-white shadow-[0px_12px_32px_rgba(55,31,23,0.15)]'
                                         : 'border-[#d4c3bf] bg-white text-[#504442] hover:bg-[#efeeea]'
@@ -355,7 +379,7 @@ export function FeedbackPage() {
                         <div className="flex flex-wrap justify-center gap-4">
                             <button
                                 type="button"
-                                onClick={() => setRepurchasable('yes')}
+                                onClick={() => form.setValue('repurchasable', 'yes', { shouldValidate: true, shouldDirty: true })}
                                 className={`rounded-xl px-10 py-4 text-sm  font-bold transition-all ${repurchasable === 'yes'
                                     ? 'bg-[#371f17] text-white shadow-[0px_12px_32px_rgba(55,31,23,0.15)]'
                                     : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
@@ -365,7 +389,7 @@ export function FeedbackPage() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setRepurchasable('maybe')}
+                                onClick={() => form.setValue('repurchasable', 'maybe', { shouldValidate: true, shouldDirty: true })}
                                 className={`rounded-xl px-10 py-4 text-sm  font-bold transition-all ${repurchasable === 'maybe'
                                     ? 'bg-[#805521] text-white shadow-[0px_12px_32px_rgba(128,85,33,0.2)]'
                                     : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
@@ -375,7 +399,7 @@ export function FeedbackPage() {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setRepurchasable('no')}
+                                onClick={() => form.setValue('repurchasable', 'no', { shouldValidate: true, shouldDirty: true })}
                                 className={`rounded-xl px-10 py-4 text-sm font-bold transition-all ${repurchasable === 'no'
                                     ? 'bg-[#ba1a1a] text-white shadow-[0px_12px_32px_rgba(186,26,26,0.2)]'
                                     : 'border border-[#d4c3bf] bg-white text-[#1b1c1a] hover:bg-[#efeeea]'
@@ -389,12 +413,10 @@ export function FeedbackPage() {
                     <section className="space-y-6">
                         <div>
                             <h2 className="text-2xl font-bold tracking-tight text-[#1b1c1a]">Optional feedback</h2>
-
                         </div>
                         <textarea
                             id="comment"
-                            value={comment}
-                            onChange={(e) => setComment(e.target.value)}
+                            {...form.register('comment')}
                             rows={5}
                             placeholder="Write your thoughts here..."
                             className="w-full resize-none rounded-2xl border border-[#d4c3bf] bg-[#efeeea] p-6 text-[#1b1c1a] placeholder:text-[#827471] outline-none transition-all focus:border-[#827471] focus:bg-white"
@@ -403,8 +425,7 @@ export function FeedbackPage() {
 
                     <div className="pt-4 text-center">
                         <button
-                            type="button"
-                            onClick={handleSubmit}
+                            type="submit"
                             disabled={submitting || !isFormComplete || loadingMenuItem || !menuItem}
                             className="w-full rounded-full bg-linear-to-br from-[#371f17] to-[#4f342b] px-16 py-5 text-xl font-extrabold text-white shadow-[0px_20px_40px_rgba(55,31,23,0.2)] transition-all hover:scale-[1.01] disabled:cursor-not-allowed disabled:bg-[#9b9089] disabled:shadow-none md:w-auto"
                         >
