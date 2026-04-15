@@ -29,6 +29,40 @@ type IngredientListEnvelope = {
     totalPages?: number;
 };
 
+type MeasurementOption = {
+    value: "gram" | "kg" | "ml" | "l";
+    label: string;
+};
+
+const DRY_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+    { value: "gram", label: "g" },
+    { value: "kg", label: "kg" },
+];
+
+const LIQUID_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+    { value: "ml", label: "ml" },
+    { value: "l", label: "l" },
+];
+
+const ALL_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+    ...DRY_MEASUREMENT_OPTIONS,
+    ...LIQUID_MEASUREMENT_OPTIONS,
+];
+
+const normalizeIngredientCategory = (category?: string | null): "dry" | "liquid" | null => {
+    const normalized = category?.trim().toLowerCase();
+    if (normalized === "dry") return "dry";
+    if (normalized === "liquid") return "liquid";
+    return null;
+};
+
+const getMeasurementOptionsByCategory = (category?: string | null): MeasurementOption[] => {
+    const normalizedCategory = normalizeIngredientCategory(category);
+    if (normalizedCategory === "dry") return DRY_MEASUREMENT_OPTIONS;
+    if (normalizedCategory === "liquid") return LIQUID_MEASUREMENT_OPTIONS;
+    return ALL_MEASUREMENT_OPTIONS;
+};
+
 const extractIngredientList = (data: unknown): IngredientOption[] => {
     if (Array.isArray(data)) {
         return data as IngredientOption[];
@@ -78,7 +112,7 @@ const formSchema = z.object({
     ingredientCategory: z.string().optional(),
     price: z.number().min(1000, "Price must be greater than 1000"),
     // stock: số lượng túi
-    stock: z.number().min(1, "Stock must be at least 1 bag"),
+    stock: z.number().min(1, "Stock must be at least 1 bag").max(999999, "Stock must be "),
     // packageSize: khối lượng 1 túi hàng (theo measurement)
     packageSize: z.number().min(0.01, "Package size must be greater than 0"),
     measurement: z.string().min(1, "Measurement is required"),
@@ -92,6 +126,28 @@ const formSchema = z.object({
 }, {
     message: "Please select an ingredient or enter name & category",
     path: ["ingredientId"],
+}).superRefine((data, ctx) => {
+    const allowedMeasurements = getMeasurementOptionsByCategory(data.ingredientCategory).map((option) => option.value);
+
+    if (!allowedMeasurements.includes(data.measurement as MeasurementOption["value"])) {
+        const normalizedCategory = normalizeIngredientCategory(data.ingredientCategory);
+
+        if (normalizedCategory === "dry") {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["measurement"],
+                message: "Dry ingredients only support g or kg",
+            });
+        }
+
+        if (normalizedCategory === "liquid") {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ["measurement"],
+                message: "Liquid ingredients only support ml or l",
+            });
+        }
+    }
 });
 
 export type SupplierProductFormValues = z.infer<typeof formSchema>;
@@ -263,6 +319,18 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
     };
 
     const mode = form.watch("mode");
+    const selectedMeasurement = form.watch("measurement");
+    const selectedIngredientCategory = form.watch("ingredientCategory");
+    const measurementOptions = getMeasurementOptionsByCategory(selectedIngredientCategory);
+
+    useEffect(() => {
+        if (!measurementOptions.some((option) => option.value === selectedMeasurement)) {
+            form.setValue("measurement", measurementOptions[0].value, {
+                shouldDirty: true,
+                shouldValidate: true,
+            });
+        }
+    }, [form, measurementOptions, selectedMeasurement]);
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>
@@ -309,7 +377,15 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     disabled={loadingIngredients && ingredients.length === 0}
                                     value={form.watch("ingredientId") ? String(form.watch("ingredientId")) : undefined}
                                     onValueChange={(value) => {
+                                        const nextIngredientId = value ? Number(value) : undefined;
+                                        const selectedIngredient = ingredients.find((ing) => ing.ingredientId === nextIngredientId);
+
                                         form.setValue("ingredientId", value ? Number(value) : undefined, {
+                                            shouldValidate: true,
+                                            shouldDirty: true,
+                                        });
+
+                                        form.setValue("ingredientCategory", selectedIngredient?.category ?? "", {
                                             shouldValidate: true,
                                             shouldDirty: true,
                                         });
@@ -321,7 +397,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     <SelectContent className="h-64 max-h-64">
                                         {ingredients.map((ing, index) => (
                                             <SelectItem key={`${ing.ingredientId}-${index}`} value={String(ing.ingredientId)}>
-                                                {ing.name} ({ing.category})
+                                                {ing.name}
                                             </SelectItem>
                                         ))}
 
@@ -408,7 +484,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     step="1"
                                     min="0"
                                     {...form.register("price", { valueAsNumber: true })}
-                                    className="rounded-xl border-[#E0D5D0]"
+                                    className="h-12 rounded-xl border-[#E0D5D0]"
                                 />
                                 {form.formState.errors.price && (
                                     <p className="text-xs text-red-500 mt-1">
@@ -423,7 +499,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     step="1"
                                     min="0"
                                     {...form.register("stock", { valueAsNumber: true })}
-                                    className="rounded-xl border-[#E0D5D0]"
+                                    className="h-12 rounded-xl border-[#E0D5D0]"
                                 />
                                 {form.formState.errors.stock && (
                                     <p className="text-xs text-red-500 mt-1">
@@ -431,34 +507,35 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     </p>
                                 )}
                             </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Measurement Unit</label>
                                 <select
-                                    className="w-full rounded-xl border border-[#E0D5D0] bg-white px-2 py-3 text-sm text-[#3B2618] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
+                                    className="h-12 w-full rounded-xl border border-[#E0D5D0] bg-white px-3 text-sm text-[#3B2618] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
                                     value={form.watch("measurement")}
-                                    onChange={(e) => form.setValue("measurement", e.target.value)}
+                                    onChange={(e) => form.setValue("measurement", e.target.value, { shouldValidate: true, shouldDirty: true })}
                                 >
-                                    <option value="gram">Gram</option>
-                                    <option value="kg">Kilogram</option>
-                                    <option value="ml">Milliliter</option>
-                                    <option value="l">Liter</option>
+                                    {measurementOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
                                 </select>
+                                {form.formState.errors.measurement && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.measurement.message as string}
+                                    </p>
+                                )}
                             </div>
-                            <div className="space-y-1 md:col-span-2">
+                            <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Package Size</label>
-                                <div className="flex items-center gap-2">
-                                    <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        {...form.register("packageSize", { valueAsNumber: true })}
-                                        className="rounded-xl border-[#E0D5D0]"
-                                    />
-                                    <span className="text-xs text-[#7A685B]">per bag ({form.watch("measurement")})</span>
-                                </div>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder={`e.g. 5 ${form.watch("measurement")}`}
+                                    {...form.register("packageSize", { valueAsNumber: true })}
+                                    className="h-12 rounded-xl border-[#E0D5D0]"
+                                />
                                 {form.formState.errors.packageSize && (
                                     <p className="text-xs text-red-500 mt-1">
                                         {form.formState.errors.packageSize.message as string}

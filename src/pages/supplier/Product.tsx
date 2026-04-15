@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Package, Plus, Eye, Pencil, Trash2 } from "lucide-react";
+import { Package, Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
@@ -19,6 +19,8 @@ export function SupplierProducts() {
     const [products, setProducts] = useState<SupplierProduct[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [nameFilterInput, setNameFilterInput] = useState("");
+    const [nameFilter, setNameFilter] = useState("");
     const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
@@ -29,7 +31,7 @@ export function SupplierProducts() {
     const [deletingProduct, setDeletingProduct] = useState<SupplierProduct | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const fetchProducts = async (targetPage = 1) => {
+    const fetchProducts = async (targetPage = 1, nextNameFilter = nameFilter) => {
         if (!currentUser?.supplierId) {
             setError("Missing supplier information");
             return;
@@ -37,7 +39,7 @@ export function SupplierProducts() {
         try {
             setLoading(true);
             setError(null);
-            const res = await supplierProductService.getPaginatedBySupplier(currentUser.supplierId, targetPage, pageSize);
+            const res = await supplierProductService.getPaginatedBySupplier(currentUser.supplierId, targetPage, pageSize, nextNameFilter.trim());
             const data = res.data as any;
             const items: SupplierProduct[] = Array.isArray(data)
                 ? data
@@ -129,7 +131,19 @@ export function SupplierProducts() {
             setIsDeleting(false);
         }
     };
+    const handleApplyFilter = () => {
+        const nextName = nameFilterInput.trim();
+        setNameFilter(nextName);
+        setPage(1);
+        void fetchProducts(1, nextName);
+    };
 
+    const handleResetFilter = () => {
+        setNameFilterInput("");
+        setNameFilter("");
+        setPage(1);
+        void fetchProducts(1, "");
+    };
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -153,12 +167,27 @@ export function SupplierProducts() {
                         <h2 className="text-base font-semibold text-[#573E32]">All Products</h2>
 
                         <div className="flex items-center gap-2 self-end md:self-auto">
+                            <div className="flex items-center gap-2 rounded-full bg-[#F5F3F1] px-4 py-2 w-full sm:w-80">
+                                <Search size={16} className="text-[#B0A49E]" />
+                                <input
+                                    type="text"
+                                    placeholder="Search by product name..."
+                                    value={nameFilterInput}
+                                    onChange={(e) => setNameFilterInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                            e.preventDefault();
+                                            handleApplyFilter();
+                                        }
+                                    }}
+                                    className="w-full bg-transparent text-sm text-[#573E32] placeholder:text-[#B0A49E] focus:outline-none"
+                                />
+                            </div>
                             <Button
                                 type="button"
                                 variant="outline"
                                 onClick={() => {
-                                    setPage(1);
-                                    void fetchProducts(1);
+                                    handleResetFilter();
                                 }}
                             >
                                 Reset

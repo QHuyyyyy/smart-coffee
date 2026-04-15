@@ -83,9 +83,9 @@ type NewIngredientPayload = {
 export type CreateSupplierProductPayload = ExistingIngredientPayload | NewIngredientPayload;
 
 export const supplierProductService = {
-    getPaginatedBySupplier: async (supplierId: number, page: number, pageSize: number) => {
+    getPaginatedBySupplier: async (supplierId: number, page: number, pageSize: number, name: string) => {
         return api.get<SupplierProductPaginatedResponse>(`/SupplierProduct/by-supplier/${supplierId}`, {
-            params: { page, pageSize },
+            params: { page, pageSize, name },
         });
     },
 
