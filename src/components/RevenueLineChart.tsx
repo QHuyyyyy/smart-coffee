@@ -8,11 +8,9 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
-import { Download } from "lucide-react";
 import { dashboardService, type DashboardChartPoint } from "@/apis/dashboard.service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatVND } from "@/utils/currency";
-import { exportRowsToExcel } from "@/utils/excel";
 
 type RevenueLineChartProps = {
     mode: "admin" | "supplier";
@@ -160,19 +158,6 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
         });
     }, [filter.mode, filter.year]);
 
-    const handleExportExcel = () => {
-        const rows = chartData.map((item) => ({
-            Time: formatChartLabel(item.time, filter.mode),
-            TotalRevenue: item.revenue,
-        }));
-
-        exportRowsToExcel({
-            rows,
-            fileName: `${mode}-total-revenue-${filter.mode}-${filter.mode === "day" ? filter.month : filter.year}`,
-            sheetName: "TotalRevenue",
-        });
-    };
-
     return (
         <div className="rounded-xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -228,16 +213,6 @@ export function RevenueLineChart({ mode, supplierId, title = "Total Revenue Tren
                             </SelectContent>
                         </Select>
                     )}
-
-                    <button
-                        type="button"
-                        onClick={handleExportExcel}
-                        disabled={loading || chartData.length === 0}
-                        aria-label="Export chart data to Excel"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-[#573E32] hover:bg-gray-50 disabled:opacity-50"
-                    >
-                        <Download size={14} />
-                    </button>
                 </div>
             </div>
 

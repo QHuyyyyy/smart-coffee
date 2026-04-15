@@ -14,10 +14,13 @@ import { toast } from "sonner";
 type RegistrationStep = "register" | "otp";
 
 const registerSchema = z.object({
-    email: z.string().trim().min(1, "Please enter your email").email("Please enter a valid email"),
+    email: z.email("Please enter a valid email"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
-    phone: z.string().trim().min(1, "Please enter your phone number"),
+    phone: z.string().trim().regex(
+        /^(?:\+84|84|0)\d{9,10}$/,
+        "Invalid phone number"
+    ),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -65,10 +68,10 @@ export function RegisterPage() {
             await register({
                 email: values.email.trim(),
                 password: values.password,
-                phone: values.phone.trim(),
+                phone: values.phone.trim().replace(/^(?:\+84|84)/, "0"),
             });
             setStep("otp");
-            toast.success("Registration successful! Please verify your email with OTP");
+            toast.success("Registration successful! Please verify your email with OTP to complete the process.");
         } catch (err: any) {
             const msg =
                 err?.response?.data
@@ -83,7 +86,7 @@ export function RegisterPage() {
         try {
             await verifyOtp({ email: registerForm.getValues("email").trim(), otp: values.otp.trim(), role });
             toast.success("Email verified successfully!");
-            navigate("/supplier/dashboard");
+            navigate("/");
         } catch (err: any) {
             toast.error(err.message || "OTP verification failed");
         }
@@ -136,7 +139,7 @@ export function RegisterPage() {
             await register({
                 email: values.email.trim(),
                 password: values.password,
-                phone: values.phone.trim(),
+                phone: values.phone.trim().replace(/^(?:\+84|84)/, "0"),
             });
             toast.success("A new OTP has been sent to your email");
         } catch (err: any) {
