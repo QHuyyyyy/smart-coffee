@@ -13,6 +13,7 @@ import { dashboardService } from "@/apis/dashboard.service";
 import { transactionService, type TransactionItem } from "@/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
 import { RevenueLineChart } from "@/components/RevenueLineChart";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
@@ -99,6 +100,30 @@ function formatChartDayLabel(value: string, mode: "day" | "month") {
     return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
 }
 
+function formatExportTimeLabel(value: string, mode: "day" | "month") {
+    if (!value) return "-";
+
+    const monthMatch = value.match(/^(\d{4})-(\d{2})$/);
+    if (monthMatch) {
+        const [, year, month] = monthMatch;
+        return `${month}/${year}`;
+    }
+
+    const dayMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (dayMatch) {
+        const [, year, month, day] = dayMatch;
+        if (mode === "month") return `${month}/${year}`;
+        return `${day}/${month}/${year}`;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    if (mode === "month") {
+        return date.toLocaleDateString("en-US", { month: "2-digit", year: "numeric" });
+    }
+    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
 function SummaryGrid({ cards }: { cards: SummaryCard[] }) {
     return (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -137,6 +162,9 @@ export function AdminHome() {
     const currentYear = String(currentDate.getFullYear());
     const currentMonthYear = `${currentYear}-${currentMonth}`;
     const [filter, setFilter] = useState<RevenueFilter>({ mode: "day", month: currentMonthYear, year: currentYear });
+    const [isFinancialExportOpen, setIsFinancialExportOpen] = useState(false);
+    const [exportFilter, setExportFilter] = useState<RevenueFilter>({ mode: "day", month: currentMonthYear, year: currentYear });
+    const [exportLoading, setExportLoading] = useState(false);
 
     const [monitoringSummary, setMonitoringSummary] = useState<DashboardSummary>({
         totalCoffeeShops: 0,
@@ -289,6 +317,14 @@ export function AdminHome() {
         };
     };
 
+    const getRevenueQueryParams = (target: RevenueFilter) => {
+        const monthYearParams = parseMonthYear(target.month);
+        return {
+            month: target.mode === "day" ? monthYearParams.month : undefined,
+            year: target.mode === "day" ? monthYearParams.year : parsePositiveInt(target.year),
+        };
+    };
+
     const fetchRevenueOverview = async (nextFilter?: RevenueFilter) => {
         const target = nextFilter ?? filter;
 
@@ -296,9 +332,7 @@ export function AdminHome() {
             setRevenueLoading(true);
             setRevenueError(null);
 
-            const monthYearParams = parseMonthYear(target.month);
-            const month = target.mode === "day" ? monthYearParams.month : undefined;
-            const year = target.mode === "day" ? monthYearParams.year : parsePositiveInt(target.year);
+            const { month, year } = getRevenueQueryParams(target);
 
             const [commissionResult, subscriptionResult] = await Promise.all([
                 dashboardService.getCommissionRevenue({ month, year }),
@@ -441,18 +475,84 @@ export function AdminHome() {
 
     const totalRevenue = totalCommission + totalSubscription;
 
-    const handleExportRevenueOverview = () => {
-        const rows = revenueBars.map((item) => ({
-            Time: formatChartDayLabel(item.day, filter.mode),
-            Commission: item.commission,
-            Subscription: item.subscription,
-        }));
+    const handleExportFinancialReport = async () => {
+        try {
+            setExportLoading(true);
 
-        exportRowsToExcel({
-            rows,
-            fileName: `admin-revenue-overview-${filter.mode}-${filter.mode === "day" ? filter.month : filter.year}`,
-            sheetName: "RevenueOverview",
-        });
+            const { month, year } = getRevenueQueryParams(exportFilter);
+            const [totalRevenueData, commissionResult, subscriptionResult] = await Promise.all([
+                dashboardService.getTotalRevenue({ month, year }),
+                dashboardService.getCommissionRevenue({ month, year }),
+                dashboardService.getSubscriptionRevenue({ month, year }),
+            ]);
+
+            const map = new Map<string, { time: string; totalRevenueValue: number; commission: number; subscription: number }>();
+
+            (totalRevenueData ?? []).forEach((item) => {
+                const key = item.time;
+                const current = map.get(key);
+                if (current) {
+                    current.totalRevenueValue = Number(item.totalRevenue ?? 0);
+                } else {
+                    map.set(key, {
+                        time: key,
+                        totalRevenueValue: Number(item.totalRevenue ?? 0),
+                        commission: 0,
+                        subscription: 0,
+                    });
+                }
+            });
+
+            (commissionResult.data ?? []).forEach((item) => {
+                const key = item.time;
+                const current = map.get(key);
+                if (current) {
+                    current.commission = Number(item.totalRevenue ?? 0);
+                } else {
+                    map.set(key, {
+                        time: key,
+                        totalRevenueValue: 0,
+                        commission: Number(item.totalRevenue ?? 0),
+                        subscription: 0,
+                    });
+                }
+            });
+
+            (subscriptionResult.data ?? []).forEach((item) => {
+                const key = item.time;
+                const current = map.get(key);
+                if (current) {
+                    current.subscription = Number(item.totalRevenue ?? 0);
+                } else {
+                    map.set(key, {
+                        time: key,
+                        totalRevenueValue: 0,
+                        commission: 0,
+                        subscription: Number(item.totalRevenue ?? 0),
+                    });
+                }
+            });
+
+            const dateKey = exportFilter.mode === "day" ? "Date" : "Month";
+            const rows = Array.from(map.values())
+                .sort((a, b) => a.time.localeCompare(b.time))
+                .map((item) => ({
+                    [dateKey]: formatExportTimeLabel(item.time, exportFilter.mode),
+                    TotalRevenue: item.totalRevenueValue,
+                    Comission: item.commission,
+                    Subscription: item.subscription,
+                }));
+
+            exportRowsToExcel({
+                rows,
+                fileName: `admin-financial-report-${exportFilter.mode}-${exportFilter.mode === "day" ? exportFilter.month : exportFilter.year}`,
+                sheetName: "FinancialReport",
+            });
+
+            setIsFinancialExportOpen(false);
+        } finally {
+            setExportLoading(false);
+        }
     };
 
     return (
@@ -478,6 +578,24 @@ export function AdminHome() {
 
 
                     </section>
+                    <div className="flex items-center justify-between gap-3">
+                        <h2 className="text-xl font-bold text-[#1F1F1F]">Revenue &amp; Financial Report</h2>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setExportFilter({
+                                    mode: filter.mode,
+                                    month: filter.month,
+                                    year: filter.year,
+                                });
+                                setIsFinancialExportOpen(true);
+                            }}
+                            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-[#573E32] hover:bg-gray-50"
+                        >
+                            <Download size={14} />
+                            Export Report
+                        </button>
+                    </div>
                     <RevenueLineChart mode="admin" title="Total Revenue" />
                     <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
                         <div className="rounded-xl border border-[#EFEAE5] bg-white p-6 shadow-sm">
@@ -535,15 +653,6 @@ export function AdminHome() {
                                         </Select>
                                     )}
 
-                                    <button
-                                        type="button"
-                                        onClick={handleExportRevenueOverview}
-                                        disabled={revenueLoading || revenueBars.length === 0}
-                                        aria-label="Export revenue overview to Excel"
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-300 bg-white text-[#573E32] hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                        <Download size={14} />
-                                    </button>
                                 </div>
                             </div>
                             <div className="mb-4 flex items-end gap-2">
@@ -665,6 +774,85 @@ export function AdminHome() {
                 </section>
 
             </div >
+
+            <Dialog open={isFinancialExportOpen} onOpenChange={setIsFinancialExportOpen}>
+                <DialogContent className="max-w-md p-6">
+                    <DialogHeader>
+                        <DialogTitle>Export Financial Report</DialogTitle>
+                    </DialogHeader>
+
+                    <div className="mt-2 space-y-4">
+                        <div className="inline-flex items-center rounded-lg border border-gray-200 bg-white p-0.5">
+                            <button
+                                type="button"
+                                className={`rounded-md px-3 py-1 text-xs font-semibold transition ${exportFilter.mode === "day" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                onClick={() => setExportFilter((prev) => ({ ...prev, mode: "day" }))}
+                            >
+                                By day
+                            </button>
+                            <button
+                                type="button"
+                                className={`rounded-md px-3 py-1 text-xs font-semibold transition ${exportFilter.mode === "month" ? "bg-[#573E32] text-white" : "text-[#573E32] hover:bg-[#F5F1EE]"}`}
+                                onClick={() => setExportFilter((prev) => ({ ...prev, mode: "month" }))}
+                            >
+                                By month
+                            </button>
+                        </div>
+
+                        {exportFilter.mode === "day" ? (
+                            <Select
+                                value={exportFilter.month}
+                                onValueChange={(value) => setExportFilter((prev) => ({ ...prev, month: value }))}
+                            >
+                                <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-gray-50 px-3 text-sm text-gray-900">
+                                    <SelectValue placeholder="Month/Year" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-52 overflow-y-auto">
+                                    {monthOptions.map((month) => (
+                                        <SelectItem key={month.value} value={month.value}>
+                                            {month.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Select
+                                value={exportFilter.year}
+                                onValueChange={(value) => setExportFilter((prev) => ({ ...prev, year: value }))}
+                            >
+                                <SelectTrigger className="h-10 w-full rounded-lg border-gray-200 bg-gray-50 px-3 text-sm text-gray-900">
+                                    <SelectValue placeholder="Year" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-52 overflow-y-auto">
+                                    {yearOptions.map((year) => (
+                                        <SelectItem key={year} value={year}>
+                                            {year}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsFinancialExportOpen(false)}
+                                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handleExportFinancialReport()}
+                                disabled={exportLoading}
+                                className="rounded-lg bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#4B342A] disabled:opacity-50"
+                            >
+                                {exportLoading ? "Exporting..." : "Download"}
+                            </button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Carrot, Plus, Pencil, Search, Trash2 } from "lucide-react";
+import { Carrot, Plus, Pencil, Search } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -223,7 +223,7 @@ export function AdminIngredientsPage() {
                                                     >
                                                         <Pencil size={16} />
                                                     </button>
-                                                    <button
+                                                    {/* <button
                                                         className="hover:text-red-500"
                                                         aria-label="Delete"
                                                         onClick={() => {
@@ -232,7 +232,7 @@ export function AdminIngredientsPage() {
                                                         }}
                                                     >
                                                         <Trash2 size={16} />
-                                                    </button>
+                                                    </button> */}
                                                 </div>
                                             </TableCell>
                                         </TableRow>

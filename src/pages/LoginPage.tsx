@@ -76,9 +76,10 @@ export function LoginPage() {
             const user = await fetchCurrentUser();
 
             if (!navigateByRole(user?.role)) {
-                toast.error("Tài khoản không có quyền truy cập ứng dụng này.");
+                toast.error("User is not authorized to access the dashboard.");
                 logout();
             }
+            toast.success("Login successful!");
         } catch (err: Error | any) {
             toast.error(err?.response?.data || "Login failed. Please check your credentials.");
         }
@@ -106,7 +107,7 @@ export function LoginPage() {
 
                     <AuthField
                         id="email"
-                        label="Email or Phone Number"
+                        label="Email"
                         placeholder="Enter your email"
                         type="text"
                         {...form.register("email")}
