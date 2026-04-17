@@ -39,6 +39,12 @@ export const supplierOrderService = {
         return api.patch<SupplierOrder>(`/Order/${id}/status`, { status });
     },
 
+    cancelWithReason: async (id: number, reasonCancel: string) => {
+        return api.patch<SupplierOrder>(`/Order/${id}/reason-cancel`, {
+            reason_cancel: reasonCancel,
+        });
+    },
+
     // Staging/test only: trigger GHN webhook manually
     triggerGhnWebhook: async (orderCode: string, status: string) => {
         return api.post(`/GHN/webhook`, {

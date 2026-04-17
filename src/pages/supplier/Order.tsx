@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { ClipboardList, Eye, XCircle } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.service";
@@ -7,7 +10,17 @@ import { useAuthStore } from "@/stores/auth.store";
 import { useNavigate } from "react-router-dom";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { formatVND } from "@/utils/currency";
+
+const cancelOrderSchema = z.object({
+    cancelReason: z.string()
+        .trim()
+        .min(10, "Reason must be at least 10 characters")
+        .max(255, "Reason must not exceed 255 characters"),
+});
+
+type CancelOrderFormValues = z.infer<typeof cancelOrderSchema>;
 
 export function SupplierOrders() {
     const navigate = useNavigate();
@@ -19,6 +32,16 @@ export function SupplierOrders() {
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [statusFilter, setStatusFilter] = useState<string | null>("Pending");
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [cancelingOrderId, setCancelingOrderId] = useState<number | null>(null);
+    const [cancelSubmitting, setCancelSubmitting] = useState(false);
+
+    const cancelForm = useForm<CancelOrderFormValues>({
+        resolver: zodResolver(cancelOrderSchema),
+        defaultValues: {
+            cancelReason: "",
+        },
+    });
 
     const fetchOrders = async (targetPage = 1, status: string | null = statusFilter) => {
         if (!currentUser?.supplierId) {
@@ -109,16 +132,28 @@ export function SupplierOrders() {
         );
     };
 
-    const handleCancelOrder = async (orderId: number) => {
+    const openCancelDialog = (orderId: number) => {
+        setCancelingOrderId(orderId);
+        cancelForm.reset({ cancelReason: "" });
+        setError(null);
+        setCancelDialogOpen(true);
+    };
+
+    const handleCancelOrder = async (values: CancelOrderFormValues) => {
+        if (!cancelingOrderId) return;
+
         try {
-            setLoading(true);
+            setCancelSubmitting(true);
             setError(null);
-            await supplierOrderService.updateStatus(orderId, "Cancelled");
+            await supplierOrderService.cancelWithReason(cancelingOrderId, values.cancelReason.trim());
             await fetchOrders(page);
+            setCancelDialogOpen(false);
+            cancelForm.reset({ cancelReason: "" });
+            setCancelingOrderId(null);
         } catch {
             setError("Failed to cancel order");
         } finally {
-            setLoading(false);
+            setCancelSubmitting(false);
         }
     };
 
@@ -225,8 +260,8 @@ export function SupplierOrders() {
                                                     {!(o.status ?? "").toLowerCase().includes("cancel") && (
                                                         <button
                                                             className="hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                                            onClick={() => handleCancelOrder(o.orderId)}
-                                                            disabled={loading}
+                                                            onClick={() => openCancelDialog(o.orderId)}
+                                                            disabled={loading || cancelSubmitting}
                                                         >
                                                             <XCircle size={16} />
                                                         </button>
@@ -264,6 +299,68 @@ export function SupplierOrders() {
                     </div>
                 </div>
             </div>
+
+            <Dialog
+                open={cancelDialogOpen}
+                onOpenChange={(open) => {
+                    setCancelDialogOpen(open);
+                    if (!open) {
+                        cancelForm.reset({ cancelReason: "" });
+                        setCancelingOrderId(null);
+                    }
+                }}
+            >
+                <DialogContent className="max-w-md w-full">
+                    <form onSubmit={cancelForm.handleSubmit(handleCancelOrder)} className="space-y-4">
+                        <DialogHeader>
+                            <DialogTitle>Cancel order</DialogTitle>
+                            <DialogDescription>
+                                Are you sure you want to cancel order
+                                {" "}
+                                <span className="font-semibold text-[#573E32]">#{cancelingOrderId}</span>? Please enter reason.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="space-y-2">
+                            <label htmlFor="cancel-reason" className="text-sm font-medium text-[#573E32]">
+                                Reason
+                            </label>
+                            <textarea
+                                id="cancel-reason"
+                                className="w-full min-h-28 rounded-md border border-[#E4DFDB] px-3 py-2 text-sm text-[#1F1F1F] outline-none focus:border-[#573E32]"
+                                placeholder="Enter cancellation reason"
+                                disabled={cancelSubmitting}
+                                {...cancelForm.register("cancelReason")}
+                            />
+                            {cancelForm.formState.errors.cancelReason && (
+                                <p className="text-xs text-red-500">{cancelForm.formState.errors.cancelReason.message}</p>
+                            )}
+                        </div>
+
+                        <DialogFooter className="mt-4 flex justify-end gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                disabled={cancelSubmitting}
+                                onClick={() => {
+                                    setCancelDialogOpen(false);
+                                    cancelForm.reset({ cancelReason: "" });
+                                    setCancelingOrderId(null);
+                                }}
+                            >
+                                Back
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={cancelSubmitting}
+                            >
+                                {cancelSubmitting ? "Cancelling..." : "Confirm cancel"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

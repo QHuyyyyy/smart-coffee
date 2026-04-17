@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,6 +22,7 @@ const businessInfoSchema = z.object({
     provinceId: z.string().min(1, "Province is required"),
     districtId: z.string().min(1, "District is required"),
     wardCode: z.string().min(1, "Ward is required"),
+    businessAddress: z.string().min(1, "Business address is required"),
 });
 
 type BusinessInfoFormValues = z.infer<typeof businessInfoSchema>;
@@ -50,6 +51,7 @@ export function SupplierOnboardingDialog() {
             provinceId: "",
             districtId: "",
             wardCode: "",
+            businessAddress: "",
         },
     });
 
@@ -60,6 +62,7 @@ export function SupplierOnboardingDialog() {
                 provinceId: "",
                 districtId: "",
                 wardCode: "",
+                businessAddress: "",
             });
             setOpen(true);
         }
@@ -80,7 +83,6 @@ export function SupplierOnboardingDialog() {
 
     const selectedProvinceId = businessForm.watch("provinceId");
     const selectedDistrictId = businessForm.watch("districtId");
-    const selectedWardCode = businessForm.watch("wardCode");
 
     useEffect(() => {
         const provinceIdNumber = Number(selectedProvinceId);
@@ -128,18 +130,6 @@ export function SupplierOnboardingDialog() {
         fetchWards();
     }, [selectedDistrictId, businessForm]);
 
-    const composedAddress = useMemo(() => {
-        const provinceIdNumber = Number(selectedProvinceId);
-        const districtIdNumber = Number(selectedDistrictId);
-
-        const province = provinces.find(p => p.ProvinceID === provinceIdNumber);
-        const district = districts.find(d => d.DistrictID === districtIdNumber);
-        const ward = wards.find(w => w.WardCode === selectedWardCode);
-
-        if (!province || !district || !ward) return "";
-
-        return `${ward.WardName} - ${district.DistrictName} - ${province.ProvinceName}`;
-    }, [provinces, districts, wards, selectedProvinceId, selectedDistrictId, selectedWardCode]);
 
     if (!currentUser || currentUser.role !== "Supplier") {
         return null;
@@ -164,12 +154,10 @@ export function SupplierOnboardingDialog() {
                 return;
             }
 
-            const address = `${ward.WardName} - ${district.DistrictName} - ${province.ProvinceName}`;
-
             await authService.updateSupplier({
                 accountId: currentUser.accountId,
                 supplierName: values.supplierName.trim(),
-                address,
+                address: values.businessAddress.trim(),
                 provinceId: provinceIdNumber,
                 districtId: districtIdNumber,
                 wardCode: values.wardCode,
@@ -391,11 +379,20 @@ export function SupplierOnboardingDialog() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <p className="text-xs font-medium text-[#4F4F4F]">Business Address</p>
-                                        <p className="min-h-6 text-sm text-[#8C6C4A] bg-white/60 rounded-xl border border-dashed border-[#E6D5C6] px-3 py-2">
-                                            {composedAddress || "Select province, district and ward to auto-generate address."}
-                                        </p>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-[#4F4F4F]">
+                                            Business Address
+                                        </label>
+                                        <Input
+                                            placeholder="Enter your business address"
+                                            {...businessForm.register("businessAddress")}
+                                            className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
+                                        />
+                                        {businessForm.formState.errors.businessAddress && (
+                                            <p className="text-xs text-red-600">
+                                                {businessForm.formState.errors.businessAddress.message}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
 

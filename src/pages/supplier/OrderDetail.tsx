@@ -7,6 +7,7 @@ import { useAuthStore } from "@/stores/auth.store";
 import { Loading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
+import { toast } from "sonner";
 
 export function SupplierOrderDetail() {
     const { currentUser } = useAuthStore();
@@ -22,10 +23,20 @@ export function SupplierOrderDetail() {
         if (!id) return;
 
         const fetchOrder = async () => {
+            const currentSupplierId = currentUser?.supplierId ?? null;
+
             try {
                 setLoading(true);
                 setError(null);
                 const res = await supplierOrderService.getById(Number(id));
+
+                const orderSupplierId = Number(res.data?.supplierId);
+                if (Number.isFinite(orderSupplierId) && orderSupplierId !== currentSupplierId) {
+                    toast.error("Permission denied");
+                    navigate("/supplier/orders", { replace: true });
+                    return;
+                }
+
                 setOrder(res.data);
             } catch (err) {
                 setError("Failed to load order detail");
@@ -35,7 +46,7 @@ export function SupplierOrderDetail() {
         };
 
         void fetchOrder();
-    }, [id]);
+    }, [id, currentUser?.supplierId, navigate]);
 
     const formatPrice = (value: number | null | undefined) => {
         return formatVND(value);
@@ -156,30 +167,24 @@ export function SupplierOrderDetail() {
         }
     };
 
-    const handleAutoCompleteDelivered = async () => {
-        if (!order || updatingStatus) return;
+    // const handleAutoCompleteDelivered = async () => {
+    //     if (!order || updatingStatus) return;
 
-        try {
-            setUpdatingStatus(true);
-            setError(null);
-            await supplierOrderService.autoCompleteDelivered();
-            const res = await supplierOrderService.getById(order.orderId);
-            setOrder(res.data);
-        } catch (err) {
-            setError("Failed to auto-complete delivered orders");
-        } finally {
-            setUpdatingStatus(false);
-        }
-    };
+    //     try {
+    //         setUpdatingStatus(true);
+    //         setError(null);
+    //         await supplierOrderService.autoCompleteDelivered();
+    //         const res = await supplierOrderService.getById(order.orderId);
+    //         setOrder(res.data);
+    //     } catch (err) {
+    //         setError("Failed to auto-complete delivered orders");
+    //     } finally {
+    //         setUpdatingStatus(false);
+    //     }
+    // };
 
-    // Build shipment steps based on business flows:
-    // 1) Pending -> Canceled
-    // 2) Pending -> Preparing -> Canceled
-    // 3) Pending -> Preparing -> Delivering -> Delivered -> Completed
-    // 4) Pending -> Preparing -> Delivering -> Rejected -> Refunded
     const shipmentSteps = (() => {
         if (currentStatus === "canceled") {
-            // Use the more detailed path that includes Preparing
             return [
                 { key: "pending", label: "Pending" },
                 { key: "preparing", label: "Preparing" },
@@ -196,8 +201,6 @@ export function SupplierOrderDetail() {
                 { key: "refunded", label: "Refunded" },
             ];
         }
-
-        // Default successful delivery flow (covers Pending, Preparing, Delivering, Delivered, Completed)
         return [
             { key: "pending", label: "Pending" },
             { key: "preparing", label: "Preparing" },
@@ -288,14 +291,14 @@ export function SupplierOrderDetail() {
                                 >
                                     {updatingStatus ? "Updating..." : "Completed"}
                                 </button>
-                                <button
+                                {/* <button
                                     type="button"
                                     onClick={handleAutoCompleteDelivered}
                                     disabled={updatingStatus}
                                     className="rounded-full border border-dashed border-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-[#FF7A1A] hover:bg-[#FFF5EC] disabled:opacity-60"
                                 >
                                     {updatingStatus ? "Completing..." : "Set All Order Completed"}
-                                </button>
+                                </button> */}
                             </div>
                         )}
                         {currentStatus === "delivering" && (
