@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { WalletCards } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { useAuthStore } from "@/stores/auth.store";
 import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/apis/wallet.service";
 import {
@@ -92,6 +95,31 @@ function getBankInitials(bankName: string | null | undefined) {
     return joined || "?";
 }
 
+const bankInfoSchema = z.object({
+    bankName: z.string()
+        .trim()
+        .min(2, "Bank name must be at least 2 characters")
+        .max(50, "Bank name must not exceed 50 characters"),
+    bankAccountNumber: z.string()
+        .trim()
+        .min(8, "Account number must be at least 8 characters")
+        .max(20, "Account number must not exceed 20 characters"),
+});
+
+const withdrawSchema = z.object({
+    withdrawAmount: z.string()
+        .trim()
+        .refine((val) => !isNaN(Number(val)) && Number(val) > 0, "Amount must be a positive number"),
+});
+
+const otpVerifySchema = z.object({
+    withdrawOtp: z.string().trim().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
+});
+
+type BankInfoFormValues = z.infer<typeof bankInfoSchema>;
+type WithdrawFormValues = z.infer<typeof withdrawSchema>;
+type OtpVerifyFormValues = z.infer<typeof otpVerifySchema>;
+
 export function Wallet() {
     const { currentUser } = useAuthStore();
     const role = currentUser?.role;
@@ -100,17 +128,34 @@ export function Wallet() {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [isBankDialogOpen, setIsBankDialogOpen] = useState(false);
-    const [bankName, setBankName] = useState("");
-    const [bankAccountNumber, setBankAccountNumber] = useState("");
     const [isSavingBank, setIsSavingBank] = useState(false);
-    const [bankError, setBankError] = useState<string | null>(null);
     const [showFullAccount, setShowFullAccount] = useState(false);
     const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
-    const [withdrawAmount, setWithdrawAmount] = useState("");
-    const [withdrawOtp, setWithdrawOtp] = useState("");
     const [createdWithdrawId, setCreatedWithdrawId] = useState<number | null>(null);
     const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false);
     const [isVerifyingWithdraw, setIsVerifyingWithdraw] = useState(false);
+
+    const bankForm = useForm<BankInfoFormValues>({
+        resolver: zodResolver(bankInfoSchema),
+        defaultValues: {
+            bankName: "",
+            bankAccountNumber: "",
+        },
+    });
+
+    const withdrawForm = useForm<WithdrawFormValues>({
+        resolver: zodResolver(withdrawSchema),
+        defaultValues: {
+            withdrawAmount: "",
+        },
+    });
+
+    const otpForm = useForm<OtpVerifyFormValues>({
+        resolver: zodResolver(otpVerifySchema),
+        defaultValues: {
+            withdrawOtp: "",
+        },
+    });
     const [withdrawalsData, setWithdrawalsData] = useState<SupplierWalletWithdrawalsResponse | null>(null);
     const [isLoadingWithdrawals, setIsLoadingWithdrawals] = useState(false);
     const [withdrawalsError, setWithdrawalsError] = useState<string | null>(null);
@@ -239,9 +284,10 @@ export function Wallet() {
 
     const openBankDialog = () => {
         if (!wallet) return;
-        setBankName(wallet.bankName ?? "");
-        setBankAccountNumber(wallet.bankAccountNumber ?? "");
-        setBankError(null);
+        bankForm.reset({
+            bankName: wallet.bankName ?? "",
+            bankAccountNumber: wallet.bankAccountNumber ?? "",
+        });
         setIsBankDialogOpen(true);
     };
 
@@ -250,81 +296,64 @@ export function Wallet() {
             setIsNoBankModalOpen(true);
             return;
         }
-        setWithdrawAmount("");
-        setWithdrawOtp("");
+        withdrawForm.reset({ withdrawAmount: "" });
+        otpForm.reset({ withdrawOtp: "" });
         setCreatedWithdrawId(null);
         setIsWithdrawDialogOpen(true);
     };
 
-    const handleSaveBankInfo = async () => {
+    const handleSaveBankInfo = async (values: BankInfoFormValues) => {
         if (!wallet) return;
-
-        const trimmedBankName = bankName.trim();
-        const trimmedAccount = bankAccountNumber.trim();
-
-        if (!trimmedBankName || !trimmedAccount) {
-            setBankError("Bank name and account number are required.");
-            return;
-        }
 
         try {
             setIsSavingBank(true);
-            setBankError(null);
             const updated = await walletService.updateBankInfo(wallet.walletId, {
-                bankName: trimmedBankName,
-                bankAccountNumber: trimmedAccount,
+                bankName: values.bankName.trim(),
+                bankAccountNumber: values.bankAccountNumber.trim(),
             });
             setWallet(updated);
             setIsBankDialogOpen(false);
         } catch (err: any) {
             const message = err?.response?.data?.message ?? err?.message ?? "Failed to update bank information.";
-            setBankError(message);
+            bankForm.setError("root", { message });
         } finally {
             setIsSavingBank(false);
         }
     };
 
-    const handleCreateWithdraw = async () => {
+    const handleCreateWithdraw = async (values: WithdrawFormValues) => {
         if (!wallet) return;
 
-        const amountNumber = Number(withdrawAmount);
-        if (!amountNumber || amountNumber <= 0) {
-            toast.error("Amount must be greater than 0.");
-            return;
-        }
+        const amountNumber = Number(values.withdrawAmount);
         if (amountNumber > wallet.availableBalance) {
-            toast.error("Amount cannot exceed available balance.");
+            withdrawForm.setError("withdrawAmount", { message: "Amount cannot exceed available balance." });
             return;
         }
 
         try {
             setIsCreatingWithdraw(true);
             const result = await walletService.createWithdraw({ amount: amountNumber });
-            console.log("before", result); console.log("after");
             const withdrawId = (result as any).withdrawId ?? (result as any).id ?? null;
             setCreatedWithdrawId(withdrawId);
             toast.success("Withdrawal created. Please check your email for OTP.");
         } catch (err: any) {
             const message = err?.response?.data?.message ?? err?.message ?? "Failed to create withdrawal.";
+            withdrawForm.setError("root", { message });
             toast.error(message);
         } finally {
             setIsCreatingWithdraw(false);
         }
     };
 
-    const handleVerifyWithdraw = async () => {
+    const handleVerifyWithdraw = async (values: OtpVerifyFormValues) => {
         if (!createdWithdrawId) {
-            toast.error("Missing withdraw ID. Please create again.");
-            return;
-        }
-        if (!withdrawOtp.trim()) {
-            toast.error("Please enter OTP code.");
+            otpForm.setError("root", { message: "Missing withdraw ID. Please create again." });
             return;
         }
 
         try {
             setIsVerifyingWithdraw(true);
-            await walletService.verifyWithdraw({ withdrawId: createdWithdrawId, otpCode: withdrawOtp.trim() });
+            await walletService.verifyWithdraw({ withdrawId: createdWithdrawId, otpCode: values.withdrawOtp.trim() });
             toast.success("Withdrawal verified successfully.");
             setIsWithdrawDialogOpen(false);
 
@@ -336,11 +365,12 @@ export function Wallet() {
             }
         } catch (err: any) {
             const message = err?.response?.data?.message ?? err?.message ?? "Failed to verify withdrawal.";
+            otpForm.setError("root", { message });
             toast.error(message);
         } finally {
             setIsVerifyingWithdraw(false);
         }
-    };
+    }
 
     if (!currentUser) {
         return (
@@ -749,8 +779,8 @@ export function Wallet() {
                                 <div className="flex items-start gap-3">
                                     <div
                                         className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${isBusinessStep
-                                            ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                            : "bg-white border-[#F0E0D3] text-[#B87938]"
+                                                ? "bg-[#F47A1F] border-[#F47A1F] text-white"
+                                                : "bg-white border-[#F0E0D3] text-[#B87938]"
                                             }`}
                                     >
                                         1
@@ -766,8 +796,8 @@ export function Wallet() {
                                 <div className="flex items-start gap-3 opacity-80">
                                     <div
                                         className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${!isBusinessStep
-                                            ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                            : "bg-white border-[#F0E0D3] text-[#B87938]"
+                                                ? "bg-[#F47A1F] border-[#F47A1F] text-white"
+                                                : "bg-white border-[#F0E0D3] text-[#B87938]"
                                             }`}
                                     >
                                         2
@@ -784,7 +814,7 @@ export function Wallet() {
 
                         {/* Right side: bank info form (save to wallet) */}
                         <section className="col-span-8">
-                            <div className="space-y-6">
+                            <form onSubmit={bankForm.handleSubmit(handleSaveBankInfo)} className="space-y-6">
                                 <div>
                                     <p className="text-sm font-semibold text-[#C4682B] mb-1">payouts</p>
                                     <h3 className="text-lg font-semibold mb-1">Bank Information</h3>
@@ -800,10 +830,13 @@ export function Wallet() {
                                         </label>
                                         <Input
                                             placeholder="e.g. Vietcombank"
-                                            value={bankName}
-                                            onChange={(e) => setBankName(e.target.value)}
                                             className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
+                                            disabled={isSavingBank}
+                                            {...bankForm.register("bankName")}
                                         />
+                                        {bankForm.formState.errors.bankName && (
+                                            <p className="text-xs text-red-600">{bankForm.formState.errors.bankName.message}</p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
@@ -812,14 +845,17 @@ export function Wallet() {
                                         </label>
                                         <Input
                                             placeholder="Enter your bank account number"
-                                            value={bankAccountNumber}
-                                            onChange={(e) => setBankAccountNumber(e.target.value)}
                                             className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
+                                            disabled={isSavingBank}
+                                            {...bankForm.register("bankAccountNumber")}
                                         />
+                                        {bankForm.formState.errors.bankAccountNumber && (
+                                            <p className="text-xs text-red-600">{bankForm.formState.errors.bankAccountNumber.message}</p>
+                                        )}
                                     </div>
 
-                                    {bankError && (
-                                        <p className="text-xs text-red-600">{bankError}</p>
+                                    {bankForm.formState.errors.root && (
+                                        <p className="text-xs text-red-600">{bankForm.formState.errors.root.message}</p>
                                     )}
                                 </div>
 
@@ -835,17 +871,16 @@ export function Wallet() {
                                         Cancel
                                     </Button>
                                     <Button
-                                        type="button"
+                                        type="submit"
                                         size="xl"
                                         variant="coffee"
                                         className="rounded-full px-10 flex items-center gap-2"
-                                        onClick={handleSaveBankInfo}
                                         disabled={isSavingBank}
                                     >
                                         {isSavingBank ? "Saving..." : "Save"}
                                     </Button>
                                 </div>
-                            </div>
+                            </form>
                         </section>
                     </div>
                 </DialogContent>
@@ -860,69 +895,93 @@ export function Wallet() {
                             Enter the amount you want to withdraw. We will send an OTP code to your email to verify this request.
                         </p>
 
-                        <div className="space-y-2">
-                            <label className="text-xs font-medium text-gray-700">Amount</label>
-                            <Input
-                                type="number"
-                                min={0}
-                                step={1000}
-                                value={withdrawAmount}
-                                onChange={(e) => setWithdrawAmount(e.target.value)}
-                                disabled={!!createdWithdrawId}
-                                placeholder="e.g. 100000"
-                            />
-                            {wallet && (
-                                <>
-                                    <p className="text-xs text-gray-500">
-                                        Available: {formatCurrency(wallet.availableBalance, wallet.currency)}
-                                    </p>
-                                    <p className="text-xs text-gray-500">
-                                        Hold Balance: {formatCurrency(wallet.heldBalance, wallet.currency)}
-                                    </p>
-                                </>
-                            )}
-                        </div>
+                        {!createdWithdrawId ? (
+                            <form onSubmit={withdrawForm.handleSubmit(handleCreateWithdraw)} className="space-y-3">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-gray-700">Amount</label>
+                                    <Input
+                                        type="number"
+                                        min={0}
+                                        step={1000}
+                                        disabled={isCreatingWithdraw}
+                                        placeholder="e.g. 100000"
+                                        {...withdrawForm.register("withdrawAmount")}
+                                    />
+                                    {withdrawForm.formState.errors.withdrawAmount && (
+                                        <p className="text-xs text-red-600">{withdrawForm.formState.errors.withdrawAmount.message}</p>
+                                    )}
+                                    {wallet && (
+                                        <>
+                                            <p className="text-xs text-gray-500">
+                                                Available: {formatCurrency(wallet.availableBalance, wallet.currency)}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                Hold Balance: {formatCurrency(wallet.heldBalance, wallet.currency)}
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
 
-                        {createdWithdrawId && (
-                            <div className="space-y-2 mt-4">
-                                <label className="text-xs font-medium text-gray-700">OTP Code</label>
-                                <Input
-                                    value={withdrawOtp}
-                                    onChange={(e) => setWithdrawOtp(e.target.value)}
-                                    placeholder="Enter OTP from email"
-                                />
-                                <p className="text-xs text-gray-500">
-                                    OTP has been sent to your registered email. Please enter it here to confirm the withdrawal.
-                                </p>
-                            </div>
+                                {withdrawForm.formState.errors.root && (
+                                    <p className="text-xs text-red-600">{withdrawForm.formState.errors.root.message}</p>
+                                )}
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setIsWithdrawDialogOpen(false)}
+                                        disabled={isCreatingWithdraw}
+                                    >
+                                        Close
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={isCreatingWithdraw}
+                                    >
+                                        {isCreatingWithdraw ? "Creating..." : "Create Withdraw"}
+                                    </Button>
+                                </div>
+                            </form>
+                        ) : (
+                            <form onSubmit={otpForm.handleSubmit(handleVerifyWithdraw)} className="space-y-3">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-gray-700">OTP Code</label>
+                                    <Input
+                                        placeholder="Enter OTP from email"
+                                        disabled={isVerifyingWithdraw}
+                                        {...otpForm.register("withdrawOtp")}
+                                    />
+                                    {otpForm.formState.errors.withdrawOtp && (
+                                        <p className="text-xs text-red-600">{otpForm.formState.errors.withdrawOtp.message}</p>
+                                    )}
+                                    <p className="text-xs text-gray-500">
+                                        OTP has been sent to your registered email. Please enter it here to confirm the withdrawal.
+                                    </p>
+                                </div>
+
+                                {otpForm.formState.errors.root && (
+                                    <p className="text-xs text-red-600">{otpForm.formState.errors.root.message}</p>
+                                )}
+
+                                <div className="flex justify-end gap-3 pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={() => setIsWithdrawDialogOpen(false)}
+                                        disabled={isVerifyingWithdraw}
+                                    >
+                                        Close
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        disabled={isVerifyingWithdraw}
+                                    >
+                                        {isVerifyingWithdraw ? "Verifying..." : "Verify OTP"}
+                                    </Button>
+                                </div>
+                            </form>
                         )}
-
-                        <div className="flex justify-end gap-3 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsWithdrawDialogOpen(false)}
-                            >
-                                Close
-                            </Button>
-                            {!createdWithdrawId ? (
-                                <Button
-                                    type="button"
-                                    onClick={handleCreateWithdraw}
-                                    disabled={isCreatingWithdraw}
-                                >
-                                    {isCreatingWithdraw ? "Creating..." : "Create Withdraw"}
-                                </Button>
-                            ) : (
-                                <Button
-                                    type="button"
-                                    onClick={handleVerifyWithdraw}
-                                    disabled={isVerifyingWithdraw}
-                                >
-                                    {isVerifyingWithdraw ? "Verifying..." : "Verify OTP"}
-                                </Button>
-                            )}
-                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

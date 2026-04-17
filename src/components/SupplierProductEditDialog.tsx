@@ -9,7 +9,7 @@ import { supplierProductService, type SupplierProduct, type UpdateSupplierProduc
 import { toast } from "sonner";
 
 const formSchema = z.object({
-    price: z.number().min(0.01, "Price must be greater than 0"),
+    price: z.number().int().min(1, "Price must be greater than 0"),
     // stock: số lượng túi
     stock: z.number().min(0, "Stock must be at least 0 bag"),
     // packageSize: khối lượng 1 túi hàng (theo measurement)
@@ -197,6 +197,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                 <Input
                                     type="text"
                                     {...form.register("status")}
+                                    readOnly
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
                             </div>

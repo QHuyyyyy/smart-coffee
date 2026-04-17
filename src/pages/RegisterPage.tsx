@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +27,10 @@ const registerSchema = z.object({
 });
 
 const otpSchema = z.object({
-    otp: z.string().trim().min(4, "OTP must be at least 4 characters"),
+    otp: z
+        .string()
+        .trim()
+        .regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
 
 type RegisterFormValues = z.infer<typeof registerSchema>;
@@ -42,6 +45,7 @@ export function RegisterPage() {
 
     // OTP form state
     const [step, setStep] = useState<RegistrationStep>("register");
+    const [resendCountdown, setResendCountdown] = useState(0);
 
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -62,6 +66,20 @@ export function RegisterPage() {
         },
     });
 
+    useEffect(() => {
+        if (resendCountdown <= 0) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            setResendCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => {
+            window.clearInterval(timer);
+        };
+    }, [resendCountdown]);
+
     const handleRegisterSubmit = async (values: RegisterFormValues) => {
 
         try {
@@ -71,6 +89,7 @@ export function RegisterPage() {
                 phone: values.phone.trim().replace(/^(?:\+84|84)/, "0"),
             });
             setStep("otp");
+            setResendCountdown(60);
             toast.success("Registration successful! Please verify your email with OTP to complete the process.");
         } catch (err: any) {
             const msg =
@@ -88,7 +107,7 @@ export function RegisterPage() {
             toast.success("Email verified successfully!");
             navigate("/");
         } catch (err: any) {
-            toast.error(err.message || "OTP verification failed");
+            toast.error(err?.response?.data || "OTP verification failed");
         }
     };
 
@@ -134,6 +153,10 @@ export function RegisterPage() {
     };
 
     const handleResendOtp = async () => {
+        if (resendCountdown > 0) {
+            return;
+        }
+
         try {
             const values = registerForm.getValues();
             await register({
@@ -141,6 +164,7 @@ export function RegisterPage() {
                 password: values.password,
                 phone: values.phone.trim().replace(/^(?:\+84|84)/, "0"),
             });
+            setResendCountdown(60);
             toast.success("A new OTP has been sent to your email");
         } catch (err: any) {
             toast.error(err.message || "Failed to resend OTP");
@@ -167,11 +191,11 @@ export function RegisterPage() {
                 {step === "register" ? (
                     // Registration Form
                     <form className="space-y-6" onSubmit={registerForm.handleSubmit(handleRegisterSubmit)}>
-                        {error && (
+                        {/* {error && (
                             <div className="p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm">
                                 {error}
                             </div>
-                        )}
+                        )} */}
 
                         <AuthField
                             id="email"
@@ -318,9 +342,13 @@ export function RegisterPage() {
                                 <button
                                     type="button"
                                     onClick={handleResendOtp}
-                                    className="text-[#c39b7b] font-medium hover:underline"
+                                    disabled={isLoading || resendCountdown > 0}
+                                    className={`font-medium transition-colors ${isLoading || resendCountdown > 0
+                                            ? "text-slate-400 cursor-not-allowed"
+                                            : "text-[#c39b7b] hover:underline"
+                                        }`}
                                 >
-                                    Resend
+                                    {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend"}
                                 </button>
                             </p>
                         </div>

@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
+import { useAuthStore } from "@/stores/auth.store";
+import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
 
 export function SupplierProductDetail() {
+    const currentUser = useAuthStore((state) => state.currentUser);
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [product, setProduct] = useState<SupplierProduct | null>(null);
@@ -15,10 +18,18 @@ export function SupplierProductDetail() {
         if (!id) return;
 
         const fetchProduct = async () => {
+            const currentSupplierId = currentUser?.supplierId ?? null;
             try {
                 setLoading(true);
                 setError(null);
                 const res = await supplierProductService.getById(Number(id));
+
+                if (res.data.supplierId !== currentSupplierId) {
+                    toast.error("Permission denied");
+                    navigate("/supplier/products", { replace: true });
+                    return;
+                }
+
                 setProduct(res.data);
             } catch (err) {
                 setError("Failed to load product detail");
@@ -28,7 +39,7 @@ export function SupplierProductDetail() {
         };
 
         void fetchProduct();
-    }, [id]);
+    }, [id, currentUser?.supplierId, navigate]);
 
     const formatPrice = (value: number | null | undefined) => {
         return formatVND(value);

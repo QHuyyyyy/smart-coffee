@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,11 +14,11 @@ import { toast } from "sonner";
 type ForgotStep = "request" | "otp" | "reset";
 
 const requestSchema = z.object({
-    email: z.string().trim().min(1, "Please enter your email").email("Please enter a valid email"),
+    email: z.email("Please enter a valid email"),
 });
 
 const otpSchema = z.object({
-    otp: z.string().trim().min(4, "OTP must be at least 4 characters"),
+    otp: z.string().trim().regex(/^\d{6}$/, "OTP must be exactly 6 digits"),
 });
 
 const resetSchema = z.object({
@@ -38,6 +38,7 @@ export function ForgotPasswordPage() {
 
     const [step, setStep] = useState<ForgotStep>("request");
     const [isLoading, setIsLoading] = useState(false);
+    const [resendCountdown, setResendCountdown] = useState(0);
 
     const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -63,6 +64,20 @@ export function ForgotPasswordPage() {
         },
     });
 
+    useEffect(() => {
+        if (resendCountdown <= 0) {
+            return;
+        }
+
+        const timer = window.setInterval(() => {
+            setResendCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+        }, 1000);
+
+        return () => {
+            window.clearInterval(timer);
+        };
+    }, [resendCountdown]);
+
     const handleRequestSubmit = async (values: RequestFormValues) => {
 
         try {
@@ -70,6 +85,7 @@ export function ForgotPasswordPage() {
             await authService.forgotPassword({ email: values.email.trim() });
             toast.success("OTP has been sent to your email");
             setStep("otp");
+            setResendCountdown(60);
         } catch (err: any) {
             toast.error(err.message || "Failed to send OTP");
         } finally {
@@ -154,6 +170,10 @@ export function ForgotPasswordPage() {
     };
 
     const handleResendOtp = async () => {
+        if (resendCountdown > 0) {
+            return;
+        }
+
         const valid = await requestForm.trigger("email");
         if (!valid) {
             const emailMessage = requestForm.formState.errors.email?.message;
@@ -166,6 +186,7 @@ export function ForgotPasswordPage() {
         try {
             setIsLoading(true);
             await authService.forgotPassword({ email: requestForm.getValues("email").trim() });
+            setResendCountdown(60);
             toast.success("A new OTP has been sent to your email");
         } catch (err: any) {
             toast.error(err.message || "Failed to resend OTP");
@@ -257,9 +278,13 @@ export function ForgotPasswordPage() {
                                 <button
                                     type="button"
                                     onClick={handleResendOtp}
-                                    className="text-[#c39b7b] font-medium hover:underline"
+                                    disabled={isLoading || resendCountdown > 0}
+                                    className={`font-medium transition-colors ${isLoading || resendCountdown > 0
+                                            ? "text-slate-400 cursor-not-allowed"
+                                            : "text-[#c39b7b] hover:underline"
+                                        }`}
                                 >
-                                    Resend
+                                    {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend"}
                                 </button>
                             </p>
                         </div>
