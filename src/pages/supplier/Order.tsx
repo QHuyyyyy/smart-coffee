@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
-import { supplierOrderService, type SupplierOrder } from "@/apis/supplierOrder.service";
+import { supplierOrderService, type SupplierOrder } from "@/services/apis/supplierOrder.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { useNavigate } from "react-router-dom";
 import { InlineLoading } from "@/components/Loading";

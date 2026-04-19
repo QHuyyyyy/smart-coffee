@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Coffee } from "lucide-react";
-import type { PostItem } from "@/apis/post.service";
-import { recipeService } from "@/apis/recipe.service";
+import type { PostItem } from "@/services/apis/post.service";
+import { recipeService } from "@/services/apis/recipe.service";
 import { InlineLoading } from "@/components/Loading";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

@@ -1,5 +1,5 @@
 
-import api from "./axios";
+import api from "../axios";
 
 export const recipeService = {
     getAllRecipes: async () => {

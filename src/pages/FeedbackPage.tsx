@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
-import api from '../apis/axios';
+import api from '../services/axios';
 import { formatVND } from '@/utils/currency';
 
 interface IngredientResponse {

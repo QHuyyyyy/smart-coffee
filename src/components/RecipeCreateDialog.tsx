@@ -7,10 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus } from "lucide-react";
-import { recipeService } from "@/apis/recipe.service";
+import { recipeService } from "@/services/apis/recipe.service";
 import { toast } from "sonner";
-import { shopBeverageService } from "@/apis/shopBeverage.service";
-import { ingredientService } from "@/apis/ingredient.service";
+import { shopBeverageService } from "@/services/apis/shopBeverage.service";
+import { ingredientService } from "@/services/apis/ingredient.service";
 import { useAuthStore } from "@/stores/auth.store";
 
 const DEFAULT_RECIPE_IMAGE = "https://placehold.co/600x400?text=Coffee+Recipe";

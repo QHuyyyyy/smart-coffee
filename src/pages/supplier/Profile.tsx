@@ -4,9 +4,9 @@ import { useAuthStore } from "@/stores/auth.store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InlineLoading } from "@/components/Loading";
-import { authService } from "@/apis/auth.service";
-import { ghnService } from "@/apis/ghn.service";
-import type { Province, District, Ward } from "@/apis/ghn.service";
+import { authService } from "@/services/apis/auth.service";
+import { ghnService } from "@/services/apis/ghn.service";
+import type { Province, District, Ward } from "@/services/apis/ghn.service";
 
 type ActiveTab = "profile" | "notifications";
 

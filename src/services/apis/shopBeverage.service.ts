@@ -1,4 +1,4 @@
-import api from "./axios";
+import api from "../axios";
 
 export const shopBeverageService = {
     getByShopId: async (shopId: number | string) => {

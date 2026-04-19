@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Package, Plus, Eye, Pencil, Trash2, Search } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
-import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
+import { supplierProductService, type SupplierProduct } from "@/services/apis/supplierProduct.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { SupplierProductCreateDialog } from "@/components/SupplierProductCreateDialog";
 import { SupplierProductEditDialog } from "@/components/SupplierProductEditDialog";

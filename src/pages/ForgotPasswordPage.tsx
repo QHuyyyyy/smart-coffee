@@ -8,7 +8,7 @@ import { AuthHeader } from "@/components/auth/AuthHeader";
 import { AuthTabs } from "@/components/auth/AuthTabs";
 import { AuthField } from "@/components/auth/AuthField";
 import { Button } from "@/components/ui/button";
-import { authService } from "@/apis/auth.service";
+import { authService } from "@/services/apis/auth.service";
 import { toast } from "sonner";
 
 type ForgotStep = "request" | "otp" | "reset";
@@ -280,8 +280,8 @@ export function ForgotPasswordPage() {
                                     onClick={handleResendOtp}
                                     disabled={isLoading || resendCountdown > 0}
                                     className={`font-medium transition-colors ${isLoading || resendCountdown > 0
-                                            ? "text-slate-400 cursor-not-allowed"
-                                            : "text-[#c39b7b] hover:underline"
+                                        ? "text-slate-400 cursor-not-allowed"
+                                        : "text-[#c39b7b] hover:underline"
                                         }`}
                                 >
                                     {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend"}

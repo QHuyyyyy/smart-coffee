@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { authService } from "@/apis/auth.service"
-import type { Wallet } from "@/apis/wallet.service"
+import { authService } from "@/services/apis/auth.service"
+import type { Wallet } from "@/services/apis/wallet.service"
 
 type LoginPayload = {
     email: string

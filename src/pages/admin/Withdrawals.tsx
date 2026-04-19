@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { WalletCards } from "lucide-react";
-import { walletService } from "@/apis/wallet.service";
+import { walletService } from "@/services/apis/wallet.service";
 import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";

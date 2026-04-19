@@ -8,7 +8,7 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
-import { dashboardService, type DashboardChartPoint } from "@/apis/dashboard.service";
+import { dashboardService, type DashboardChartPoint } from "@/services/apis/dashboard.service";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatVND } from "@/utils/currency";
 

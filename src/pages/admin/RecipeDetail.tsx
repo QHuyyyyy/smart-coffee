@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { recipeService } from "@/apis/recipe.service";
+import { recipeService } from "@/services/apis/recipe.service";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
 

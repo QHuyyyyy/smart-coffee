@@ -4,12 +4,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuthStore } from "@/stores/auth.store";
-import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/apis/wallet.service";
+import { walletService, type SupplierWalletWithdrawal, type SupplierWalletWithdrawalsResponse, type Wallet } from "@/services/apis/wallet.service";
 import {
     transactionService,
     type TransactionItem,
     type TransactionPaginatedResponse,
-} from "@/apis/transaction.service";
+} from "@/services/apis/transaction.service";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -779,8 +779,8 @@ export function Wallet() {
                                 <div className="flex items-start gap-3">
                                     <div
                                         className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${isBusinessStep
-                                                ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                                : "bg-white border-[#F0E0D3] text-[#B87938]"
+                                            ? "bg-[#F47A1F] border-[#F47A1F] text-white"
+                                            : "bg-white border-[#F0E0D3] text-[#B87938]"
                                             }`}
                                     >
                                         1
@@ -796,8 +796,8 @@ export function Wallet() {
                                 <div className="flex items-start gap-3 opacity-80">
                                     <div
                                         className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${!isBusinessStep
-                                                ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                                : "bg-white border-[#F0E0D3] text-[#B87938]"
+                                            ? "bg-[#F47A1F] border-[#F47A1F] text-white"
+                                            : "bg-white border-[#F0E0D3] text-[#B87938]"
                                             }`}
                                     >
                                         2

@@ -9,7 +9,7 @@ import {
     type PackageLimit,
     type SystemSettings,
     type UpdatePackageLimitPayload,
-} from "@/apis/systemSettings.service";
+} from "@/services/apis/systemSettings.service";
 
 type PackageLimitFormState = {
     staffQuantity: string;

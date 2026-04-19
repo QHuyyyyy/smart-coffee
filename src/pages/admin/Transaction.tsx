@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { WalletCards } from "lucide-react";
 import { useAuthStore } from "@/stores/auth.store";
-import { transactionService, type TransactionItem } from "@/apis/transaction.service";
+import { transactionService, type TransactionItem } from "@/services/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
-import { orderService } from "@/apis/order.service";
-import { dashboardService } from "@/apis/dashboard.service";
+import { orderService } from "@/services/apis/order.service";
+import { dashboardService } from "@/services/apis/dashboard.service";
 import { DollarSign, Package, RefreshCw } from "lucide-react";
 import { formatVND } from "@/utils/currency";
 

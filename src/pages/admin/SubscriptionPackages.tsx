@@ -7,8 +7,8 @@ import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { dashboardService } from "@/apis/dashboard.service";
-import { subscriptionPackageService, type SubscriptionPackage } from "@/apis/subscriptionPackage.service";
+import { dashboardService } from "@/services/apis/dashboard.service";
+import { subscriptionPackageService, type SubscriptionPackage } from "@/services/apis/subscriptionPackage.service";
 import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
 

@@ -2,7 +2,7 @@ import { ChevronLeft, Home, ShoppingCart, Package, Settings, Wallet, SquareMenu,
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../context/SidebarContext';
 import { useAuthStore } from '@/stores/auth.store';
-import { authService } from '../apis/auth.service';
+import { authService } from '../services/apis/auth.service';
 import { toast } from 'sonner';
 export function Sidebar() {
     const { isCollapsed, setIsCollapsed } = useSidebar();

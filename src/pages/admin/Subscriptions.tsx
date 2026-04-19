@@ -4,7 +4,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
-import { subscriptionService, type Subscription } from "@/apis/subscription.service";
+import { subscriptionService, type Subscription } from "@/services/apis/subscription.service";
 import { formatVND } from "@/utils/currency";
 
 export function SubscriptionsPage() {

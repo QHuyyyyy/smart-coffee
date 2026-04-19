@@ -5,7 +5,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
-import { ingredientService, type Ingredient } from "@/apis/ingredient.service";
+import { ingredientService, type Ingredient } from "@/services/apis/ingredient.service";
 import { IngredientCreateDialog } from "@/components/IngredientCreateDialog";
 import { IngredientEditDialog } from "@/components/IngredientEditDialog";
 import { toast } from "sonner";
