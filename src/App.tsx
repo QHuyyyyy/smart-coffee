@@ -134,6 +134,17 @@ function App() {
             />
 
             <Route
+                path="/admin/orders/:id"
+                element={(
+                    <ProtectedRoute allowedRoles={["Admin"]}>
+                        <Layout>
+                            <SupplierOrderDetail />
+                        </Layout>
+                    </ProtectedRoute>
+                )}
+            />
+
+            <Route
                 path="/admin/posts"
                 element={(
                     <ProtectedRoute allowedRoles={["Admin"]}>

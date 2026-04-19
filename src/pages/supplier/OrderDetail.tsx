@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 export function SupplierOrderDetail() {
     const { currentUser } = useAuthStore();
+    const isAdmin = currentUser?.role === "Admin";
     const supplierName = currentUser?.supplierName ?? null;
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function SupplierOrderDetail() {
                 const res = await supplierOrderService.getById(Number(id));
 
                 const orderSupplierId = Number(res.data?.supplierId);
-                if (Number.isFinite(orderSupplierId) && orderSupplierId !== currentSupplierId) {
+                if (!isAdmin && Number.isFinite(orderSupplierId) && orderSupplierId !== currentSupplierId) {
                     toast.error("Permission denied");
                     navigate("/supplier/orders", { replace: true });
                     return;
@@ -46,7 +47,7 @@ export function SupplierOrderDetail() {
         };
 
         void fetchOrder();
-    }, [id, currentUser?.supplierId, navigate]);
+    }, [id, currentUser?.supplierId, isAdmin, navigate]);
 
     const formatPrice = (value: number | null | undefined) => {
         return formatVND(value);
@@ -261,7 +262,7 @@ export function SupplierOrderDetail() {
                 <div className="rounded-3xl border border-[#EFE5DC] bg-white px-8 py-6">
                     <div className="mb-4 flex items-center justify-between gap-3">
                         <h2 className="text-sm font-semibold text-[#1F1F1F]">Shipment Status</h2>
-                        {currentStatus === "pending" && (
+                        {!isAdmin && currentStatus === "pending" && (
                             <button
                                 type="button"
                                 onClick={() => handleUpdateStatus("Preparing")}
@@ -271,7 +272,7 @@ export function SupplierOrderDetail() {
                                 {updatingStatus ? "Updating..." : "Confirm & Prepare"}
                             </button>
                         )}
-                        {currentStatus === "preparing" && (
+                        {!isAdmin && currentStatus === "preparing" && (
                             <button
                                 type="button"
                                 onClick={() => handleUpdateStatus("Delivering")}
@@ -281,27 +282,7 @@ export function SupplierOrderDetail() {
                                 {updatingStatus ? "Updating..." : "Start Delivering"}
                             </button>
                         )}
-                        {currentStatus === "delivered" && (
-                            <div className="flex flex-wrap gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => handleUpdateStatus("Completed")}
-                                    disabled={updatingStatus}
-                                    className="rounded-full bg-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-white hover:bg-[#e86b13] disabled:opacity-60"
-                                >
-                                    {updatingStatus ? "Updating..." : "Completed"}
-                                </button>
-                                {/* <button
-                                    type="button"
-                                    onClick={handleAutoCompleteDelivered}
-                                    disabled={updatingStatus}
-                                    className="rounded-full border border-dashed border-[#FF7A1A] px-4 py-1.5 text-xs font-semibold text-[#FF7A1A] hover:bg-[#FFF5EC] disabled:opacity-60"
-                                >
-                                    {updatingStatus ? "Completing..." : "Set All Order Completed"}
-                                </button> */}
-                            </div>
-                        )}
-                        {currentStatus === "delivering" && (
+                        {!isAdmin && currentStatus === "delivering" && (
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     type="button"
