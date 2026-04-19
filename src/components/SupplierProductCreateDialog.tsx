@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -166,6 +166,8 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
     const [ingredientPage, setIngredientPage] = useState(0);
     const [ingredientTotalPages, setIngredientTotalPages] = useState(1);
     const [ingredientTotalCount, setIngredientTotalCount] = useState(0);
+    const [ingredientSearchInput, setIngredientSearchInput] = useState("");
+    const [ingredientSearchQuery, setIngredientSearchQuery] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
@@ -188,16 +190,21 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
     useEffect(() => {
         if (!open) return;
 
-        const fetchFirstIngredientPage = async () => {
+        const fetchFirstIngredientPage = async (query = "") => {
             try {
                 setLoadingIngredients(true);
-                const res = await ingredientService.getPaginated({ page: 1, pageSize: INGREDIENT_PAGE_SIZE });
+                const res = await ingredientService.getPaginated({
+                    page: 1,
+                    pageSize: INGREDIENT_PAGE_SIZE,
+                    name: query.trim() || undefined,
+                });
                 const data = res.data;
                 const list = extractIngredientList(data);
 
                 setIngredients(Array.from(new Map(list.map((item) => [item.ingredientId, item])).values()));
                 setIngredientPage(1);
                 setIngredientTotalPages(extractTotalPages(data));
+                setIngredientTotalCount(extractTotalCount(data));
             } catch (error: any) {
                 console.error("Failed to load ingredients:", error);
                 toast.error(error?.response?.data?.message || "Failed to load ingredients");
@@ -210,9 +217,11 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
         setIngredientPage(0);
         setIngredientTotalPages(1);
         setIngredientTotalCount(0);
+        setIngredientSearchInput("");
+        setIngredientSearchQuery("");
         setLoadingMoreIngredients(false);
 
-        void fetchFirstIngredientPage();
+        void fetchFirstIngredientPage("");
     }, [open]);
 
     const hasMoreIngredients = ingredientPage < ingredientTotalPages;
@@ -223,7 +232,11 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
         try {
             setLoadingMoreIngredients(true);
             const nextPage = ingredientPage + 1;
-            const res = await ingredientService.getPaginated({ page: nextPage, pageSize: INGREDIENT_PAGE_SIZE });
+            const res = await ingredientService.getPaginated({
+                page: nextPage,
+                pageSize: INGREDIENT_PAGE_SIZE,
+                name: ingredientSearchQuery.trim() || undefined,
+            });
             const data = res.data;
             const list = extractIngredientList(data);
 
@@ -243,6 +256,38 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
         onOpenChange(false);
         form.reset();
         setSelectedImage(null);
+    };
+
+    const applyIngredientSearch = async () => {
+        const nextQuery = ingredientSearchInput.trim();
+
+        try {
+            setLoadingIngredients(true);
+            setIngredientSearchQuery(nextQuery);
+            setIngredients([]);
+            setIngredientPage(0);
+            setIngredientTotalPages(1);
+            setIngredientTotalCount(0);
+
+            const res = await ingredientService.getPaginated({
+                page: 1,
+                pageSize: INGREDIENT_PAGE_SIZE,
+                name: nextQuery || undefined,
+            });
+
+            const data = res.data;
+            const list = extractIngredientList(data);
+
+            setIngredients(Array.from(new Map(list.map((item) => [item.ingredientId, item])).values()));
+            setIngredientPage(1);
+            setIngredientTotalPages(extractTotalPages(data));
+            setIngredientTotalCount(extractTotalCount(data));
+        } catch (error: any) {
+            console.error("Failed to search ingredients:", error);
+            toast.error(error?.response?.data?.message || "Failed to search ingredients");
+        } finally {
+            setLoadingIngredients(false);
+        }
     };
 
     const handleSubmit = async (values: SupplierProductFormValues) => {
@@ -395,6 +440,26 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                         <SelectValue placeholder="Select existing ingredient of system" />
                                     </SelectTrigger>
                                     <SelectContent className="h-64 max-h-64">
+                                        <div className="sticky top-0 z-10 border-b border-[#EFE5DC] bg-white px-2 py-2">
+                                            <div className="flex items-center gap-2 rounded-md border border-[#E0D5D0] bg-white px-2 py-1.5">
+                                                <Search size={14} className="text-[#B0A49E]" />
+                                                <input
+                                                    type="text"
+                                                    value={ingredientSearchInput}
+                                                    placeholder="Type to search ingredient..."
+                                                    className="w-full bg-transparent text-sm text-[#3B2618] placeholder:text-[#B0A49E] focus:outline-none"
+                                                    onChange={(e) => setIngredientSearchInput(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        e.stopPropagation();
+                                                        if (e.key === "Enter") {
+                                                            e.preventDefault();
+                                                            void applyIngredientSearch();
+                                                        }
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
                                         {ingredients.map((ing, index) => (
                                             <SelectItem key={`${ing.ingredientId}-${index}`} value={String(ing.ingredientId)}>
                                                 {ing.name}
@@ -445,7 +510,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     </p>
                                 )}
                                 <p className="text-[11px] text-[#B8AAA0]">
-                                    Dropdown height is fixed. Press the arrow at the end of the list to load next page.
+                                    Type keyword and press Enter to search. Use the arrow button to load next page.
                                 </p>
                             </div>
                         ) : (
