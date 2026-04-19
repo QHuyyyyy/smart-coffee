@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, CheckCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ClipboardList, CheckCircle, Eye } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { orderService, type SystemOrder } from "@/services/apis/order.service";
 import { InlineLoading } from "@/components/Loading";
@@ -8,6 +9,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { formatVND } from "@/utils/currency";
 
 export function AdminOrders() {
+    const navigate = useNavigate();
     const [orders, setOrders] = useState<SystemOrder[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -113,6 +115,19 @@ export function AdminOrders() {
         }
     };
 
+    const handleUpdateStatus = async (orderId: number, nextStatus: string) => {
+        try {
+            setLoading(true);
+            setError(null);
+            await orderService.updateStatus(orderId, nextStatus);
+            await fetchOrders(page);
+        } catch {
+            setError("Failed to update order status");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -197,8 +212,6 @@ export function AdminOrders() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex justify-end gap-3 text-[#B0A49E]">
-                                                    {/* We can navigate if there's an admin detail page, skipping detail link for now if none exists */}
-                                                    {/* 
                                                     <button
                                                         className="hover:text-[#573E32]"
                                                         aria-label="View order detail"
@@ -206,7 +219,6 @@ export function AdminOrders() {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
- */}
                                                     {["cancelled", "rejected"].includes((o.status ?? "").toLowerCase()) && (
                                                         <button
                                                             className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
@@ -215,6 +227,16 @@ export function AdminOrders() {
                                                             title="Accept Refund"
                                                         >
                                                             <CheckCircle size={16} /> Refund
+                                                        </button>
+                                                    )}
+                                                    {["delivered"].includes((o.status ?? "").toLowerCase()) && (
+                                                        <button
+                                                            className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                                            onClick={() => handleUpdateStatus(o.orderId, "Completed")}
+                                                            disabled={loading}
+                                                            title="Accept Completed"
+                                                        >
+                                                            <CheckCircle size={16} /> Completed
                                                         </button>
                                                     )}
                                                 </div>
