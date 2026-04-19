@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '../services/axios';
-import { formatVND } from '@/utils/currency';
+// import { formatVND } from '@/utils/currency';
 
 interface IngredientResponse {
     id: number;
@@ -75,14 +75,14 @@ const feedbackSchema = z.object({
 type FeedbackFormValues = z.infer<typeof feedbackSchema>;
 
 const defaultFeedbackValues: FeedbackFormValues = {
-    isFirstTimeTrying: 'yes',
     strength: DEFAULT_STRENGTH,
     acidity: DEFAULT_ACIDITY,
     bitterness: DEFAULT_BITTERNESS,
     sweetness: DEFAULT_SWEETNESS,
+    isFirstTimeTrying: undefined as any,
     rating: 0,
-    priceRating: PRICE_OPTIONS[0],
-    repurchasable: 'yes',
+    priceRating: undefined as any,
+    repurchasable: undefined as any,
     comment: '',
 };
 
@@ -205,7 +205,7 @@ export function FeedbackPage() {
 
             await api.post('/Feedback/MenuItem', payload);
 
-            toast.success('Gui phan hoi thanh cong! Cam on ban.');
+            toast.success('Thanks for your feedback!');
             form.reset(defaultFeedbackValues);
         } catch (error) {
             console.error('Submit feedback error', error);
@@ -248,11 +248,11 @@ export function FeedbackPage() {
                                             <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl">{drinkName}</h1>
                                             <p className="mt-2 text-lg font-medium text-white/80">SmartCoffee Featured Drink</p>
                                         </div>
-                                        <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur-md">
+                                        {/* <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur-md">
                                             <span className="text-2xl font-black tracking-tight text-white">
                                                 {formatVND(menuItem.sellingPrice)}
                                             </span>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </div>
