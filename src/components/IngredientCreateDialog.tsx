@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ingredientService, type CreateIngredientPayload, type Ingredient } from "@/apis/ingredient.service";
+import { ingredientService, type CreateIngredientPayload, type Ingredient } from "@/services/apis/ingredient.service";
 import { getVietnamISOString } from "@/lib/date-time";
 import { toast } from "sonner";
 

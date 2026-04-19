@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
-import { shopStaffService, type ShopStaff } from "@/apis/shopStaff.service";
+import { shopStaffService, type ShopStaff } from "@/services/apis/shopStaff.service";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -124,7 +124,7 @@ export function AdminShopStaffPage() {
 
                                     {!loading && items.length === 0 && !error && (
                                         <TableRow>
-                                            <TableCell colSpan={5} className="py-6 text-center text-[#707070]">No data found.</TableCell>
+                                            <TableCell colSpan={5} className="py-6 text-center text-[#707070]">No Staff found</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

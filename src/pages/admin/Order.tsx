@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { ClipboardList, CheckCircle } from "lucide-react";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
-import { orderService, type SystemOrder } from "@/apis/order.service";
+import { orderService, type SystemOrder } from "@/services/apis/order.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/pagination";

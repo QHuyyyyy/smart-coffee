@@ -6,7 +6,7 @@ import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { RecipeCreateDialog } from "@/components/RecipeCreateDialog";
-import { recipeService } from "@/apis/recipe.service";
+import { recipeService } from "@/services/apis/recipe.service";
 import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
 

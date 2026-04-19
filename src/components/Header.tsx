@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Bell } from 'lucide-react';
-import { notificationService, type NotificationItem, type NotificationPaginatedResponse } from '../apis/notification.service';
+import { notificationService, type NotificationItem, type NotificationPaginatedResponse } from '../services/apis/notification.service';
 import { useSidebar } from '../context/SidebarContext';
 import { TablePagination } from './ui/pagination';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';

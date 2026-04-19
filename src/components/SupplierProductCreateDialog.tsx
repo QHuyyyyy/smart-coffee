@@ -7,8 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supplierProductService, type CreateSupplierProductPayload, type SupplierProduct } from "@/apis/supplierProduct.service";
-import { ingredientService } from "@/apis/ingredient.service";
+import { supplierProductService, type CreateSupplierProductPayload, type SupplierProduct } from "@/services/apis/supplierProduct.service";
+import { ingredientService } from "@/services/apis/ingredient.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 import { DialogDescription } from "@radix-ui/react-dialog";

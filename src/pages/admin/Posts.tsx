@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, CheckCircle2, XCircle, Search, Eye } from "lucide-react";
 import { toast } from "sonner";
-import { postService, type PostCategoryItem, type PostItem } from "@/apis/post.service";
+import { postService, type PostCategoryItem, type PostItem } from "@/services/apis/post.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";

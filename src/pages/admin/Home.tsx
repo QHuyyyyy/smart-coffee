@@ -9,8 +9,8 @@ import {
     YAxis,
 } from "recharts";
 import type { LucideIcon } from "lucide-react";
-import { dashboardService } from "@/apis/dashboard.service";
-import { transactionService, type TransactionItem } from "@/apis/transaction.service";
+import { dashboardService } from "@/services/apis/dashboard.service";
+import { transactionService, type TransactionItem } from "@/services/apis/transaction.service";
 import { InlineLoading } from "@/components/Loading";
 import { RevenueLineChart } from "@/components/RevenueLineChart";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

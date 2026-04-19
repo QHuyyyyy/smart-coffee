@@ -5,8 +5,8 @@ import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/pagination";
-import { coffeeShopService, type CoffeeShop } from "@/apis/coffeeShop.service";
-import { ghnService, type District, type Province, type Ward } from "@/apis/ghn.service";
+import { coffeeShopService, type CoffeeShop } from "@/services/apis/coffeeShop.service";
+import { ghnService, type District, type Province, type Ward } from "@/services/apis/ghn.service";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -304,7 +304,7 @@ export function CoffeeShopPage() {
                                     {!loading && shops.length === 0 && !error && (
                                         <TableRow>
                                             <TableCell colSpan={5} className="py-6 text-center text-[#707070]">
-                                                Chưa có Coffee Shop nào.
+                                                No Coffee Shop found
                                             </TableCell>
                                         </TableRow>
                                     )}

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ingredientService, type Ingredient, type UpdateIngredientPayload } from "@/apis/ingredient.service";
+import { ingredientService, type Ingredient, type UpdateIngredientPayload } from "@/services/apis/ingredient.service";
 import { toast } from "sonner";
 
 const formSchema = z.object({

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { supplierProductService, type SupplierProduct } from "@/apis/supplierProduct.service";
+import { supplierProductService, type SupplierProduct } from "@/services/apis/supplierProduct.service";
 import { useAuthStore } from "@/stores/auth.store";
 import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";

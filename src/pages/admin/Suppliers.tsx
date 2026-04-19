@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
-import { supplierService, type Supplier } from "@/apis/supplier.service";
-import { ghnService, type District, type Province, type Ward } from "@/apis/ghn.service";
+import { supplierService, type Supplier } from "@/services/apis/supplier.service";
+import { ghnService, type District, type Province, type Ward } from "@/services/apis/ghn.service";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -290,7 +290,7 @@ export function AdminSuppliersPage() {
 
                                     {!loading && items.length === 0 && !error && (
                                         <TableRow>
-                                            <TableCell colSpan={8} className="py-6 text-center text-[#707070]">No data found.</TableCell>
+                                            <TableCell colSpan={8} className="py-6 text-center text-[#707070]">No Supplier found.</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>

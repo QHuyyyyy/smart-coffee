@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TablePagination } from "@/components/ui/pagination";
 import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
-import { authService, type AccountManagementItem } from "@/apis/auth.service";
+import { authService, type AccountManagementItem } from "@/services/apis/auth.service";
 import { toast } from "sonner";
 
 const DEFAULT_PAGE_SIZE = 10;
