@@ -257,7 +257,7 @@ export function SupplierOrders() {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    {!(o.status ?? "").toLowerCase().includes("cancel") && (
+                                                    {String(o.status ?? "").trim().toLowerCase() === "pending" && (
                                                         <button
                                                             className="hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                                             onClick={() => openCancelDialog(o.orderId)}
