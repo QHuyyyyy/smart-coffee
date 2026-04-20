@@ -110,11 +110,11 @@ const formSchema = z.object({
     ingredientId: z.number().optional(),
     ingredientName: z.string().optional(),
     ingredientCategory: z.string().optional(),
-    price: z.number().int().min(1, "Price must be greater than 0"),
+    price: z.number().int().min(1, "Price must be greater than 0").max(999999999, "Stock must be < 999999999 "),
     // stock: số lượng túi
-    stock: z.number().min(1, "Stock must be at least 1 bag").max(999999, "Stock must be "),
+    stock: z.number().min(1, "Stock must be at least 1 bag").max(999999, "Stock must be < 999999 "),
     // packageSize: khối lượng 1 túi hàng (theo measurement)
-    packageSize: z.number().min(0.01, "Package size must be greater than 0"),
+    packageSize: z.number().min(0.01, "Package size must be greater than 0").max(999999999, "Stock must be < 999999999 "),
     measurement: z.string().min(1, "Measurement is required"),
     status: z.string().min(1, "Status is required"),
     description: z.string().optional(),
