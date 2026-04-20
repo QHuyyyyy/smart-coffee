@@ -17,7 +17,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loading } from "@/components/Loading";
 import { toast } from "sonner";
-import angribankLogo from "@/assets/angribank.png";
+// import angribankLogo from "@/assets/angribank.png";
 import { formatVND } from "@/utils/currency";
 
 
@@ -77,23 +77,9 @@ function getTransactionDescription(
 
 
 
-const bankLogos: Record<string, string> = {
-    angribank: angribankLogo,
-};
-
-function getBankLogo(bankName: string | null | undefined) {
-    if (!bankName) return null;
-    const key = bankName.trim().toLowerCase();
-    return bankLogos[key] ?? null;
-}
-
-function getBankInitials(bankName: string | null | undefined) {
-    if (!bankName) return "?";
-    const words = bankName.trim().split(/\s+/);
-    const firstTwo = words.slice(0, 2).map((w) => (w[0] ? w[0].toUpperCase() : ""));
-    const joined = firstTwo.join("");
-    return joined || "?";
-}
+// const bankLogos: Record<string, string> = {
+//     angribank: angribankLogo,
+// };
 
 const bankInfoSchema = z.object({
     bankName: z.string()
@@ -129,7 +115,6 @@ export function Wallet() {
     const [error, setError] = useState<string | null>(null);
     const [isBankDialogOpen, setIsBankDialogOpen] = useState(false);
     const [isSavingBank, setIsSavingBank] = useState(false);
-    const [showFullAccount, setShowFullAccount] = useState(false);
     const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
     const [createdWithdrawId, setCreatedWithdrawId] = useState<number | null>(null);
     const [isCreatingWithdraw, setIsCreatingWithdraw] = useState(false);
@@ -168,7 +153,6 @@ export function Wallet() {
     const [transactionsError, setTransactionsError] = useState<string | null>(null);
     const [transactionsPage, setTransactionsPage] = useState(1);
     const [transactionsPageSize] = useState(10);
-    const [isNoBankModalOpen, setIsNoBankModalOpen] = useState(false);
 
     const loadWithdrawals = async (walletId: number, page = withdrawalsPage, status = withdrawalsStatus) => {
         try {
@@ -282,20 +266,17 @@ export function Wallet() {
         ? 0
         : Math.min(withdrawalsTotalCount, withdrawalsPage * withdrawalsPageSize);
 
-    const openBankDialog = () => {
-        if (!wallet) return;
-        bankForm.reset({
-            bankName: wallet.bankName ?? "",
-            bankAccountNumber: wallet.bankAccountNumber ?? "",
-        });
-        setIsBankDialogOpen(true);
-    };
+    // const openBankDialog = () => {
+    //     if (!wallet) return;
+    //     bankForm.reset({
+    //         bankName: wallet.bankName ?? "",
+    //         bankAccountNumber: wallet.bankAccountNumber ?? "",
+    //     });
+    //     setIsBankDialogOpen(true);
+    // };
 
     const openWithdrawDialog = () => {
-        if (!wallet?.bankName || !wallet?.bankAccountNumber) {
-            setIsNoBankModalOpen(true);
-            return;
-        }
+        // Bank-account prerequisite modal flow is disabled by request.
         withdrawForm.reset({ withdrawAmount: "" });
         otpForm.reset({ withdrawOtp: "" });
         setCreatedWithdrawId(null);
@@ -449,64 +430,9 @@ export function Wallet() {
                                 </div>
                             </div>
 
-                            <div className="flex-1 border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-6 flex flex-col justify-between">
-                                <div className="flex items-center justify-between mb-4">
-                                    <p className="text-sm font-medium text-gray-700">Bank Accounts</p>
-                                </div>
-
-                                <div className="flex items-center justify-between gap-4">
-                                    <div className="text-sm text-gray-600 flex-1">
-                                        {wallet.bankName && wallet.bankAccountNumber ? (
-                                            <div className="flex items-center gap-3">
-                                                {getBankLogo(wallet.bankName) ? (
-                                                    <img
-                                                        src={getBankLogo(wallet.bankName) as string}
-                                                        alt={`${wallet.bankName} logo`}
-                                                        className="h-9 w-9 rounded-full object-contain bg-white border border-gray-200"
-                                                    />
-                                                ) : (
-                                                    <div className="h-9 w-9 rounded-full bg-[#F47A1F]/10 flex items-center justify-center text-xs font-semibold text-[#B87938]">
-                                                        {getBankInitials(wallet.bankName)}
-                                                    </div>
-                                                )}
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-gray-900 leading-tight">
-                                                        {wallet.bankName}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {(() => {
-                                                            const raw = wallet.bankAccountNumber ?? "";
-                                                            const last4 = raw.slice(-4);
-                                                            const masked = last4 ? `**** ${last4}` : "";
-                                                            return `Account ${showFullAccount ? raw : masked}`;
-                                                        })()}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <p className="text-gray-400">No linked bank account</p>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        {wallet.bankName && wallet.bankAccountNumber && (
-                                            <button
-                                                type="button"
-                                                className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                                onClick={() => setShowFullAccount((prev) => !prev)}
-                                            >
-                                                {showFullAccount ? "Hide" : "View"}
-                                            </button>
-                                        )}
-                                        <button
-                                            type="button"
-                                            className="text-xs text-[#4b2c20] hover:text-[#3b2218]"
-                                            onClick={openBankDialog}
-                                        >
-                                            {wallet.bankName && wallet.bankAccountNumber ? "Edit Bank Account" : "Add Bank Account"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            {/*
+                                Bank account display section is intentionally hidden by request.
+                            */}
 
                         </div>
 
@@ -986,36 +912,6 @@ export function Wallet() {
                 </DialogContent>
             </Dialog>
 
-            {/* No Bank Info Modal */}
-            <Dialog open={isNoBankModalOpen} onOpenChange={setIsNoBankModalOpen}>
-                <DialogContent className="max-w-sm p-6 text-center">
-                    <div className="space-y-4">
-                        <h2 className="text-xl font-semibold text-red-600">Warning</h2>
-                        <p className="text-sm text-gray-600">
-                            Please update your bank account information before making a withdrawal request.
-                        </p>
-                        <div className="flex justify-center gap-3 pt-4">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsNoBankModalOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="button"
-                                className="bg-[#4b2c20] text-white hover:bg-[#3b2218]"
-                                onClick={() => {
-                                    setIsNoBankModalOpen(false);
-                                    openBankDialog();
-                                }}
-                            >
-                                OK
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

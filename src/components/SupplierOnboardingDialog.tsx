@@ -11,11 +11,8 @@ import { Input } from "@/components/ui/input";
 import { InlineLoading } from "@/components/Loading";
 import { useAuthStore } from "@/stores/auth.store";
 import { authService } from "@/services/apis/auth.service";
-import { walletService } from "@/services/apis/wallet.service";
 import { ghnService } from "@/services/apis/ghn.service";
 import type { Province, District, Ward } from "@/services/apis/ghn.service";
-
-type Step = 1 | 2;
 
 const businessInfoSchema = z.object({
     supplierName: z.string().min(1, "Supplier name is required"),
@@ -32,10 +29,6 @@ export function SupplierOnboardingDialog() {
     const fetchCurrentUser = useAuthStore((state) => state.fetchCurrentUser);
 
     const [open, setOpen] = useState(false);
-    const [activeStep, setActiveStep] = useState<Step>(1);
-
-    const [bankName, setBankName] = useState("");
-    const [bankAccountNumber, setBankAccountNumber] = useState("");
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -165,7 +158,7 @@ export function SupplierOnboardingDialog() {
 
             await fetchCurrentUser();
 
-            setActiveStep(2);
+            setOpen(false);
         } catch (err: any) {
             const message = err?.response?.data?.message ?? "Failed to save business information. Please try again.";
             setError(message);
@@ -173,46 +166,6 @@ export function SupplierOnboardingDialog() {
             setIsSubmitting(false);
         }
     };
-
-    const handleCompleteSetup = () => {
-        setOpen(false);
-    };
-
-    const handleSaveBankInfo = async () => {
-        if (!currentUser?.wallet?.walletId) {
-            // Wallet chưa sẵn sàng, cứ đóng dialog để tránh lỗi khó hiểu
-            setOpen(false);
-            return;
-        }
-
-        const trimmedBankName = bankName.trim();
-        const trimmedAccount = bankAccountNumber.trim();
-
-        if (!trimmedBankName || !trimmedAccount) {
-            setError("Bank name and account number are required.");
-            return;
-        }
-
-        try {
-            setIsSubmitting(true);
-            setError(null);
-
-            await walletService.updateBankInfo(currentUser.wallet.walletId, {
-                bankName: trimmedBankName,
-                bankAccountNumber: trimmedAccount,
-            });
-
-            await fetchCurrentUser();
-            setOpen(false);
-        } catch (err: any) {
-            const message = err?.response?.data?.message ?? err?.message ?? "Failed to update bank information. Please try again.";
-            setError(message);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const isBusinessStep = activeStep === 1;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -243,10 +196,7 @@ export function SupplierOnboardingDialog() {
                         <div className="space-y-4">
                             <div className="flex items-start gap-3">
                                 <div
-                                    className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${isBusinessStep
-                                        ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                        : "bg-white border-[#F0E0D3] text-[#B87938]"
-                                        }`}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold bg-[#F47A1F] border-[#F47A1F] text-white"
                                 >
                                     1
                                 </div>
@@ -258,12 +208,12 @@ export function SupplierOnboardingDialog() {
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-3 opacity-80">
+                            {/*
+                                Step 2 (Bank Info onboarding) is intentionally disabled by request.
+                            */}
+                            {/* <div className="flex items-start gap-3 opacity-80">
                                 <div
-                                    className={`flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold ${!isBusinessStep
-                                        ? "bg-[#F47A1F] border-[#F47A1F] text-white"
-                                        : "bg-white border-[#F0E0D3] text-[#B87938]"
-                                        }`}
+                                    className="flex h-7 w-7 items-center justify-center rounded-full border text-sm font-semibold bg-white border-[#F0E0D3] text-[#B87938]"
                                 >
                                     2
                                 </div>
@@ -273,150 +223,152 @@ export function SupplierOnboardingDialog() {
                                         Add your payout account details to receive earnings.
                                     </p>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </aside>
 
                     {/* Form area */}
                     <section className="col-span-8">
-                        {isBusinessStep ? (
-                            <form
-                                className="space-y-6"
-                                onSubmit={businessForm.handleSubmit(handleBusinessSubmit)}
-                            >
-                                <div>
-                                    <p className="text-sm font-semibold text-[#C4682B] mb-1">storefront</p>
-                                    <h3 className="text-lg font-semibold mb-1">Business Information</h3>
-                                    <p className="text-xs text-[#8C6C4A] max-w-md">
-                                        Enter your official dealership or plantation details.
-                                    </p>
+                        <form
+                            className="space-y-6"
+                            onSubmit={businessForm.handleSubmit(handleBusinessSubmit)}
+                        >
+                            <div>
+                                <p className="text-sm font-semibold text-[#C4682B] mb-1">storefront</p>
+                                <h3 className="text-lg font-semibold mb-1">Business Information</h3>
+                                <p className="text-xs text-[#8C6C4A] max-w-md">
+                                    Enter your official dealership or plantation details.
+                                </p>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-[#4F4F4F]">
+                                        Supplier Name
+                                    </label>
+                                    <Input
+                                        placeholder="e.g. Arabica Heights Co."
+                                        {...businessForm.register("supplierName")}
+                                        className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
+                                    />
+                                    {businessForm.formState.errors.supplierName && (
+                                        <p className="text-xs text-red-600">
+                                            {businessForm.formState.errors.supplierName.message}
+                                        </p>
+                                    )}
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-xs font-medium text-[#4F4F4F]">
-                                            Supplier Name
+                                            Province / City
                                         </label>
-                                        <Input
-                                            placeholder="e.g. Arabica Heights Co."
-                                            {...businessForm.register("supplierName")}
-                                            className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
-                                        />
-                                        {businessForm.formState.errors.supplierName && (
+                                        <select
+                                            {...businessForm.register("provinceId")}
+                                            className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                        >
+                                            <option value="">Select province</option>
+                                            {provinces.map((province) => (
+                                                <option key={province.ProvinceID} value={province.ProvinceID}>
+                                                    {province.ProvinceName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {businessForm.formState.errors.provinceId && (
                                             <p className="text-xs text-red-600">
-                                                {businessForm.formState.errors.supplierName.message}
+                                                {businessForm.formState.errors.provinceId.message}
                                             </p>
                                         )}
                                     </div>
 
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-medium text-[#4F4F4F]">
-                                                Province / City
-                                            </label>
-                                            <select
-                                                {...businessForm.register("provinceId")}
-                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
-                                            >
-                                                <option value="">Select province</option>
-                                                {provinces.map((province) => (
-                                                    <option key={province.ProvinceID} value={province.ProvinceID}>
-                                                        {province.ProvinceName}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {businessForm.formState.errors.provinceId && (
-                                                <p className="text-xs text-red-600">
-                                                    {businessForm.formState.errors.provinceId.message}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-medium text-[#4F4F4F]">
-                                                District
-                                            </label>
-                                            <select
-                                                {...businessForm.register("districtId")}
-                                                disabled={!provinces.length || !selectedProvinceId}
-                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
-                                            >
-                                                <option value="">Select district</option>
-                                                {districts.map((district) => (
-                                                    <option key={district.DistrictID} value={district.DistrictID}>
-                                                        {district.DistrictName}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {businessForm.formState.errors.districtId && (
-                                                <p className="text-xs text-red-600">
-                                                    {businessForm.formState.errors.districtId.message}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-medium text-[#4F4F4F]">
-                                                Ward
-                                            </label>
-                                            <select
-                                                {...businessForm.register("wardCode")}
-                                                disabled={!districts.length || !selectedDistrictId}
-                                                className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
-                                            >
-                                                <option value="">Select ward</option>
-                                                {wards.map((ward) => (
-                                                    <option key={ward.WardCode} value={ward.WardCode}>
-                                                        {ward.WardName}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {businessForm.formState.errors.wardCode && (
-                                                <p className="text-xs text-red-600">
-                                                    {businessForm.formState.errors.wardCode.message}
-                                                </p>
-                                            )}
-                                        </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-[#4F4F4F]">
+                                            District
+                                        </label>
+                                        <select
+                                            {...businessForm.register("districtId")}
+                                            disabled={!provinces.length || !selectedProvinceId}
+                                            className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                        >
+                                            <option value="">Select district</option>
+                                            {districts.map((district) => (
+                                                <option key={district.DistrictID} value={district.DistrictID}>
+                                                    {district.DistrictName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {businessForm.formState.errors.districtId && (
+                                            <p className="text-xs text-red-600">
+                                                {businessForm.formState.errors.districtId.message}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
                                         <label className="text-xs font-medium text-[#4F4F4F]">
-                                            Business Address
+                                            Ward
                                         </label>
-                                        <Input
-                                            placeholder="Enter your business address"
-                                            {...businessForm.register("businessAddress")}
-                                            className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
-                                        />
-                                        {businessForm.formState.errors.businessAddress && (
+                                        <select
+                                            {...businessForm.register("wardCode")}
+                                            disabled={!districts.length || !selectedDistrictId}
+                                            className="h-11 w-full rounded-xl border border-[#E6D5C6] bg-white/80 px-3 text-sm outline-none disabled:bg-gray-100 disabled:text-gray-400 focus-visible:ring-2 focus-visible:ring-[#F47A1F] focus-visible:ring-offset-0"
+                                        >
+                                            <option value="">Select ward</option>
+                                            {wards.map((ward) => (
+                                                <option key={ward.WardCode} value={ward.WardCode}>
+                                                    {ward.WardName}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {businessForm.formState.errors.wardCode && (
                                             <p className="text-xs text-red-600">
-                                                {businessForm.formState.errors.businessAddress.message}
+                                                {businessForm.formState.errors.wardCode.message}
                                             </p>
                                         )}
                                     </div>
                                 </div>
 
-                                {error && (
-                                    <p className="text-xs text-red-600">{error}</p>
-                                )}
-
-                                <div className="flex items-center justify-end pt-4">
-                                    <Button
-                                        type="submit"
-                                        size="xl"
-                                        variant="coffee"
-                                        className="rounded-full px-10 flex items-center gap-2"
-                                        disabled={isSubmitting}
-                                    >
-                                        {isSubmitting ? <InlineLoading text="Saving..." textClassName="text-white" /> : "Next"}
-                                        <span className="material-symbols-outlined text-base">
-                                            arrow_forward
-                                        </span>
-                                    </Button>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-medium text-[#4F4F4F]">
+                                        Business Address
+                                    </label>
+                                    <Input
+                                        placeholder="Enter your business address"
+                                        {...businessForm.register("businessAddress")}
+                                        className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
+                                    />
+                                    {businessForm.formState.errors.businessAddress && (
+                                        <p className="text-xs text-red-600">
+                                            {businessForm.formState.errors.businessAddress.message}
+                                        </p>
+                                    )}
                                 </div>
-                            </form>
-                        ) : (
-                            <div className="space-y-6">
+                            </div>
+
+                            {error && (
+                                <p className="text-xs text-red-600">{error}</p>
+                            )}
+
+                            <div className="flex items-center justify-end pt-4">
+                                <Button
+                                    type="submit"
+                                    size="xl"
+                                    variant="coffee"
+                                    className="rounded-full px-10 flex items-center gap-2"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? <InlineLoading text="Saving..." textClassName="text-white" /> : "Complete Setup"}
+                                    <span className="material-symbols-outlined text-base">
+                                        check
+                                    </span>
+                                </Button>
+                            </div>
+                        </form>
+
+                        {/*
+                            Bank account onboarding form is intentionally disabled by request.
+                        */}
+                        {/* <div className="space-y-6">
                                 <div>
                                     <p className="text-sm font-semibold text-[#C4682B] mb-1">payouts</p>
                                     <h3 className="text-lg font-semibold mb-1">Bank Information</h3>
@@ -481,8 +433,7 @@ export function SupplierOnboardingDialog() {
                                         </span>
                                     </Button>
                                 </div>
-                            </div>
-                        )}
+                            </div> */}
                     </section>
                 </div>
             </DialogContent>
