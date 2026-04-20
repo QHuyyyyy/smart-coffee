@@ -901,8 +901,8 @@ export function Wallet() {
                                     <label className="text-xs font-medium text-gray-700">Amount</label>
                                     <Input
                                         type="number"
-                                        min={0}
-                                        step={1000}
+                                        min={1}
+                                        step={1}
                                         disabled={isCreatingWithdraw}
                                         placeholder="e.g. 100000"
                                         {...withdrawForm.register("withdrawAmount")}
