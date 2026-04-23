@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Coffee, Eye, Pencil } from "lucide-react";
+import { Coffee, Eye } from "lucide-react";
 import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
@@ -195,12 +195,7 @@ export function Recipes() {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    <button className="hover:text-[#573E32]" aria-label="Edit">
-                                                        <Pencil size={16} />
-                                                    </button>
-                                                    {/* <button className="hover:text-[#C04A3A]" aria-label="Delete">
-                                                        <Trash2 size={16} />
-                                                    </button> */}
+
                                                 </div>
                                             </TableCell>
                                         </TableRow>

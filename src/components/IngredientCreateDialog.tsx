@@ -10,7 +10,7 @@ import { getVietnamISOString } from "@/lib/date-time";
 import { toast } from "sonner";
 
 const formSchema = z.object({
-    name: z.string().trim().min(1, "Ingredient name is required"),
+    name: z.string().trim().min(1, "Ingredient name is required").max(100, "Ingredient name must be at most 100 characters"),
     category: z.string().trim().min(1, "Category is required"),
 });
 
