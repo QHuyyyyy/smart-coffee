@@ -117,7 +117,7 @@ export function SupplierOrders() {
             badgeClasses = "bg-[#E8F3FF] text-[#2E6FB3] border border-[#CDE1F7]";
         } else if (normalized.includes("completed") || normalized.includes("success")) {
             badgeClasses = "bg-[#E8F6EE] text-[#2E8B57] border border-[#CFEAD9]";
-        } else if (normalized.includes("rejected")) {
+        } else if (normalized.includes("failed") || normalized.includes("rejected")) {
             badgeClasses = "bg-[#FDECEC] text-[#C24242] border border-[#F8D1D1]";
         } else if (normalized.includes("refunded")) {
             badgeClasses = "bg-[#EEF1F5] text-[#5E6B7A] border border-[#DEE5EE]";
@@ -146,6 +146,7 @@ export function SupplierOrders() {
             setCancelSubmitting(true);
             setError(null);
             await supplierOrderService.cancelWithReason(cancelingOrderId, values.cancelReason.trim());
+            await supplierOrderService.updateStatus(cancelingOrderId, "Cancelled");
             await fetchOrders(page);
             setCancelDialogOpen(false);
             cancelForm.reset({ cancelReason: "" });
@@ -184,6 +185,7 @@ export function SupplierOrders() {
                                 { key: "Delivered", label: "Delivered" },
                                 { key: "Cancelled", label: "Cancelled" },
                                 { key: "Rejected", label: "Rejected" },
+                                { key: "Failed", label: "Failed" },
                                 { key: "Refunded", label: "Refunded" },
                                 { key: "Completed", label: "Completed" },
                             ].map((item) => {

@@ -87,7 +87,7 @@ export function AdminOrders() {
             badgeClasses = "bg-[#E8F3FF] text-[#2E6FB3] border border-[#CDE1F7]";
         } else if (normalized.includes("completed") || normalized.includes("success")) {
             badgeClasses = "bg-[#E8F6EE] text-[#2E8B57] border border-[#CFEAD9]";
-        } else if (normalized.includes("rejected")) {
+        } else if (normalized.includes("failed") || normalized.includes("rejected")) {
             badgeClasses = "bg-[#FDECEC] text-[#C24242] border border-[#F8D1D1]";
         } else if (normalized.includes("refunded")) {
             badgeClasses = "bg-[#EEF1F5] text-[#5E6B7A] border border-[#DEE5EE]";
@@ -155,6 +155,7 @@ export function AdminOrders() {
                                 { key: "Delivered", label: "Delivered" },
                                 { key: "Cancelled", label: "Cancelled" },
                                 { key: "Rejected", label: "Rejected" },
+                                { key: "Failed", label: "Failed" },
                                 { key: "Refunded", label: "Refunded" },
                                 { key: "Completed", label: "Completed" },
                             ].map((item) => {
@@ -219,7 +220,7 @@ export function AdminOrders() {
                                                     >
                                                         <Eye size={16} />
                                                     </button>
-                                                    {["cancelled", "rejected"].includes((o.status ?? "").toLowerCase()) && (
+                                                    {["cancelled", "rejected", "failed"].includes((o.status ?? "").toLowerCase()) && (
                                                         <button
                                                             className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                                                             onClick={() => handleRefundOrder(o.orderId)}
