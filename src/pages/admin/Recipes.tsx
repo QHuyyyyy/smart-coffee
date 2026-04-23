@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Coffee, Eye, Pencil } from "lucide-react";
+import { Coffee, Eye, Pencil } from "lucide-react";
 import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
@@ -108,7 +108,7 @@ export function Recipes() {
                         <h2 className="text-base font-semibold text-[#573E32]">All Recipes</h2>
 
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                            {/* Search */}
+                            {/* Search
                             <div className="flex items-center gap-2 rounded-full bg-[#F5F3F1] px-4 py-2 w-full sm:w-65">
                                 <Search size={16} className="text-[#B0A49E]" />
                                 <input
@@ -116,7 +116,7 @@ export function Recipes() {
                                     placeholder="Search by name, code..."
                                     className="w-full bg-transparent text-sm text-[#573E32] placeholder:text-[#B0A49E] focus:outline-none"
                                 />
-                            </div>
+                            </div> */}
 
                             {/* Actions */}
                             <div className="flex items-center gap-2 self-end sm:self-auto">

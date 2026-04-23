@@ -76,7 +76,7 @@ export function SupplierOrderDetail() {
             badgeClasses = "bg-[#E8F3FF] text-[#2E6FB3] border border-[#CDE1F7]";
         } else if (normalized.includes("completed") || normalized.includes("success")) {
             badgeClasses = "bg-[#E8F6EE] text-[#2E8B57] border border-[#CFEAD9]";
-        } else if (normalized.includes("rejected")) {
+        } else if (normalized.includes("failed") || normalized.includes("rejected")) {
             badgeClasses = "bg-[#FDECEC] text-[#C24242] border border-[#F8D1D1]";
         } else if (normalized.includes("refunded")) {
             badgeClasses = "bg-[#EEF1F5] text-[#5E6B7A] border border-[#DEE5EE]";
@@ -145,7 +145,7 @@ export function SupplierOrderDetail() {
         }
     };
 
-    const handleTestGhnWebhook = async (nextStatus: "Delivered" | "Rejected") => {
+    const handleTestGhnWebhook = async (nextStatus: "Delivered" | "Rejected" | "Failed") => {
         if (!order || updatingStatus) return;
         if (!order.ghnOrderCode) {
             // Keep it simple for staging: just show a basic alert if missing
@@ -193,12 +193,12 @@ export function SupplierOrderDetail() {
             ];
         }
 
-        if (currentStatus === "rejected" || currentStatus === "refunded") {
+        if (currentStatus === "failed" || currentStatus === "rejected" || currentStatus === "refunded") {
             return [
                 { key: "pending", label: "Pending" },
                 { key: "preparing", label: "Preparing" },
                 { key: "delivering", label: "Delivering" },
-                { key: "rejected", label: "Rejected" },
+                { key: currentStatus === "failed" ? "failed" : "rejected", label: currentStatus === "failed" ? "Failed" : "Rejected" },
                 { key: "refunded", label: "Refunded" },
             ];
         }
@@ -299,6 +299,14 @@ export function SupplierOrderDetail() {
                                     className="rounded-full border border-dashed border-red-400 px-4 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60"
                                 >
                                     {updatingStatus ? "Testing..." : "Test Rejected (staging)"}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleTestGhnWebhook("Failed")}
+                                    disabled={updatingStatus}
+                                    className="rounded-full border border-dashed border-red-400 px-4 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50 disabled:opacity-60"
+                                >
+                                    {updatingStatus ? "Testing..." : "Test Failed (staging)"}
                                 </button>
                             </div>
                         )}
