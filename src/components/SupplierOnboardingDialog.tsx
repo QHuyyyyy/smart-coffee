@@ -234,7 +234,6 @@ export function SupplierOnboardingDialog() {
                             onSubmit={businessForm.handleSubmit(handleBusinessSubmit)}
                         >
                             <div>
-                                <p className="text-sm font-semibold text-[#C4682B] mb-1">storefront</p>
                                 <h3 className="text-lg font-semibold mb-1">Business Information</h3>
                                 <p className="text-xs text-[#8C6C4A] max-w-md">
                                     Enter your official dealership or plantation details.

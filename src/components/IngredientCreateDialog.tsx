@@ -11,10 +11,13 @@ import { toast } from "sonner";
 
 const formSchema = z.object({
     name: z.string().trim().min(1, "Ingredient name is required").max(100, "Ingredient name must be at most 100 characters"),
-    category: z.string().trim().min(1, "Category is required"),
+    category: z
+        .string()
+        .trim()
+        .refine((value) => value === "Dry" || value === "Liquid", "Category must be Dry or Liquid"),
 });
 
-type IngredientCreateFormValues = z.infer<typeof formSchema>;
+type IngredientCreateFormInput = z.input<typeof formSchema>;
 
 interface IngredientCreateDialogProps {
     open: boolean;
@@ -26,7 +29,7 @@ export function IngredientCreateDialog({ open, onOpenChange, onCreated }: Ingred
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-    const form = useForm<IngredientCreateFormValues>({
+    const form = useForm<IngredientCreateFormInput>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
@@ -40,7 +43,7 @@ export function IngredientCreateDialog({ open, onOpenChange, onCreated }: Ingred
         setSelectedImage(null);
     };
 
-    const handleSubmit = async (values: IngredientCreateFormValues) => {
+    const handleSubmit = async (values: IngredientCreateFormInput) => {
         try {
             setIsSubmitting(true);
 
@@ -112,12 +115,14 @@ export function IngredientCreateDialog({ open, onOpenChange, onCreated }: Ingred
 
                         <div className="space-y-1">
                             <label className="text-xs font-medium text-[#7A685B]">Category</label>
-                            <Input
-                                type="text"
-                                placeholder="e.g. Hạt Cà Phê"
+                            <select
                                 {...form.register("category")}
-                                className="rounded-xl border-[#E0D5D0]"
-                            />
+                                className="h-10 w-full rounded-xl border border-[#E0D5D0] bg-white px-3 text-sm text-[#1F1F1F] focus:outline-none"
+                            >
+                                <option value="">Select category</option>
+                                <option value="Dry">Dry</option>
+                                <option value="Liquid">Liquid</option>
+                            </select>
                             {form.formState.errors.category && (
                                 <p className="text-xs text-red-500 mt-1">
                                     {form.formState.errors.category.message as string}

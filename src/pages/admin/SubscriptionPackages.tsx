@@ -104,7 +104,7 @@ export function SubscriptionPackagesPage() {
             const data = Array.isArray(res.data) ? res.data : (res.data as any)?.items ?? [];
             setPackages(data as SubscriptionPackage[]);
         } catch (err) {
-            setError("Không tải được danh sách gói đăng ký");
+            setError("Failed to load subscription packages");
         } finally {
             setLoading(false);
         }
@@ -130,7 +130,7 @@ export function SubscriptionPackagesPage() {
             setTotalRevenue(subscriptionRevenueResult);
             setMonthRevenue(monthSubscriptionRevenueResult.totalSubscription ?? 0);
         } catch {
-            toast.error("Không tải được thống kê doanh thu gói đăng ký");
+            toast.error("Failed to load subscription revenue statistics");
         } finally {
             setStatsLoading(false);
         }
@@ -230,17 +230,34 @@ export function SubscriptionPackagesPage() {
         try {
             setIsDeleting(true);
             await subscriptionPackageService.delete(deleteTarget.packageId);
-            toast.success("Xóa gói đăng ký thành công");
+            toast.success("Subscription package deleted successfully");
             closeDeleteDialog();
             void fetchPackages();
         } catch (err: any) {
-            toast.error(err?.response?.data?.message || "Xóa gói đăng ký thất bại");
+            toast.error(err?.response?.data?.message || "Failed to delete subscription package");
         } finally {
             setIsDeleting(false);
         }
     };
 
     const handleSubmit = async (values: PackageFormValues) => {
+        const normalizedName = values.name.trim().toLowerCase();
+        const hasDuplicateName = packages.some((pkg) => {
+            const sameName = (pkg.name ?? "").trim().toLowerCase() === normalizedName;
+            if (!sameName) return false;
+
+            if (editingPackage) {
+                return pkg.packageId !== editingPackage.packageId;
+            }
+
+            return true;
+        });
+
+        if (hasDuplicateName) {
+            toast.error("Package name already exists");
+            return;
+        }
+
         const priceNumber = Number(values.price);
         const staffQuantityNumber = Number(values.staffQuantity);
         const productRecommendLimitNumber = parseOptionalLimit(values.productRecommendLimit);
@@ -250,31 +267,31 @@ export function SubscriptionPackagesPage() {
         const recipeRecommendLimitNumber = parseOptionalLimit(values.recipeRecommendLimit);
 
         if (Number.isNaN(priceNumber) || priceNumber < 0) {
-            toast.error("Giá không hợp lệ");
+            toast.error("Invalid price");
             return;
         }
         if (!Number.isInteger(staffQuantityNumber) || staffQuantityNumber < 0) {
-            toast.error("Số lượng nhân viên không hợp lệ");
+            toast.error("Invalid staff quantity");
             return;
         }
         if (Number.isNaN(productRecommendLimitNumber)) {
-            toast.error("Product recommend limit không hợp lệ");
+            toast.error("Invalid product recommend limit");
             return;
         }
         if (Number.isNaN(menuSuggestLimitNumber)) {
-            toast.error("Menu suggest limit không hợp lệ");
+            toast.error("Invalid menu suggest limit");
             return;
         }
         if (Number.isNaN(menuAnalyzeFeedbackLimitNumber)) {
-            toast.error("Menu analyze feedback limit không hợp lệ");
+            toast.error("Invalid menu analyze feedback limit");
             return;
         }
         if (Number.isNaN(inventoryForecastLimitNumber)) {
-            toast.error("Inventory forecast limit không hợp lệ");
+            toast.error("Invalid inventory forecast limit");
             return;
         }
         if (Number.isNaN(recipeRecommendLimitNumber)) {
-            toast.error("Recipe recommend limit không hợp lệ");
+            toast.error("Invalid recipe recommend limit");
             return;
         }
 
@@ -294,16 +311,16 @@ export function SubscriptionPackagesPage() {
             setIsSubmitting(true);
             if (editingPackage) {
                 await subscriptionPackageService.update(editingPackage.packageId, payload);
-                toast.success("Cập nhật gói đăng ký thành công");
+                toast.success("Subscription package updated successfully");
             } else {
                 await subscriptionPackageService.create(payload);
-                toast.success("Tạo gói đăng ký thành công");
+                toast.success("Subscription package created successfully");
             }
             resetDialog();
             void fetchPackages();
         } catch (err: any) {
             console.error(err);
-            toast.error(err?.response?.data?.message || "Thao tác không thành công");
+            toast.error(err?.response?.data?.message || "Operation failed");
             setIsSubmitting(false);
         }
     };
@@ -682,10 +699,10 @@ export function SubscriptionPackagesPage() {
                     </DialogHeader>
 
                     <p className="text-sm text-[#5F5F5F]">
-                        Bạn có chắc muốn xóa gói
+                        Are you sure you want to delete package
                         {" "}
-                        <span className="font-semibold text-[#1F1F1F]">{deleteTarget?.name ?? "này"}</span>
-                        ? Hành động này không thể hoàn tác.
+                        <span className="font-semibold text-[#1F1F1F]">{deleteTarget?.name ?? "this"}</span>
+                        ? This action cannot be undone.
                     </p>
 
                     <DialogFooter className="mt-4">
