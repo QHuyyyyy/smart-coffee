@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth.store';
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5037/api';
+const apiUrl = import.meta.env.VITE_API_URL || 'https://sp26-cp-backend-production.up.railway.app/api';
 
 const api = axios.create({
     baseURL: apiUrl,
