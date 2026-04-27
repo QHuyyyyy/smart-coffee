@@ -375,7 +375,7 @@ export function SupplierProfile() {
                                 {currentUser.supplierName || "Supplier"}
                             </h1>
                             <p className="text-sm text-[#7A6A5C]">
-                                Premium coffee supplier • SmartCoffee Partner
+                                Premium coffee supplier • Coffee Partner
                             </p>
                         </div>
                     </div>

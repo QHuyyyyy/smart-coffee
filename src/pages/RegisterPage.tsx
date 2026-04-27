@@ -176,7 +176,7 @@ export function RegisterPage() {
             <div className="flex items-center justify-between mb-10 ml-auto">
                 <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-[#4b2c20] text-3xl">coffee</span>
-                    <span className="text-2xl font-bold text-[#4b2c20] tracking-tight">SmartCoffee</span>
+                    <span className="text-2xl font-bold text-[#4b2c20] tracking-tight">Coffee</span>
                 </div>
             </div>
 
@@ -344,8 +344,8 @@ export function RegisterPage() {
                                     onClick={handleResendOtp}
                                     disabled={isLoading || resendCountdown > 0}
                                     className={`font-medium transition-colors ${isLoading || resendCountdown > 0
-                                            ? "text-slate-400 cursor-not-allowed"
-                                            : "text-[#c39b7b] hover:underline"
+                                        ? "text-slate-400 cursor-not-allowed"
+                                        : "text-[#c39b7b] hover:underline"
                                         }`}
                                 >
                                     {resendCountdown > 0 ? `Resend in ${resendCountdown}s` : "Resend"}

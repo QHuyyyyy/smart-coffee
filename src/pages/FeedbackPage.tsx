@@ -222,7 +222,7 @@ export function FeedbackPage() {
         <div className="min-h-screen w-full bg-[#fbf9f5] text-[#1b1c1a] antialiased">
             <header className="sticky top-0 z-50 w-full border-b border-[#d4c3bf]/30 bg-[#fbf9f5] shadow-[0px_12px_32px_rgba(27,28,26,0.04)]">
                 <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
-                    <div className="text-2xl font-black tracking-tight text-[#4E342E]">SmartCoffee</div>
+                    <div className="text-2xl font-black tracking-tight text-[#4E342E]">Coffee</div>
                     <div className="text-sm font-medium text-[#504442]">Feedback Form #{feedbackId}</div>
                 </div>
             </header>
@@ -246,7 +246,7 @@ export function FeedbackPage() {
                                                 Premium Signature
                                             </span>
                                             <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-6xl">{drinkName}</h1>
-                                            <p className="mt-2 text-lg font-medium text-white/80">SmartCoffee Featured Drink</p>
+                                            <p className="mt-2 text-lg font-medium text-white/80">Coffee Featured Drink</p>
                                         </div>
                                         {/* <div className="rounded-2xl border border-white/20 bg-white/10 px-6 py-3 backdrop-blur-md">
                                             <span className="text-2xl font-black tracking-tight text-white">
