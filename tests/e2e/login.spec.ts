@@ -8,7 +8,7 @@ test.describe('Login page', () => {
 		const loginForm = page.locator('form');
 
 		await expect(page.getByRole('heading', { name: 'Welcome back!' })).toBeVisible();
-		await expect(page.getByLabel('Email or Phone Number')).toBeVisible();
+		await expect(page.getByLabel(/^Email$/i)).toBeVisible();
 		await expect(page.getByLabel('Password')).toBeVisible();
 		await expect(loginForm.getByRole('button', { name: 'Sign In' })).toBeVisible();
 	});
@@ -37,7 +37,7 @@ test.describe('Login page', () => {
 		await page.goto(appUrl);
 		const loginForm = page.locator('form');
 
-		await page.getByLabel('Email or Phone Number').fill("huy120904@gmail.com");
+		await page.getByLabel(/^Email$/i).fill("huy120904@gmail.com");
 		await page.getByLabel('Password').fill("123123");
 		await loginForm.getByRole('button', { name: 'Sign In' }).click();
 
