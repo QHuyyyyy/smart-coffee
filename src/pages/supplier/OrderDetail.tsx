@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { supplierOrderService, type SupplierOrder } from "@/services/apis/supplierOrder.service";
+import { supplierProductService } from "@/services/apis/supplierProduct.service";
 import ghnLogo from "../../assets/ghn.png";
 import { useAuthStore } from "@/stores/auth.store";
 import { Loading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
 import { toast } from "sonner";
+
+type ProductMeta = {
+    packageSize: number | null;
+    measurement: string | null;
+};
 
 export function SupplierOrderDetail() {
     const { currentUser } = useAuthStore();
@@ -19,6 +25,7 @@ export function SupplierOrderDetail() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [updatingStatus, setUpdatingStatus] = useState(false);
+    const [productMeta, setProductMeta] = useState<Record<number, ProductMeta>>({});
 
     useEffect(() => {
         if (!id) return;
@@ -48,6 +55,55 @@ export function SupplierOrderDetail() {
 
         void fetchOrder();
     }, [id, currentUser?.supplierId, isAdmin, navigate]);
+
+    // Fetch packageSize + measurement: search by ingredient name per item, match by ingredientId
+    useEffect(() => {
+        if (!order?.orderDetails || !Array.isArray(order.orderDetails)) return;
+        const supplierId = Number(order.supplierId);
+        if (!Number.isFinite(supplierId)) return;
+
+        const fetchProductMeta = async () => {
+            const items: any[] = order.orderDetails;
+
+            // Collect unique { ingredient_id, ingredientName } pairs
+            const seen = new Set<number>();
+            const targets: { ingredientId: number; name: string }[] = [];
+            for (const item of items) {
+                const iid = item.ingredient_id ?? item.ingredientId;
+                if (typeof iid !== "number" || seen.has(iid)) continue;
+                seen.add(iid);
+                targets.push({ ingredientId: iid, name: item.ingredientName ?? item.name ?? "" });
+            }
+
+            if (targets.length === 0) return;
+
+            // For each unique ingredient, search by name and match by ingredientId
+            const results = await Promise.allSettled(
+                targets.map(({ name }) =>
+                    supplierProductService.getPaginatedBySupplier(supplierId, 1, 10, name)
+                )
+            );
+
+            const meta: Record<number, ProductMeta> = {};
+            results.forEach((result, idx) => {
+                const { ingredientId } = targets[idx];
+                if (result.status === "fulfilled") {
+                    const products = result.value.data?.items ?? [];
+                    const match = products.find((p) => p.ingredientId === ingredientId);
+                    meta[ingredientId] = {
+                        packageSize: match?.packageSize ?? null,
+                        measurement: match?.measurement ?? null,
+                    };
+                } else {
+                    meta[ingredientId] = { packageSize: null, measurement: null };
+                }
+            });
+
+            setProductMeta(meta);
+        };
+
+        void fetchProductMeta();
+    }, [order]);
 
     const formatPrice = (value: number | null | undefined) => {
         return formatVND(value);
@@ -167,22 +223,6 @@ export function SupplierOrderDetail() {
             setUpdatingStatus(false);
         }
     };
-
-    // const handleAutoCompleteDelivered = async () => {
-    //     if (!order || updatingStatus) return;
-
-    //     try {
-    //         setUpdatingStatus(true);
-    //         setError(null);
-    //         await supplierOrderService.autoCompleteDelivered();
-    //         const res = await supplierOrderService.getById(order.orderId);
-    //         setOrder(res.data);
-    //     } catch (err) {
-    //         setError("Failed to auto-complete delivered orders");
-    //     } finally {
-    //         setUpdatingStatus(false);
-    //     }
-    // };
 
     const shipmentSteps = (() => {
         if (currentStatus === "canceled") {
@@ -343,7 +383,6 @@ export function SupplierOrderDetail() {
                 <div className="rounded-3xl border border-[#EFE5DC] bg-white px-8 py-6 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-sm font-semibold text-[#1F1F1F]">Shipping Information</h2>
-
                     </div>
 
                     <div className="flex flex-col items-center gap-2">
@@ -411,29 +450,44 @@ export function SupplierOrderDetail() {
                                         <TableRow className="border-b border-[#F1E3D8] text-xs text-[#A08C7A]">
                                             <TableHead className="py-2 text-left font-semibold">Ingredient</TableHead>
                                             <TableHead className="py-2 text-right font-semibold">Quantity</TableHead>
+                                            <TableHead className="py-2 text-center font-semibold">Package Size</TableHead>
                                             <TableHead className="py-2 text-right font-semibold">Price</TableHead>
                                             <TableHead className="py-2 text-right font-semibold">Total</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {shipmentItems.map((item: any, index: number) => (
-                                            <TableRow key={item.id ?? index} className="border-b border-[#F7EFE7] last:border-0">
-                                                <TableCell className="py-2 pr-4 text-[#1F1F1F]">
-                                                    {item.ingredientName ?? item.name ?? "Item"}
-                                                </TableCell>
-                                                <TableCell className="py-2 text-right text-[#573E32]">
-                                                    {item.quantity && item.unit
-                                                        ? `${item.quantity} ${item.unit}`
-                                                        : item.quantity ?? "-"}
-                                                </TableCell>
-                                                <TableCell className="py-2 text-right text-[#573E32]">
-                                                    {formatPrice(item.price ?? 0)}
-                                                </TableCell>
-                                                <TableCell className="py-2 text-right font-semibold text-[#1F1F1F]">
-                                                    {formatPrice((item.price ?? 0) * (item.quantity ?? 0))}
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {shipmentItems.map((item: any, index: number) => {
+                                            // Match by ingredient_id (snake_case from API)
+                                            const ingredientKey = item.ingredient_id ?? item.ingredientId;
+                                            const meta = typeof ingredientKey === "number"
+                                                ? (productMeta[ingredientKey] ?? null)
+                                                : null;
+                                            // Same format as Product.tsx: "500 kg"
+                                            const packageLabel = meta?.packageSize && meta?.measurement
+                                                ? `${meta.packageSize} ${meta.measurement}`
+                                                : meta?.measurement || null;
+                                            return (
+                                                <TableRow key={item.id ?? index} className="border-b border-[#F7EFE7] last:border-0">
+                                                    <TableCell className="py-2 pr-4 text-[#1F1F1F]">
+                                                        {item.ingredientName ?? item.name ?? "Item"}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right text-[#573E32]">
+                                                        {item.quantity && item.unit
+                                                            ? `${item.quantity} ${item.unit}`
+                                                            : item.quantity ?? "-"}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-center text-[#573E32]">
+                                                        {packageLabel ?? "-"}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right text-[#573E32]">
+                                                        {formatPrice(item.price ?? 0)}
+                                                    </TableCell>
+                                                    <TableCell className="py-2 text-right font-semibold text-[#1F1F1F]">
+                                                        {formatPrice((item.price ?? 0) * (item.quantity ?? 0))}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </div>

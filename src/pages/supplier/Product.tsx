@@ -155,7 +155,7 @@ export function SupplierProducts() {
                             Supplier Products
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            List of ingredients/products you supply to SmartCoffee
+                            List of ingredients/products you supply to Coffee
                         </p>
                     </div>
                 </div>

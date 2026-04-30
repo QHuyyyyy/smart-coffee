@@ -687,7 +687,7 @@ export function Wallet() {
                         }}
                     >
                         <div className="h-full w-full bg-linear-to-r from-black/40 to-black/10 flex flex-col justify-center px-10">
-                            <h2 className="text-2xl font-semibold text-white mb-1">Welcome to SmartCoffee!</h2>
+                            <h2 className="text-2xl font-semibold text-white mb-1">Welcome to Coffee!</h2>
                             <p className="text-sm text-white/90 max-w-xl">
                                 Let&apos;s set up your supplier profile to get you started with our global network.
                             </p>

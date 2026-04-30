@@ -168,7 +168,7 @@ export function SupplierOrders() {
                             Supplier Orders
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            Danh sách đơn đặt hàng từ SmartCoffee
+                            Danh sách đơn đặt hàng từ Coffee
                         </p>
                     </div>
                 </div>

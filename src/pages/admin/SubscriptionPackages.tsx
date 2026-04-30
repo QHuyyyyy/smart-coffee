@@ -350,7 +350,7 @@ export function SubscriptionPackagesPage() {
                             Subscription Packages
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            Manage subscription packages for SmartCoffee owners
+                            Manage subscription packages for Coffee owners
                         </p>
                     </div>
                     <div className="flex items-center gap-3">

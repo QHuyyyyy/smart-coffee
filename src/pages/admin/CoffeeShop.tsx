@@ -216,7 +216,7 @@ export function CoffeeShopPage() {
                             Coffee Shops
                         </h1>
                         <p className="mt-1 text-sm text-[#707070]">
-                            Information about the coffee shops in the SmartCoffee system
+                            Information about the coffee shops in the Intelligent Coffee system
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
