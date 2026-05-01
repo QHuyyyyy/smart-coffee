@@ -38,7 +38,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
             price: product?.price ?? 0,
             stock: product?.stock ?? 0,
             packageSize: product?.packageSize ?? 0,
-            measurement: product?.measurement ?? "gram",
+            measurement: product?.measurement ?? "g",
             status: product?.status ?? "Available",
             description: product?.description ?? "",
         },
@@ -165,10 +165,10 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     value={form.watch("measurement")}
                                     onChange={(e) => form.setValue("measurement", e.target.value)}
                                 >
-                                    <option value="gram">Gram</option>
-                                    <option value="kg">Kilogram</option>
-                                    <option value="ml">Milliliter</option>
-                                    <option value="l">Liter</option>
+                                    <option value="g">g</option>
+                                    <option value="kg">kg</option>
+                                    <option value="ml">ml</option>
+                                    <option value="l">l</option>
                                 </select>
                             </div>
                             <div className="space-y-1 md:col-span-2">
