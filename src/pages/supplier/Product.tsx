@@ -211,6 +211,7 @@ export function SupplierProducts() {
                                 <TableHeader>
                                     <TableRow className="bg-transparent">
                                         <TableHead className="w-24">ID</TableHead>
+                                        <TableHead className="w-16">Image</TableHead>
                                         <TableHead>Ingredient Name</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead className="text-center">Price</TableHead>
@@ -228,6 +229,19 @@ export function SupplierProducts() {
                                         <TableRow key={p.productId}>
                                             <TableCell className="font-medium text-[#573E32]">
                                                 #{p.productId}
+                                            </TableCell>
+                                            <TableCell>
+                                                {p.image || p.ingredient?.image ? (
+                                                    <img
+                                                        src={p.image || p.ingredient?.image || ""}
+                                                        alt={p.ingredient?.name ?? "Product image"}
+                                                        className="h-10 w-10 rounded-md border border-[#EFEAE5] object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-[#D9CEC8] text-[10px] text-[#B8AAA0]">
+                                                        No Img
+                                                    </div>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex items-center gap-2">
@@ -298,14 +312,14 @@ export function SupplierProducts() {
                                     ))}
                                     {loading && (
                                         <TableRow>
-                                            <TableCell colSpan={11} className="py-6 text-center">
+                                            <TableCell colSpan={12} className="py-6 text-center">
                                                 <InlineLoading text="Loading products..." />
                                             </TableCell>
                                         </TableRow>
                                     )}
                                     {!loading && products.length === 0 && !error && (
                                         <TableRow>
-                                            <TableCell colSpan={11} className="py-6 text-center text-[#707070]">
+                                            <TableCell colSpan={12} className="py-6 text-center text-[#707070]">
                                                 No products found.
                                             </TableCell>
                                         </TableRow>
