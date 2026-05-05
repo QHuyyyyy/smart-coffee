@@ -72,7 +72,7 @@ export function AdminPostsPage() {
     const [posts, setPosts] = useState<PostItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [actingPostId, setActingPostId] = useState<number | null>(null);
+    const [actingPostId] = useState<number | null>(null);
     const [confirmPostOpen, setConfirmPostOpen] = useState(false);
     const [pendingPostId, setPendingPostId] = useState<number | null>(null);
     const [pendingPostAction, setPendingPostAction] = useState<"approve" | "unapprove" | null>(null);
