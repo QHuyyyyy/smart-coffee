@@ -114,9 +114,10 @@ export function SubscriptionsPage() {
                                     setPage(1);
                                     void fetchSubscriptions(1);
                                 }}
+                            >
                                 Reset
                             </Button>
-                    </div>
+                        </div>
                 </div>
 
                 <div className="px-6 py-4">
@@ -196,6 +197,6 @@ export function SubscriptionsPage() {
                 </div>
             </div>
         </div>
-        </div >
+        </div>
     );
 }
