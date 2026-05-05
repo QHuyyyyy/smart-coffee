@@ -8,15 +8,36 @@ import { Input } from "@/components/ui/input";
 import { supplierProductService, type SupplierProduct, type UpdateSupplierProductPayload } from "@/services/apis/supplierProduct.service";
 import { toast } from "sonner";
 
+const getPackageSizeMaxByMeasurement = (measurement?: string) => {
+    const normalized = measurement?.trim().toLowerCase();
+    if (normalized === "gram" || normalized === "g" || normalized === "ml") {
+        return 100000;
+    }
+    if (normalized === "kg" || normalized === "l") {
+        return 100;
+    }
+    return 100;
+};
+
 const formSchema = z.object({
-    price: z.number().int().min(1, "Price must be greater than 0"),
+    price: z.number().int().min(1, "Price must be greater than 0").max(999999999, "Price must be < 999999999"),
     // stock: số lượng túi
-    stock: z.number().min(0, "Stock must be at least 0 bag"),
+    stock: z.number().min(0, "Stock must be at least 0 bag").max(999999, "Stock must be < 999999"),
     // packageSize: khối lượng 1 túi hàng (theo measurement)
-    packageSize: z.number().min(0.01, "Package size must be greater than 0"),
+    packageSize: z.number().min(1, "Package size must be greater than 0"),
     measurement: z.string().min(1, "Measurement is required"),
     status: z.string().min(1, "Status is required"),
     description: z.string().optional(),
+}).superRefine((data, ctx) => {
+    const packageSizeMax = getPackageSizeMaxByMeasurement(data.measurement);
+    if (data.packageSize > packageSizeMax) {
+        const measurementLabel = data.measurement === "gram" ? "g" : data.measurement;
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["packageSize"],
+            message: `Package size must be <= ${packageSizeMax} for ${measurementLabel}.`,
+        });
+    }
 });
 
 export type SupplierProductEditFormValues = z.infer<typeof formSchema>;
@@ -92,6 +113,8 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
 
     const selectedIngredientCategory = product?.ingredient?.category ?? null;
     const measurementOptions = getMeasurementOptionsByCategory(selectedIngredientCategory);
+    const selectedMeasurement = form.watch("measurement");
+    const packageSizeMax = getPackageSizeMaxByMeasurement(selectedMeasurement);
 
     useEffect(() => {
         const current = form.getValues("measurement");
@@ -206,7 +229,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                 <select
                                     className="w-full rounded-xl border border-[#E0D5D0] bg-white px-2 py-4 text-sm text-[#3B2618] focus:outline-none focus:ring-2 focus:ring-[#C58A53]"
                                     value={form.watch("measurement")}
-                                    onChange={(e) => form.setValue("measurement", e.target.value)}
+                                    onChange={(e) => form.setValue("measurement", e.target.value, { shouldDirty: true, shouldValidate: true })}
                                 >
                                     <option value="g">g</option>
                                     <option value="kg">kg</option>
@@ -221,6 +244,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                         type="number"
                                         step="0.01"
                                         min="0"
+                                        max={packageSizeMax}
                                         {...form.register("packageSize", { valueAsNumber: true })}
                                         className="rounded-xl border-[#E0D5D0]"
                                     />
@@ -232,7 +256,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     </p>
                                 )}
                                 <p className="text-[11px] text-[#B8AAA0] mt-1">
-                                    Weight of 1 bag sold. Stock is the number of bags.
+                                    Weight of 1 bag sold. Max: {packageSizeMax.toLocaleString("en-US")} for {selectedMeasurement === "gram" ? "g" : selectedMeasurement}.
                                 </p>
                             </div>
                             <div className="space-y-1">

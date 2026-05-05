@@ -15,8 +15,8 @@ type RegistrationStep = "register" | "otp";
 
 const registerSchema = z.object({
     email: z.email("Please enter a valid email"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your password"),
+    password: z.string().min(6, "Password must be at least 6 characters").max(128, "Password must be at most 128 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your password").max(128, "Password must be at most 128 characters"),
     phone: z.string().trim().regex(
         /^(?:\+84|84|0)\d{9,10}$/,
         "Invalid phone number"
@@ -231,6 +231,7 @@ export function RegisterPage() {
                                     label=""
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Enter your password"
+                                    maxLength={128}
                                     {...registerForm.register("password")}
                                     disabled={isLoading}
                                 />
@@ -259,6 +260,7 @@ export function RegisterPage() {
                                     label=""
                                     type={showConfirmPassword ? "text" : "password"}
                                     placeholder="Confirm your password"
+                                    maxLength={128}
                                     {...registerForm.register("confirmPassword")}
                                     disabled={isLoading}
                                 />

@@ -49,6 +49,17 @@ const ALL_MEASUREMENT_OPTIONS: MeasurementOption[] = [
     ...LIQUID_MEASUREMENT_OPTIONS,
 ];
 
+const getPackageSizeMaxByMeasurement = (measurement?: string) => {
+    const normalized = measurement?.trim().toLowerCase();
+    if (normalized === "gram" || normalized === "g" || normalized === "ml") {
+        return 100000;
+    }
+    if (normalized === "kg" || normalized === "l") {
+        return 100;
+    }
+    return 100;
+};
+
 const normalizeIngredientCategory = (category?: string | null): "dry" | "liquid" | null => {
     const normalized = category?.trim().toLowerCase();
     if (normalized === "dry") return "dry";
@@ -114,7 +125,7 @@ const formSchema = z.object({
     // stock: số lượng túi
     stock: z.number().min(1, "Stock must be at least 1 bag").max(999999, "Stock must be < 999999 "),
     // packageSize: khối lượng 1 túi hàng (theo measurement)
-    packageSize: z.number().min(0.01, "Package size must be greater than 0").max(999999999, "Stock must be < 999999999 "),
+    packageSize: z.number().min(1, "Package size must be greater than 0"),
     measurement: z.string().min(1, "Measurement is required"),
     status: z.string().min(1, "Status is required"),
     description: z.string().optional(),
@@ -147,6 +158,16 @@ const formSchema = z.object({
                 message: "Liquid ingredients only support ml or l",
             });
         }
+    }
+
+    const packageSizeMax = getPackageSizeMaxByMeasurement(data.measurement);
+    if (data.packageSize > packageSizeMax) {
+        const measurementLabel = data.measurement === "gram" ? "g" : data.measurement;
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["packageSize"],
+            message: `Package size must be <= ${packageSizeMax} for ${measurementLabel}.`,
+        });
     }
 });
 
@@ -365,6 +386,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
 
     const mode = form.watch("mode");
     const selectedMeasurement = form.watch("measurement");
+    const packageSizeMax = getPackageSizeMaxByMeasurement(selectedMeasurement);
     const selectedIngredientCategory = form.watch("ingredientCategory");
     const measurementOptions = getMeasurementOptionsByCategory(selectedIngredientCategory);
 
@@ -597,6 +619,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     type="number"
                                     step="0.01"
                                     min="0"
+                                    max={packageSizeMax}
                                     placeholder={`e.g. 5 ${form.watch("measurement")}`}
                                     {...form.register("packageSize", { valueAsNumber: true })}
                                     className="h-12 rounded-xl border-[#E0D5D0]"
@@ -607,7 +630,7 @@ export function SupplierProductCreateDialog({ open, onOpenChange, onCreated }: S
                                     </p>
                                 )}
                                 <p className="text-[11px] text-[#B8AAA0] mt-1">
-                                    Weight of 1 bag sold. Stock is the number of bags.
+                                    Weight of 1 bag sold. Max: {packageSizeMax.toLocaleString("en-US")} for {selectedMeasurement === "gram" ? "g" : selectedMeasurement}.
                                 </p>
                             </div>
                         </div>
