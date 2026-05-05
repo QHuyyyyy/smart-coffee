@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { PostDetailModal } from "@/components/PostDetailModal";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 type PostTab = "unapproved" | "approved";
 
@@ -30,13 +31,6 @@ const defaultFilters: Filters = {
     createTo: null,
     title: "",
 };
-
-function formatDateTime(value: string | null | undefined) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString("vi-VN");
-}
 
 function normalizeDateTimeLocal(value: Date | null) {
     if (!value) return undefined;
@@ -302,7 +296,7 @@ export function AdminPostsPage() {
                                             </TableCell>
                                             <TableCell className="text-center">{post.viewCount ?? 0}</TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(post.createdAt)}
+                                                {formatUtc7DateTime(post.createdAt)}
                                             </TableCell>
                                             <TableCell>
                                                 {tab === "unapproved" ? (

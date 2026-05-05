@@ -9,6 +9,7 @@ import { ingredientService, type Ingredient } from "@/services/apis/ingredient.s
 import { IngredientCreateDialog } from "@/components/IngredientCreateDialog";
 import { IngredientEditDialog } from "@/components/IngredientEditDialog";
 import { toast } from "sonner";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 export function AdminIngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -87,10 +88,7 @@ export function AdminIngredientsPage() {
     };
 
     const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
+        return formatUtc7DateTime(value);
     };
 
     const formatEndDate = (value: string | null | undefined) => {

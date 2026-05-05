@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
+import { formatUtc7DateTime } from "@/lib/date-time";
 import {
     BookOpenText,
     CircleDollarSign,
@@ -58,13 +59,6 @@ type FinanceSummary = {
     subscriptionRevenue: number;
 };
 
-
-function formatDateTime(value: string | null | undefined) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString("vi-VN");
-}
 
 function getStatusClasses(status: string | null | undefined) {
     const normalized = (status ?? "").toLowerCase();
@@ -746,7 +740,7 @@ export function AdminHome() {
                                                     </span>
                                                 </TableCell>
                                                 <TableCell className="text-center text-xs text-[#707070]">
-                                                    {formatDateTime(item.transactionDate)}
+                                                    {formatUtc7DateTime(item.transactionDate)}
                                                 </TableCell>
                                             </TableRow>
                                         ))}

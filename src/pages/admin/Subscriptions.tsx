@@ -6,6 +6,7 @@ import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { subscriptionService, type Subscription } from "@/services/apis/subscription.service";
 import { formatVND } from "@/utils/currency";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 export function SubscriptionsPage() {
     const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -58,10 +59,7 @@ export function SubscriptionsPage() {
     };
 
     const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
+        return formatUtc7DateTime(value);
     };
 
     const renderStatus = (status: string | null | undefined) => {
@@ -116,90 +114,88 @@ export function SubscriptionsPage() {
                                     setPage(1);
                                     void fetchSubscriptions(1);
                                 }}
-                            >
                                 Reset
                             </Button>
+                    </div>
+                </div>
 
-                        </div>
+                <div className="px-6 py-4">
+                    {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
+
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-transparent">
+                                    <TableHead className="w-20">ID</TableHead>
+                                    <TableHead>Package</TableHead>
+                                    {/* <TableHead className="text-center">AccountID</TableHead> */}
+                                    <TableHead className="text-center">ShopName</TableHead>
+                                    <TableHead className="text-center">Status</TableHead>
+                                    <TableHead className="text-center">Start Date</TableHead>
+                                    <TableHead className="text-center">End Date</TableHead>
+                                    <TableHead className="text-center">Created At</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {!loading && subscriptions.map((sub) => (
+                                    <TableRow key={sub.subscriptionId}>
+                                        <TableCell className="font-medium text-[#573E32]">#{sub.subscriptionId}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="font-medium text-[#1F1F1F]">
+                                                    {sub.package?.name ?? `Package #${sub.packageId ?? "-"}`}
+                                                </span>
+                                                {sub.package?.price != null && (
+                                                    <span className="text-xs text-[#707070]">
+                                                        {formatVND(sub.package.price)} / month
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        {/* <TableCell className="text-center text-[#573E32]">{sub.ownerId ?? "-"}</TableCell> */}
+                                        <TableCell className="text-center text-[#573E32]">{sub.shopName ?? "-"}</TableCell>
+                                        <TableCell className="text-center">{renderStatus(sub.status)}</TableCell>
+                                        <TableCell className="text-center text-xs text-[#707070]">
+                                            {formatDateTime(sub.startDate)}
+                                        </TableCell>
+                                        <TableCell className="text-center text-xs text-[#707070]">
+                                            {formatDateTime(sub.endDate)}
+                                        </TableCell>
+                                        <TableCell className="text-center text-xs text-[#707070]">
+                                            {formatDateTime(sub.timeStamp)}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {loading && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="py-6 text-center">
+                                            <InlineLoading text="Loading Subscriptions..." />
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {!loading && subscriptions.length === 0 && !error && (
+                                    <TableRow>
+                                        <TableCell colSpan={7} className="py-6 text-center text-[#707070]">
+                                            No subscriptions found.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
                     </div>
 
-                    <div className="px-6 py-4">
-                        {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
-
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow className="bg-transparent">
-                                        <TableHead className="w-20">ID</TableHead>
-                                        <TableHead>Package</TableHead>
-                                        {/* <TableHead className="text-center">AccountID</TableHead> */}
-                                        <TableHead className="text-center">ShopName</TableHead>
-                                        <TableHead className="text-center">Status</TableHead>
-                                        <TableHead className="text-center">Start Date</TableHead>
-                                        <TableHead className="text-center">End Date</TableHead>
-                                        <TableHead className="text-center">Created At</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {!loading && subscriptions.map((sub) => (
-                                        <TableRow key={sub.subscriptionId}>
-                                            <TableCell className="font-medium text-[#573E32]">#{sub.subscriptionId}</TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-col">
-                                                    <span className="font-medium text-[#1F1F1F]">
-                                                        {sub.package?.name ?? `Package #${sub.packageId ?? "-"}`}
-                                                    </span>
-                                                    {sub.package?.price != null && (
-                                                        <span className="text-xs text-[#707070]">
-                                                            {formatVND(sub.package.price)} / month
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            {/* <TableCell className="text-center text-[#573E32]">{sub.ownerId ?? "-"}</TableCell> */}
-                                            <TableCell className="text-center text-[#573E32]">{sub.shopName ?? "-"}</TableCell>
-                                            <TableCell className="text-center">{renderStatus(sub.status)}</TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(sub.startDate)}
-                                            </TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(sub.endDate)}
-                                            </TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatDateTime(sub.timeStamp)}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {loading && (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="py-6 text-center">
-                                                <InlineLoading text="Loading Subscriptions..." />
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                    {!loading && subscriptions.length === 0 && !error && (
-                                        <TableRow>
-                                            <TableCell colSpan={7} className="py-6 text-center text-[#707070]">
-                                                No subscriptions found.
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </div>
-
-                        {/* Pagination */}
-                        <div className="mt-4 flex flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
-                            <p>
-                                Showing {fromItem} to {toItem} of {totalCount} entries
-                            </p>
-                            <div className="sm:ml-auto">
-                                <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
-                            </div>
+                    {/* Pagination */}
+                    <div className="mt-4 flex flex-col gap-3 text-xs text-[#707070] sm:flex-row sm:items-center">
+                        <p>
+                            Showing {fromItem} to {toItem} of {totalCount} entries
+                        </p>
+                        <div className="sm:ml-auto">
+                            <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        </div >
     );
 }

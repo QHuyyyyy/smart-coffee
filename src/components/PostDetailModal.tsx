@@ -5,6 +5,7 @@ import { recipeService } from "@/services/apis/recipe.service";
 import { InlineLoading } from "@/components/Loading";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 type PostPreviewRecipe = {
     recipeId: number;
@@ -53,13 +54,6 @@ function getPostStatusClasses(status: string | null | undefined) {
     }
 
     return "bg-gray-100 text-gray-700 border border-gray-200";
-}
-
-function formatDateTime(value: string | null | undefined) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString("vi-VN");
 }
 
 function parseOccasions(value: string | null | undefined) {
@@ -167,11 +161,11 @@ export function PostDetailModal({ open, post, onOpenChange, categoryName }: Post
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs text-[#707070]">Created At</span>
-                                            <span className="font-medium text-[#1F1F1F]">{formatDateTime(post.createdAt)}</span>
+                                            <span className="font-medium text-[#1F1F1F]">{formatUtc7DateTime(post.createdAt)}</span>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-xs text-[#707070]">Published At</span>
-                                            <span className="font-medium text-[#1F1F1F]">{formatDateTime(post.publishedAt)}</span>
+                                            <span className="font-medium text-[#1F1F1F]">{formatUtc7DateTime(post.publishedAt)}</span>
                                         </div>
                                     </div>
                                 </div>

@@ -6,6 +6,7 @@ import { Package, Users, CreditCard, BarChart2, Plus, Pencil, Filter, Search, Ch
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatUtc7DateTime } from "@/lib/date-time";
 import { Input } from "@/components/ui/input";
 import { dashboardService } from "@/services/apis/dashboard.service";
 import { subscriptionPackageService, type SubscriptionPackage } from "@/services/apis/subscriptionPackage.service";
@@ -108,6 +109,8 @@ export function SubscriptionPackagesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [applyConfirmOpen, setApplyConfirmOpen] = useState(false);
+    const [pendingApply, setPendingApply] = useState<any | null>(null);
 
     const form = useForm<PackageFormValues>({
         resolver: zodResolver(packageFormSchema),
@@ -328,14 +331,18 @@ export function SubscriptionPackagesPage() {
         try {
             setIsSubmitting(true);
             if (editingPackage) {
-                await subscriptionPackageService.update(editingPackage.packageId, payload);
-                toast.success("Subscription package updated successfully");
+                // ask for confirmation showing applied-from time
+                setPendingApply({ packageId: editingPackage.packageId, payload });
+                setApplyConfirmOpen(true);
+                setIsSubmitting(false);
             } else {
                 await subscriptionPackageService.create(payload);
                 toast.success("Subscription package created successfully");
             }
-            resetDialog();
-            void fetchPackages();
+            if (!editingPackage) {
+                resetDialog();
+                void fetchPackages();
+            }
         } catch (err: any) {
             console.error(err);
             toast.error(err?.response?.data?.message || "Operation failed");
@@ -702,6 +709,43 @@ export function SubscriptionPackagesPage() {
                             </Button>
                         </DialogFooter>
                     </form>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={applyConfirmOpen} onOpenChange={(open) => { if (!open) setApplyConfirmOpen(false); }}>
+                <DialogContent className="max-w-sm w-full">
+                    <DialogHeader>
+                        <DialogTitle>Confirm Update</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-[#5F5F5F]">
+                        Your change will be applied from
+                        {" "}
+                        <span className="font-semibold text-[#1F1F1F]">{formatUtc7DateTime(new Date().toISOString())}</span>
+                    </p>
+                    <DialogFooter className="mt-4">
+                        <Button type="button" variant="outline" onClick={() => { setApplyConfirmOpen(false); setPendingApply(null); }} disabled={isSubmitting}>
+                            Cancel
+                        </Button>
+                        <Button type="button" onClick={async () => {
+                            if (!pendingApply) return;
+                            setIsSubmitting(true);
+                            try {
+                                await subscriptionPackageService.update(pendingApply.packageId, pendingApply.payload);
+                                toast.success("Subscription package updated successfully");
+                                setApplyConfirmOpen(false);
+                                setPendingApply(null);
+                                resetDialog();
+                                void fetchPackages();
+                            } catch (err: any) {
+                                console.error(err);
+                                toast.error(err?.response?.data?.message || "Operation failed");
+                            } finally {
+                                setIsSubmitting(false);
+                            }
+                        }} disabled={isSubmitting}>
+                            {isSubmitting ? "Saving..." : "Confirm"}
+                        </Button>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
 

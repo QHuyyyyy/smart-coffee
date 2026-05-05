@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { InlineLoading } from "@/components/Loading";
 import { authService, type AccountManagementItem } from "@/services/apis/auth.service";
 import { toast } from "sonner";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 const DEFAULT_PAGE_SIZE = 10;
 const STATUS_OPTIONS: Array<{ label: string; value: string }> = [
@@ -88,10 +89,7 @@ export function AdminAccountsPage() {
     };
 
     const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
+        return formatUtc7DateTime(value);
     };
 
     const renderStatus = (status: string) => {
