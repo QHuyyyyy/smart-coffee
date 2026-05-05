@@ -22,8 +22,8 @@ const otpSchema = z.object({
 });
 
 const resetSchema = z.object({
-    newPassword: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(1, "Please confirm your new password"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters").max(128, "Password must be at most 128 characters"),
+    confirmPassword: z.string().min(1, "Please confirm your new password").max(128, "Password must be at most 128 characters"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
@@ -310,6 +310,7 @@ export function ForgotPasswordPage() {
                             label="New Password"
                             placeholder="Enter new password"
                             type="password"
+                            maxLength={128}
                             {...resetForm.register("newPassword")}
                         />
                         {resetForm.formState.errors.newPassword && (
@@ -321,6 +322,7 @@ export function ForgotPasswordPage() {
                             label="Confirm New Password"
                             placeholder="Confirm new password"
                             type="password"
+                            maxLength={128}
                             {...resetForm.register("confirmPassword")}
                         />
                         {resetForm.formState.errors.confirmPassword && (

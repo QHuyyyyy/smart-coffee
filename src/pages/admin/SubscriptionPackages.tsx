@@ -15,18 +15,36 @@ import { formatVND } from "@/utils/currency";
 const numericStringSchema = z
     .string()
     .trim()
-    .refine((value) => /^\d+$/.test(value), "Value must be a non-negative integer");
+    .refine((value) => /^\d+$/.test(value), "Value must be a non-negative integer")
+    .refine((value) => {
+        const num = Number(value);
+        return num <= 999999999;
+    }, "Value must be <= 999999999");
 
 const optionalLimitSchema = z
     .string()
     .trim()
-    .refine((value) => value === "" || /^\d+$/.test(value), "Value must be a non-negative integer");
+    .refine((value) => value === "" || /^\d+$/.test(value), "Value must be a non-negative integer")
+    .refine((value) => {
+        if (value === "") return true;
+        const num = Number(value);
+        return num <= 9999;
+    }, "Value must be <= 9999");
+
+const staffQuantitySchema = z
+    .string()
+    .trim()
+    .refine((value) => /^\d+$/.test(value), "Value must be a non-negative integer")
+    .refine((value) => {
+        const num = Number(value);
+        return num <= 100;
+    }, "Staff quantity must be <= 100");
 
 const packageFormSchema = z.object({
     name: z.string().trim().min(1, "Package name is required"),
     description: z.string().trim(),
     price: numericStringSchema,
-    staffQuantity: numericStringSchema,
+    staffQuantity: staffQuantitySchema,
     productRecommendLimit: optionalLimitSchema,
     menuSuggestLimit: optionalLimitSchema,
     menuAnalyzeFeedbackLimit: optionalLimitSchema,

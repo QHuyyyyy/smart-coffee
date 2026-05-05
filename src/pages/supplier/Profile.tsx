@@ -295,6 +295,11 @@ export function SupplierProfile() {
             return;
         }
 
+        if (currentPassword.length > 128 || newPassword.length > 128 || confirmPassword.length > 128) {
+            setPasswordError("Password must be at most 128 characters.");
+            return;
+        }
+
         try {
             setIsChangingPassword(true);
             await authService.changePassword({
@@ -643,6 +648,7 @@ export function SupplierProfile() {
                                     <label className="text-xs font-medium text-[#4F4F4F]">Current Password</label>
                                     <Input
                                         type="password"
+                                        maxLength={128}
                                         value={currentPassword}
                                         onChange={(e) => setCurrentPassword(e.target.value)}
                                         className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
@@ -652,6 +658,7 @@ export function SupplierProfile() {
                                     <label className="text-xs font-medium text-[#4F4F4F]">New Password</label>
                                     <Input
                                         type="password"
+                                        maxLength={128}
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"
@@ -661,6 +668,7 @@ export function SupplierProfile() {
                                     <label className="text-xs font-medium text-[#4F4F4F]">Confirm New Password</label>
                                     <Input
                                         type="password"
+                                        maxLength={128}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="h-11 rounded-xl border-[#E6D5C6] bg-white/80 focus-visible:ring-[#F47A1F]"

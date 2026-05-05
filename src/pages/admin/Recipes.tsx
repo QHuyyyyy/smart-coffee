@@ -5,9 +5,7 @@ import { TablePagination } from "@/components/ui/pagination";
 import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
-import { RecipeCreateDialog } from "@/components/RecipeCreateDialog";
 import { recipeService } from "@/services/apis/recipe.service";
-import { toast } from "sonner";
 import { formatVND } from "@/utils/currency";
 
 type Recipe = {
@@ -23,7 +21,6 @@ export function Recipes() {
     const [recipes, setRecipes] = useState<Recipe[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [openCreateDialog, setOpenCreateDialog] = useState(false);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
@@ -68,20 +65,6 @@ export function Recipes() {
     const handlePageChange = (newPage: number) => {
         if (newPage < 1 || newPage > totalPages || newPage === page) return;
         void fetchRecipes(newPage);
-    };
-
-    const handleCreateRecipe = async (data: any) => {
-        try {
-            // TODO: Call the create recipe API
-            console.log("Create recipe with data:", data);
-            toast.success("Recipe created successfully!");
-            setOpenCreateDialog(false);
-            // Refresh the recipes list
-            // await fetchRecipes();
-        } catch (err) {
-            toast.error("Failed to create recipe");
-            console.error(err);
-        }
     };
 
     const formatPrice = (value: number | null) => {
@@ -132,13 +115,6 @@ export function Recipes() {
                                     Reset
                                 </Button>
 
-                                {/* <button
-                                    onClick={() => setOpenCreateDialog(true)}
-                                    className="inline-flex items-center gap-2 rounded-full bg-[#573E32] px-4 py-2 text-sm font-medium text-white hover:bg-[#432d23] transition-colors"
-                                >
-                                    <Plus size={16} />
-                                    <span>Add Recipe</span>
-                                </button> */}
                             </div>
                         </div>
                     </div>
@@ -231,11 +207,7 @@ export function Recipes() {
                 </div>
             </div>
 
-            <RecipeCreateDialog
-                open={openCreateDialog}
-                onOpenChange={setOpenCreateDialog}
-                onSubmit={handleCreateRecipe}
-            />
+
         </div>
     );
 }

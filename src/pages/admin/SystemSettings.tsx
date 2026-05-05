@@ -34,13 +34,17 @@ const toFormState = (item: PackageLimit): PackageLimitFormState => ({
     recipeRecommendLimit: item.recipeRecommendLimit == null ? "" : item.recipeRecommendLimit.toString(),
 });
 
-const parseOptionalInteger = (rawValue: string, fieldLabel: string) => {
+const parseOptionalInteger = (rawValue: string, fieldLabel: string, maxValue?: number) => {
     const value = rawValue.trim();
     if (!value) return null;
 
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 0) {
         throw new Error(`${fieldLabel} must be a non-negative integer or left empty for unlimited.`);
+    }
+
+    if (maxValue !== undefined && parsed > maxValue) {
+        throw new Error(`${fieldLabel} must be <= ${maxValue}.`);
     }
 
     return parsed;
@@ -129,12 +133,12 @@ export function SystemSettingsPage() {
         let payload: UpdatePackageLimitPayload;
         try {
             payload = {
-                staffQuantity: parseOptionalInteger(form.staffQuantity, "Staff quantity"),
-                productRecommendLimit: parseOptionalInteger(form.productRecommendLimit, "Product recommend limit"),
-                menuSuggestLimit: parseOptionalInteger(form.menuSuggestLimit, "Menu suggest limit"),
-                menuAnalyzeFeedbackLimit: parseOptionalInteger(form.menuAnalyzeFeedbackLimit, "Menu analyze feedback limit"),
-                inventoryForecastLimit: parseOptionalInteger(form.inventoryForecastLimit, "Inventory forecast limit"),
-                recipeRecommendLimit: parseOptionalInteger(form.recipeRecommendLimit, "Recipe recommend limit"),
+                staffQuantity: parseOptionalInteger(form.staffQuantity, "Staff quantity", 100),
+                productRecommendLimit: parseOptionalInteger(form.productRecommendLimit, "Product recommend limit", 9999),
+                menuSuggestLimit: parseOptionalInteger(form.menuSuggestLimit, "Menu suggest limit", 9999),
+                menuAnalyzeFeedbackLimit: parseOptionalInteger(form.menuAnalyzeFeedbackLimit, "Menu analyze feedback limit", 9999),
+                inventoryForecastLimit: parseOptionalInteger(form.inventoryForecastLimit, "Inventory forecast limit", 9999),
+                recipeRecommendLimit: parseOptionalInteger(form.recipeRecommendLimit, "Recipe recommend limit", 9999),
             };
         } catch (validationError: any) {
             toast.error(validationError?.message || "Invalid package limit values.");
