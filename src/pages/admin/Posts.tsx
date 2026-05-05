@@ -160,32 +160,6 @@ export function AdminPostsPage() {
         setPage(1);
     };
 
-    const handleApprove = async (postId: number) => {
-        try {
-            setActingPostId(postId);
-            await postService.approve(postId);
-            toast.success("Post approved successfully");
-            void fetchPosts(page);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || err?.message || "Failed to approve post");
-        } finally {
-            setActingPostId(null);
-        }
-    };
-
-    const handleUnapprove = async (postId: number) => {
-        try {
-            setActingPostId(postId);
-            await postService.cancel(postId);
-            toast.success("Post unapproved successfully");
-            void fetchPosts(page);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || err?.message || "Failed to unapprove post");
-        } finally {
-            setActingPostId(null);
-        }
-    };
-
     const handleConfirmPostAction = async () => {
         if (!pendingPostId || !pendingPostAction) return;
         try {
