@@ -329,6 +329,10 @@ export function SubscriptionPackagesPage() {
         return formatVND(value);
     };
 
+    const getBillingPeriodLabel = (pkgName: string | null | undefined) => {
+        return pkgName?.trim().toLowerCase() === "trial" ? "/ 3 days" : "/ month";
+    };
+
     const getDescriptionFeatures = (value: string | null | undefined) => {
         const normalized = (value ?? "").replace(/\\n|\/n/g, "\n");
         const features = normalized
@@ -460,7 +464,7 @@ export function SubscriptionPackagesPage() {
 
                                 <div className="mb-5">
                                     <p className="text-xl font-semibold tracking-tight text-[#1F1F1F]">{formatPrice(pkg.price as any)}</p>
-                                    <p className="text-xs text-[#B0A49E]">/ month</p>
+                                    <p className="text-xs text-[#B0A49E]">{getBillingPeriodLabel(pkg.name)}</p>
                                 </div>
 
                                 <div className="border-t border-[#F1E6DE] pt-4 space-y-2 text-xs text-[#4F4F4F]">

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { postService, type PostCategoryItem, type PostItem } from "@/services/apis/post.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { PostDetailModal } from "@/components/PostDetailModal";
@@ -71,7 +72,11 @@ export function AdminPostsPage() {
     const [posts, setPosts] = useState<PostItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [actingPostId, setActingPostId] = useState<number | null>(null);
+    const [actingPostId] = useState<number | null>(null);
+    const [confirmPostOpen, setConfirmPostOpen] = useState(false);
+    const [pendingPostId, setPendingPostId] = useState<number | null>(null);
+    const [pendingPostAction, setPendingPostAction] = useState<"approve" | "unapprove" | null>(null);
+    const [isProcessingPostAction, setIsProcessingPostAction] = useState(false);
     const [postCategories, setPostCategories] = useState<PostCategoryItem[]>([]);
 
     const [detailOpen, setDetailOpen] = useState(false);
@@ -155,29 +160,25 @@ export function AdminPostsPage() {
         setPage(1);
     };
 
-    const handleApprove = async (postId: number) => {
+    const handleConfirmPostAction = async () => {
+        if (!pendingPostId || !pendingPostAction) return;
         try {
-            setActingPostId(postId);
-            await postService.approve(postId);
-            toast.success("Post approved successfully");
+            setIsProcessingPostAction(true);
+            if (pendingPostAction === "approve") {
+                await postService.approve(pendingPostId);
+                toast.success("Post approved successfully");
+            } else {
+                await postService.cancel(pendingPostId);
+                toast.success("Post unapproved successfully");
+            }
             void fetchPosts(page);
+            setConfirmPostOpen(false);
+            setPendingPostId(null);
+            setPendingPostAction(null);
         } catch (err: any) {
-            toast.error(err?.response?.data?.message || err?.message || "Failed to approve post");
+            toast.error(err?.response?.data?.message || err?.message || "Failed to perform action");
         } finally {
-            setActingPostId(null);
-        }
-    };
-
-    const handleUnapprove = async (postId: number) => {
-        try {
-            setActingPostId(postId);
-            await postService.cancel(postId);
-            toast.success("Post unapproved successfully");
-            void fetchPosts(page);
-        } catch (err: any) {
-            toast.error(err?.response?.data?.message || err?.message || "Failed to unapprove post");
-        } finally {
-            setActingPostId(null);
+            setIsProcessingPostAction(false);
         }
     };
 
@@ -318,7 +319,11 @@ export function AdminPostsPage() {
                                                             type="button"
                                                             size="sm"
                                                             className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                                                            onClick={() => void handleApprove(post.postId)}
+                                                            onClick={() => {
+                                                                setPendingPostId(post.postId);
+                                                                setPendingPostAction("approve");
+                                                                setConfirmPostOpen(true);
+                                                            }}
                                                             disabled={actingPostId === post.postId}
                                                         >
                                                             <CheckCircle2 size={14} />
@@ -329,7 +334,11 @@ export function AdminPostsPage() {
                                                             size="sm"
                                                             variant="outline"
                                                             className="border-red-200 text-red-700 hover:bg-red-50"
-                                                            onClick={() => void handleUnapprove(post.postId)}
+                                                            onClick={() => {
+                                                                setPendingPostId(post.postId);
+                                                                setPendingPostAction("unapprove");
+                                                                setConfirmPostOpen(true);
+                                                            }}
                                                             disabled={actingPostId === post.postId}
                                                         >
                                                             <XCircle size={14} />
@@ -389,6 +398,51 @@ export function AdminPostsPage() {
                 post={selectedPost}
                 categoryName={selectedPost?.postCategoryId ? (categoryNameById.get(selectedPost.postCategoryId) ?? `#${selectedPost.postCategoryId}`) : "-"}
             />
+            <Dialog open={confirmPostOpen} onOpenChange={(open) => {
+                if (!open) {
+                    setConfirmPostOpen(false);
+                    setPendingPostId(null);
+                    setPendingPostAction(null);
+                }
+            }}>
+                <DialogContent className="max-w-sm w-full">
+                    <DialogHeader>
+                        <DialogTitle>Confirm action</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-sm text-[#707070]">
+                        Are you sure you want to
+                        {" "}
+                        <span className="font-semibold text-[#573E32]">{pendingPostAction === "approve" ? "approve" : "cancel"}</span>
+                        {" "}
+                        post
+                        {" "}
+                        <span className="font-semibold text-[#573E32]">#{pendingPostId}</span>
+                        ?
+                    </p>
+                    <DialogFooter className="mt-4 flex justify-end gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={isProcessingPostAction}
+                            onClick={() => {
+                                setConfirmPostOpen(false);
+                                setPendingPostId(null);
+                                setPendingPostAction(null);
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="button"
+                            variant={pendingPostAction === "unapprove" ? "destructive" : "coffee"}
+                            disabled={isProcessingPostAction}
+                            onClick={() => void handleConfirmPostAction()}
+                        >
+                            {isProcessingPostAction ? "Processing..." : "Confirm"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
