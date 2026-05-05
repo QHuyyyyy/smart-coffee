@@ -9,6 +9,7 @@ import { Loading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatVND } from "@/utils/currency";
 import { toast } from "sonner";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 type ProductMeta = {
     packageSize: number | null;
@@ -293,7 +294,7 @@ export function SupplierOrderDetail() {
                         </div>
                         <div className="flex justify-between gap-4">
                             <span>Created At</span>
-                            <span className="font-semibold text-[#1F1F1F]">{formatDateTime(order.createAt)}</span>
+                            <span className="font-semibold text-[#1F1F1F]">{formatUtc7DateTime(order.createAt)}</span>
                         </div>
                     </div>
                 </div>

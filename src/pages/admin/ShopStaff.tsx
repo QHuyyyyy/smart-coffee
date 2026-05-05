@@ -6,6 +6,7 @@ import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TablePagination } from "@/components/ui/pagination";
 import { shopStaffService, type ShopStaff } from "@/services/apis/shopStaff.service";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -41,13 +42,6 @@ export function AdminShopStaffPage() {
     const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
     const fromItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
     const toItem = totalCount === 0 ? 0 : Math.min(totalCount, page * pageSize);
-
-    const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
-    };
 
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
@@ -110,7 +104,7 @@ export function AdminShopStaffPage() {
                                             <TableCell className="text-[#707070]">{staff.accountId ?? "-"}</TableCell>
                                             <TableCell className="text-[#707070]">{staff.ownerName ?? "-"}</TableCell>
                                             <TableCell className="text-[#1F1F1F]">{staff.fullName || "-"}</TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">{formatDateTime(staff.timeStamp)}</TableCell>
+                                            <TableCell className="text-center text-xs text-[#707070]">{formatUtc7DateTime(staff.timeStamp)}</TableCell>
                                         </TableRow>
                                     ))}
 

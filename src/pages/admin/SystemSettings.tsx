@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { formatUtc7DateTime } from "@/lib/date-time";
 import {
     systemSettingsService,
     type PackageLimit,
@@ -59,6 +61,9 @@ export function SystemSettingsPage() {
     const [loading, setLoading] = useState(false);
     const [savingCommission, setSavingCommission] = useState(false);
     const [savingPackageId, setSavingPackageId] = useState<number | null>(null);
+    const [commissionConfirmOpen, setCommissionConfirmOpen] = useState(false);
+    const [packageConfirmOpen, setPackageConfirmOpen] = useState(false);
+    const [pendingPackageForSave, setPendingPackageForSave] = useState<PackageLimit | null>(null);
 
     const [error, setError] = useState<string | null>(null);
 
@@ -209,7 +214,7 @@ export function SystemSettingsPage() {
                                 <Button
                                     type="button"
                                     className="bg-[#5C4233] text-white hover:bg-[#4B362A]"
-                                    onClick={handleCommissionSave}
+                                    onClick={() => setCommissionConfirmOpen(true)}
                                     disabled={savingCommission}
                                 >
                                     <Save size={16} className="mr-1" />
@@ -382,7 +387,10 @@ export function SystemSettingsPage() {
 
                                             <Button
                                                 type="button"
-                                                onClick={() => handleSavePackageLimits(item)}
+                                                onClick={() => {
+                                                    setPendingPackageForSave(item);
+                                                    setPackageConfirmOpen(true);
+                                                }}
                                                 className="mt-4 w-full bg-[#5C4233] text-white hover:bg-[#4B362A]"
                                                 disabled={isSaving}
                                             >
@@ -395,6 +403,59 @@ export function SystemSettingsPage() {
                         </section>
                     </>
                 )}
+
+                <Dialog open={commissionConfirmOpen} onOpenChange={setCommissionConfirmOpen}>
+                    <DialogContent className="max-w-sm w-full">
+                        <DialogHeader>
+                            <DialogTitle>Confirm Change</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-[#707070]">
+                            Your change will be applied from
+                            {" "}
+                            <span className="font-semibold text-[#573E32]">{formatUtc7DateTime(new Date().toISOString())}</span>
+                        </p>
+                        <DialogFooter className="mt-4 flex justify-end gap-3">
+                            <Button type="button" variant="outline" disabled={savingCommission} onClick={() => setCommissionConfirmOpen(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="button" disabled={savingCommission} onClick={() => { setCommissionConfirmOpen(false); void handleCommissionSave(); }}>
+                                {savingCommission ? "Saving..." : "Confirm"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={packageConfirmOpen} onOpenChange={(open) => {
+                    if (!open) {
+                        setPackageConfirmOpen(false);
+                        setPendingPackageForSave(null);
+                    }
+                }}>
+                    <DialogContent className="max-w-sm w-full">
+                        <DialogHeader>
+                            <DialogTitle>Confirm Update</DialogTitle>
+                        </DialogHeader>
+                        <p className="text-sm text-[#707070]">
+                            Your change will be applied from
+                            {" "}
+                            <span className="font-semibold text-[#573E32]">{formatUtc7DateTime(new Date().toISOString())}</span>
+                        </p>
+                        <DialogFooter className="mt-4 flex justify-end gap-3">
+                            <Button type="button" variant="outline" disabled={savingPackageId != null} onClick={() => { setPackageConfirmOpen(false); setPendingPackageForSave(null); }}>
+                                Cancel
+                            </Button>
+                            <Button type="button" disabled={savingPackageId != null} onClick={() => {
+                                if (!pendingPackageForSave) return;
+                                setPackageConfirmOpen(false);
+                                void handleSavePackageLimits(pendingPackageForSave);
+                                setPendingPackageForSave(null);
+                            }}>
+                                {savingPackageId != null ? "Updating..." : "Confirm"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
             </div>
         </div>
     );

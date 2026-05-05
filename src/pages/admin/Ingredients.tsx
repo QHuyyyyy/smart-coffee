@@ -9,6 +9,7 @@ import { ingredientService, type Ingredient } from "@/services/apis/ingredient.s
 import { IngredientCreateDialog } from "@/components/IngredientCreateDialog";
 import { IngredientEditDialog } from "@/components/IngredientEditDialog";
 import { toast } from "sonner";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 export function AdminIngredientsPage() {
     const [ingredients, setIngredients] = useState<Ingredient[]>([]);
@@ -87,17 +88,10 @@ export function AdminIngredientsPage() {
     };
 
     const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
+        return formatUtc7DateTime(value);
     };
 
-    const formatEndDate = (value: string | null | undefined) => {
-        if (!value) return "-";
-        if (value.startsWith("0001-01-01")) return "-";
-        return formatDateTime(value);
-    };
+
 
     const handleConfirmDelete = async () => {
         if (!deletingIngredient) return;
@@ -182,7 +176,6 @@ export function AdminIngredientsPage() {
                                         <TableHead>Name</TableHead>
                                         <TableHead>Category</TableHead>
                                         <TableHead className="text-center">Create Date</TableHead>
-                                        <TableHead className="text-center">End Date</TableHead>
                                         <TableHead className="text-center">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -207,9 +200,6 @@ export function AdminIngredientsPage() {
                                             <TableCell className="text-[#707070]">{ingredient.category}</TableCell>
                                             <TableCell className="text-center text-xs text-[#707070]">
                                                 {formatDateTime(ingredient.createDate)}
-                                            </TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">
-                                                {formatEndDate(ingredient.endDate)}
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex justify-center gap-2 text-[#B0A49E]">

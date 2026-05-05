@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TablePagination } from "@/components/ui/pagination";
 import { coffeeShopService, type CoffeeShop } from "@/services/apis/coffeeShop.service";
 import { ghnService, type District, type Province, type Ward } from "@/services/apis/ghn.service";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -198,13 +199,6 @@ export function CoffeeShopPage() {
             || loadingWardByDistrict[districtId] === true;
     };
 
-    const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
-    };
-
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -290,7 +284,7 @@ export function CoffeeShopPage() {
                                                     : getLocationLabel(shop)}
                                             </TableCell>
                                             <TableCell className="text-right text-xs text-[#707070]">
-                                                {formatDateTime(shop.timestamp)}
+                                                {formatUtc7DateTime(shop.timestamp)}
                                             </TableCell>
                                         </TableRow>
                                     ))}

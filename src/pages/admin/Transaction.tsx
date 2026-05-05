@@ -10,13 +10,11 @@ import { orderService } from "@/services/apis/order.service";
 import { dashboardService } from "@/services/apis/dashboard.service";
 import { DollarSign, Package, RefreshCw } from "lucide-react";
 import { formatVND } from "@/utils/currency";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 
 function formatDateTime(value: string | null | undefined) {
-    if (!value) return "-";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString("vi-VN");
+    return formatUtc7DateTime(value);
 }
 
 function formatDocType(docType: string | null | undefined) {

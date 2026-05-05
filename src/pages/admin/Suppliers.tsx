@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { TablePagination } from "@/components/ui/pagination";
 import { supplierService, type Supplier } from "@/services/apis/supplier.service";
 import { ghnService, type District, type Province, type Ward } from "@/services/apis/ghn.service";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -198,13 +199,6 @@ export function AdminSuppliersPage() {
             || loadingWardByDistrict[districtId] === true;
     };
 
-    const formatDateTime = (value: string | null | undefined) => {
-        if (!value) return "-";
-        const date = new Date(value);
-        if (Number.isNaN(date.getTime())) return value;
-        return date.toLocaleString("vi-VN");
-    };
-
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -275,8 +269,8 @@ export function AdminSuppliersPage() {
                                                     : getLocationLabel(supplier)}
                                             </TableCell>
                                             <TableCell className="text-center text-[#707070]">{supplier.rating ?? "-"}</TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">{formatDateTime(supplier.createDate)}</TableCell>
-                                            <TableCell className="text-center text-xs text-[#707070]">{formatDateTime(supplier.withdrawDate)}</TableCell>
+                                            <TableCell className="text-center text-xs text-[#707070]">{formatUtc7DateTime(supplier.createDate)}</TableCell>
+                                            <TableCell className="text-center text-xs text-[#707070]">{formatUtc7DateTime(supplier.withdrawDate)}</TableCell>
                                         </TableRow>
                                     ))}
 

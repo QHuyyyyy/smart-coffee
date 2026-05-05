@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/ui/pagination";
 import { formatVND } from "@/utils/currency";
+import { formatUtc7DateTime } from "@/lib/date-time";
 
 interface WithdrawalRow {
     withdrawId?: number | null;
@@ -220,7 +221,7 @@ export function AdminWithdrawalsPage() {
                                                     {renderStatusBadge(w.status)}
                                                 </TableCell>
                                                 <TableCell className="text-right text-xs text-[#707070]">
-                                                    {w.createAt ? new Date(w.createAt).toLocaleString() : "-"}
+                                                    {formatUtc7DateTime(w.createAt)}
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex justify-end gap-3 text-[#B0A49E]">
