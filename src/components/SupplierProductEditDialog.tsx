@@ -59,6 +59,49 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [product, open]);
 
+    type MeasurementOption = { value: string; label: string };
+
+    const DRY_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+        { value: "g", label: "g" },
+        { value: "kg", label: "kg" },
+    ];
+
+    const LIQUID_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+        { value: "ml", label: "ml" },
+        { value: "l", label: "l" },
+    ];
+
+    const ALL_MEASUREMENT_OPTIONS: MeasurementOption[] = [
+        ...DRY_MEASUREMENT_OPTIONS,
+        ...LIQUID_MEASUREMENT_OPTIONS,
+    ];
+
+    const normalizeIngredientCategory = (category?: string | null): "dry" | "liquid" | null => {
+        const normalized = category?.trim().toLowerCase();
+        if (normalized === "dry") return "dry";
+        if (normalized === "liquid") return "liquid";
+        return null;
+    };
+
+    const getMeasurementOptionsByCategory = (category?: string | null): MeasurementOption[] => {
+        const normalized = normalizeIngredientCategory(category);
+        if (normalized === "dry") return DRY_MEASUREMENT_OPTIONS;
+        if (normalized === "liquid") return LIQUID_MEASUREMENT_OPTIONS;
+        return ALL_MEASUREMENT_OPTIONS;
+    };
+
+    const selectedIngredientCategory = product?.ingredient?.category ?? null;
+    const measurementOptions = getMeasurementOptionsByCategory(selectedIngredientCategory);
+
+    useEffect(() => {
+        const current = form.getValues("measurement");
+        if (!measurementOptions.some((o) => o.value === current)) {
+            form.setValue("measurement", measurementOptions[0].value, { shouldDirty: true, shouldValidate: true });
+        }
+        // only run when product/open or measurement options change
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [product, open, measurementOptions.map((o) => o.value).join(",")]);
+
     const handleClose = () => {
         onOpenChange(false);
         setSelectedImage(null);

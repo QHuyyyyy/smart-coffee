@@ -4,6 +4,7 @@ import { walletService } from "@/services/apis/wallet.service";
 import { InlineLoading } from "@/components/Loading";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/ui/pagination";
 import { formatVND } from "@/utils/currency";
 
@@ -74,6 +75,25 @@ export function AdminWithdrawalsPage() {
     const handleUpdateStatus = async (id: number, newStatus: string) => {
         await walletService.updateWithdrawStatus(id, { status: newStatus });
         await fetchData(page);
+    };
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingWithdrawalId, setPendingWithdrawalId] = useState<number | null>(null);
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
+
+    const handleConfirmAction = async () => {
+        if (pendingWithdrawalId === null || !pendingAction) return;
+        try {
+            setIsProcessingAction(true);
+            await handleUpdateStatus(pendingWithdrawalId, pendingAction);
+            setConfirmOpen(false);
+            setPendingWithdrawalId(null);
+            setPendingAction(null);
+        } catch (err) {
+            // error handling surfaced elsewhere
+        } finally {
+            setIsProcessingAction(false);
+        }
     };
     const totalPages = totalCount > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
     const fromItem = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -211,7 +231,9 @@ export function AdminWithdrawalsPage() {
                                                                     className="text-xs font-medium text-emerald-700 hover:text-emerald-800"
                                                                     onClick={() => {
                                                                         if (withdrawalId !== null) {
-                                                                            void handleUpdateStatus(withdrawalId, "Processing");
+                                                                            setPendingWithdrawalId(withdrawalId);
+                                                                            setPendingAction("Processing");
+                                                                            setConfirmOpen(true);
                                                                         }
                                                                     }}
                                                                     disabled={withdrawalId === null}
@@ -223,7 +245,9 @@ export function AdminWithdrawalsPage() {
                                                                     className="text-xs font-medium text-red-600 hover:text-red-700"
                                                                     onClick={() => {
                                                                         if (withdrawalId !== null) {
-                                                                            void handleUpdateStatus(withdrawalId, "Rejected");
+                                                                            setPendingWithdrawalId(withdrawalId);
+                                                                            setPendingAction("Rejected");
+                                                                            setConfirmOpen(true);
                                                                         }
                                                                     }}
                                                                     disabled={withdrawalId === null}
@@ -238,7 +262,9 @@ export function AdminWithdrawalsPage() {
                                                                 className="text-xs font-medium text-[#573E32] hover:text-[#3b2218]"
                                                                 onClick={() => {
                                                                     if (withdrawalId !== null) {
-                                                                        void handleUpdateStatus(withdrawalId, "Completed");
+                                                                        setPendingWithdrawalId(withdrawalId);
+                                                                        setPendingAction("Completed");
+                                                                        setConfirmOpen(true);
                                                                     }
                                                                 }}
                                                                 disabled={withdrawalId === null}
@@ -278,8 +304,54 @@ export function AdminWithdrawalsPage() {
                             <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
+                    <Dialog open={confirmOpen} onOpenChange={(open) => {
+                        if (!open) {
+                            setConfirmOpen(false);
+                            setPendingWithdrawalId(null);
+                            setPendingAction(null);
+                        }
+                    }}>
+                        <DialogContent className="max-w-sm w-full">
+                            <DialogHeader>
+                                <DialogTitle>Confirm action</DialogTitle>
+                            </DialogHeader>
+                            <p className="text-sm text-[#707070]">
+                                Are you sure you want to set
+                                {" "}
+                                <span className="font-semibold text-[#573E32]">#{pendingWithdrawalId}</span>
+                                {" "}
+                                to
+                                {" "}
+                                <span className="font-semibold text-[#573E32]">{pendingAction}</span>
+                                ?
+                            </p>
+                            <DialogFooter className="mt-4 flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={isProcessingAction}
+                                    onClick={() => {
+                                        setConfirmOpen(false);
+                                        setPendingWithdrawalId(null);
+                                        setPendingAction(null);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={pendingAction === "Rejected" ? "destructive" : "coffee"}
+                                    disabled={isProcessingAction}
+                                    onClick={() => void handleConfirmAction()}
+                                >
+                                    {isProcessingAction ? "Processing..." : "Confirm"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </div>
     );
 }
+
