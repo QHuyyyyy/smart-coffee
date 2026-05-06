@@ -69,7 +69,7 @@ const feedbackSchema = z.object({
     rating: z.number().min(1),
     priceRating: z.enum(PRICE_OPTIONS),
     repurchasable: z.enum(['yes', 'maybe', 'no']),
-    comment: z.string(),
+    comment: z.string().max(500, 'Comment must be at most 500 characters').optional(),
 });
 
 type FeedbackFormValues = z.infer<typeof feedbackSchema>;
@@ -199,7 +199,7 @@ export function FeedbackPage() {
                 rating: values.rating,
                 priceRating: values.priceRating,
                 repurchasable: values.repurchasable,
-                comment: values.comment.trim() || undefined,
+                comment: values.comment?.trim() || undefined,
                 ratedBy: 'Others',
             };
 
