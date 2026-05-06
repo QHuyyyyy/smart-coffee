@@ -5,6 +5,7 @@ import { Table, TableBody, TableHeader, TableHead, TableRow, TableCell } from "@
 import { orderService, type SystemOrder } from "@/services/apis/order.service";
 import { InlineLoading } from "@/components/Loading";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TablePagination } from "@/components/ui/pagination";
 import { formatVND } from "@/utils/currency";
 
@@ -17,6 +18,10 @@ export function AdminOrders() {
     const [pageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [statusFilter, setStatusFilter] = useState<string | null>("Pending");
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
+    const [pendingAction, setPendingAction] = useState<string | null>(null);
+    const [isProcessingAction, setIsProcessingAction] = useState(false);
 
     const fetchOrders = async (targetPage = 1, status: string | null = statusFilter) => {
         try {
@@ -128,6 +133,29 @@ export function AdminOrders() {
         }
     };
 
+    const openConfirmDialog = (orderId: number, nextStatus: string) => {
+        setPendingOrderId(orderId);
+        setPendingAction(nextStatus);
+        setConfirmOpen(true);
+    };
+
+    const handleConfirmAction = async () => {
+        if (pendingOrderId === null || !pendingAction) return;
+        try {
+            setIsProcessingAction(true);
+            if (pendingAction.toLowerCase() === "refunded") {
+                await handleRefundOrder(pendingOrderId);
+            } else {
+                await handleUpdateStatus(pendingOrderId, pendingAction);
+            }
+            setConfirmOpen(false);
+            setPendingOrderId(null);
+            setPendingAction(null);
+        } finally {
+            setIsProcessingAction(false);
+        }
+    };
+
     return (
         <div className="mt-24 px-10 pb-10 w-full overflow-y-auto">
             <div className="w-full">
@@ -223,7 +251,7 @@ export function AdminOrders() {
                                                     {["cancelled", "rejected", "failed"].includes((o.status ?? "").toLowerCase()) && (
                                                         <button
                                                             className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                                            onClick={() => handleRefundOrder(o.orderId)}
+                                                            onClick={() => openConfirmDialog(o.orderId, "Refunded")}
                                                             disabled={loading}
                                                             title="Accept Refund"
                                                         >
@@ -233,7 +261,7 @@ export function AdminOrders() {
                                                     {["delivered"].includes((o.status ?? "").toLowerCase()) && (
                                                         <button
                                                             className="hover:text-amber-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                                                            onClick={() => handleUpdateStatus(o.orderId, "Completed")}
+                                                            onClick={() => openConfirmDialog(o.orderId, "Completed")}
                                                             disabled={loading}
                                                             title="Accept Completed"
                                                         >
@@ -271,6 +299,51 @@ export function AdminOrders() {
                             <TablePagination currentPage={page} totalPages={totalPages} onPageChange={handlePageChange} />
                         </div>
                     </div>
+                    <Dialog open={confirmOpen} onOpenChange={(open) => {
+                        if (!open) {
+                            setConfirmOpen(false);
+                            setPendingOrderId(null);
+                            setPendingAction(null);
+                        }
+                    }}>
+                        <DialogContent className="max-w-sm w-full">
+                            <DialogHeader>
+                                <DialogTitle>Confirm action</DialogTitle>
+                            </DialogHeader>
+                            <p className="text-sm text-[#707070]">
+                                Are you sure you want to set order
+                                {" "}
+                                <span className="font-semibold text-[#573E32]">#{pendingOrderId}</span>
+                                {" "}
+                                to
+                                {" "}
+                                <span className="font-semibold text-[#573E32]">{pendingAction}</span>
+                                ?
+                            </p>
+                            <DialogFooter className="mt-4 flex justify-end gap-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={isProcessingAction}
+                                    onClick={() => {
+                                        setConfirmOpen(false);
+                                        setPendingOrderId(null);
+                                        setPendingAction(null);
+                                    }}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    type="button"
+                                    variant={pendingAction === "Refunded" ? "destructive" : "coffee"}
+                                    disabled={isProcessingAction}
+                                    onClick={() => void handleConfirmAction()}
+                                >
+                                    {isProcessingAction ? "Processing..." : "Confirm"}
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </div>
