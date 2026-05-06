@@ -189,7 +189,7 @@ export function PostDetailModal({ open, post, onOpenChange, categoryName }: Post
                                     </div>
                                     <div className="p-5 space-y-4">
                                         {!post.recipeId && (
-                                            <p className="text-sm text-[#707070]">Post nay chua gan recipeId.</p>
+                                            <p className="text-sm text-[#707070]">Post does not have recipeId.</p>
                                         )}
 
                                         {post.recipeId && detailLoading && (

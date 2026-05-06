@@ -210,6 +210,11 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     {...form.register("price", { valueAsNumber: true })}
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
+                                {form.formState.errors.price && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.price.message as string}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Current Stock (bags)</label>
@@ -220,6 +225,11 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     {...form.register("stock", { valueAsNumber: true })}
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
+                                {form.formState.errors.stock && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.stock.message as string}
+                                    </p>
+                                )}
                             </div>
                         </div>
 
@@ -236,6 +246,11 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     <option value="ml">ml</option>
                                     <option value="l">l</option>
                                 </select>
+                                {form.formState.errors.measurement && (
+                                    <p className="text-xs text-red-500 mt-1">
+                                        {form.formState.errors.measurement.message as string}
+                                    </p>
+                                )}
                             </div>
                             <div className="space-y-1 md:col-span-2">
                                 <label className="text-xs font-medium text-[#7A685B]">Package Size</label>
@@ -259,7 +274,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     Weight of 1 bag sold. Max: {packageSizeMax.toLocaleString("en-US")} for {selectedMeasurement === "gram" ? "g" : selectedMeasurement}.
                                 </p>
                             </div>
-                            <div className="space-y-1">
+                            {/* <div className="space-y-1">
                                 <label className="text-xs font-medium text-[#7A685B]">Status</label>
                                 <Input
                                     type="text"
@@ -267,7 +282,7 @@ export function SupplierProductEditDialog({ open, onOpenChange, product, onUpdat
                                     readOnly
                                     className="rounded-xl border-[#E0D5D0]"
                                 />
-                            </div>
+                            </div> */}
                         </div>
 
                         <div className="space-y-1">
